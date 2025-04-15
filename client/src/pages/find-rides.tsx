@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { Header } from "@/components/ui/header";
 import { Footer } from "@/components/ui/footer";
 import { RideCard } from "@/components/ride/ride-card";
+import type { RideProps } from "@/components/ride/ride-card";
 import {
   Form,
   FormControl,

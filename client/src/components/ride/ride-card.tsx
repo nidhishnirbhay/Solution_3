@@ -23,7 +23,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 
-interface RideProps {
+export interface RideProps {
   id: number;
   fromLocation: string;
   toLocation: string;

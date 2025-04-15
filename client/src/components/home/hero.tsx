@@ -75,13 +75,13 @@ export function Hero() {
                     name="fromLocation"
                     render={({ field }) => (
                       <FormItem className="flex-1">
-                        <FormLabel className="text-neutral-700">From</FormLabel>
+                        <FormLabel className="text-white font-medium">From</FormLabel>
                         <div className="relative">
                           <MapPin className="absolute left-3 top-3 h-4 w-4 text-neutral-500" />
                           <FormControl>
                             <Input
                               placeholder="Departure city"
-                              className="pl-10"
+                              className="pl-10 text-black bg-white"
                               {...field}
                             />
                           </FormControl>
@@ -95,13 +95,13 @@ export function Hero() {
                     name="toLocation"
                     render={({ field }) => (
                       <FormItem className="flex-1">
-                        <FormLabel className="text-neutral-700">To</FormLabel>
+                        <FormLabel className="text-white font-medium">To</FormLabel>
                         <div className="relative">
                           <MapPin className="absolute left-3 top-3 h-4 w-4 text-neutral-500" />
                           <FormControl>
                             <Input
                               placeholder="Destination city"
-                              className="pl-10"
+                              className="pl-10 text-black bg-white"
                               {...field}
                             />
                           </FormControl>
@@ -117,13 +117,13 @@ export function Hero() {
                     name="travelDate"
                     render={({ field }) => (
                       <FormItem className="flex-1">
-                        <FormLabel className="text-neutral-700">When</FormLabel>
+                        <FormLabel className="text-white font-medium">When</FormLabel>
                         <div className="relative">
                           <Calendar className="absolute left-3 top-3 h-4 w-4 text-neutral-500" />
                           <FormControl>
                             <Input
                               type="date"
-                              className="pl-10"
+                              className="pl-10 text-black bg-white"
                               {...field}
                             />
                           </FormControl>
