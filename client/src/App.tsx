@@ -53,7 +53,7 @@ function Router() {
           window.location.href = "/admin/dashboard";
           return null;
         }} />
-        <Route path="/admin/login" component={() => import("@/pages/admin/login").then(m => <m.default />)} />
+        <Route path="/admin/login" component={AdminLogin} />
         <Route path="/admin/dashboard" component={AdminDashboard} />
         <Route path="/admin/kyc" component={AdminKYC} />
         
