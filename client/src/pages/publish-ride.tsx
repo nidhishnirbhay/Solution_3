@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/auth-context";
 
 const publishRideSchema = z.object({
@@ -101,7 +102,7 @@ export default function PublishRide() {
   });
 
   const publishRideMutation = useMutation({
-    mutationFn: async (data: Omit<PublishRideFormValues, "departureTime" | "estimatedArrivalTime">) => {
+    mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/rides", data);
       return res.json();
     },
@@ -145,7 +146,7 @@ export default function PublishRide() {
       toLocation: data.toLocation,
       departureDate: combineDepartureDateTime,
       estimatedArrivalDate: estimatedArrivalDateTime,
-      rideType: data.rideTypes,  // Now an array of ride types
+      rideTypes: data.rideTypes,  // Using the correct property name
       price: price,
       totalSeats: parseInt(data.totalSeats.toString(), 10),
       availableSeats: parseInt(data.availableSeats.toString(), 10),
@@ -429,10 +430,10 @@ export default function PublishRide() {
                                     // Update total seats
                                     field.onChange(e);
                                     
-                                    // If ride type is one-way, available seats should equal total seats
-                                    if (form.getValues("rideType") === "one-way") {
+                                    // If ride types includes one-way, available seats should equal total seats
+                                    if (form.watch("rideTypes").includes("one-way")) {
                                       const numValue = parseInt(e.target.value, 10);
-                                      form.setValue("availableSeats", numValue || 0);
+                                      form.setValue("availableSeats", numValue.toString());
                                     }
                                   }}
                                 />
@@ -453,12 +454,12 @@ export default function PublishRide() {
                                   type="number" 
                                   min="1" 
                                   max={form.watch("totalSeats")} 
-                                  disabled={form.watch("rideType") === "one-way"} 
+                                  disabled={form.watch("rideTypes").includes("one-way")} 
                                   {...field} 
                                 />
                               </FormControl>
                               <FormDescription>
-                                {form.watch("rideType") === "one-way" 
+                                {form.watch("rideTypes").includes("one-way") 
                                   ? "For one-way rides, all seats are automatically available" 
                                   : "Number of seats available for booking"}
                               </FormDescription>
