@@ -145,8 +145,8 @@ export default function PublishRide() {
       driverId: user?.id,  // Include driver ID from user context
       fromLocation: data.fromLocation,
       toLocation: data.toLocation,
-      departureDate: combineDepartureDateTime,
-      estimatedArrivalDate: estimatedArrivalDateTime || null,  // Ensure null if undefined
+      departureDate: new Date(combineDepartureDateTime),  // Convert to Date object
+      estimatedArrivalDate: estimatedArrivalDateTime ? new Date(estimatedArrivalDateTime) : null,
       rideType: data.rideTypes,  // Server expects 'rideType' not 'rideTypes'
       price: price,
       totalSeats: parseInt(data.totalSeats.toString(), 10),
