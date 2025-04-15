@@ -49,7 +49,54 @@ function authorize(roles: string[]) {
   };
 }
 
+async function seedAdminUser() {
+  try {
+    // Check if admin user already exists
+    const existingAdmin = await storage.getUserByUsername('oyegaadicabs@gmail.com');
+    if (!existingAdmin) {
+      console.log('Creating admin user...');
+      // Create admin user
+      await storage.createUser({
+        username: 'oyegaadicabs@gmail.com',
+        password: 'OGC.2000',
+        fullName: 'OyeGaadi Admin',
+        role: 'admin',
+        mobile: '9999999999'
+      });
+      
+      // Try to update the user to set isKycVerified
+      try {
+        const createdAdmin = await storage.getUserByUsername('oyegaadicabs@gmail.com');
+        if (createdAdmin) {
+          await storage.updateUser(createdAdmin.id, { isKycVerified: true });
+        }
+      } catch (updateError) {
+        console.error('Error updating admin user KYC status:', updateError);
+      }
+      
+      console.log('Admin user created successfully.');
+    } else {
+      console.log('Admin user already exists.');
+      
+      // Ensure admin has KYC verified
+      if (!existingAdmin.isKycVerified) {
+        try {
+          await storage.updateUser(existingAdmin.id, { isKycVerified: true });
+          console.log('Updated admin KYC verification status.');
+        } catch (updateError) {
+          console.error('Error updating admin user KYC status:', updateError);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error seeding admin user:', error);
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Seed the admin user
+  await seedAdminUser();
+  
   const MemorySessionStore = MemoryStore(session);
   
   // Configure session and passport
@@ -577,6 +624,167 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Admin routes
   const adminRouter = express.Router();
+  
+  // Admin KYC management
+  adminRouter.get('/kyc', authorize(['admin']), async (req, res) => {
+    try {
+      const kycVerifications = await storage.getPendingKycVerifications();
+      
+      // Get user details for each KYC verification
+      const detailedKyc = await Promise.all(
+        kycVerifications.map(async (kyc) => {
+          const user = await storage.getUser(kyc.userId);
+          return { ...kyc, user };
+        })
+      );
+      
+      res.json(detailedKyc);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve KYC verifications" });
+    }
+  });
+  
+  adminRouter.patch('/kyc/:id', authorize(['admin']), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, remarks } = req.body;
+      
+      if (!['approved', 'rejected', 'pending'].includes(status)) {
+        return res.status(400).json({ error: "Invalid status value" });
+      }
+      
+      const kyc = await storage.getKycVerification(Number(id));
+      if (!kyc) {
+        return res.status(404).json({ error: "KYC verification not found" });
+      }
+      
+      // Update KYC status
+      const updatedKyc = await storage.updateKycVerification(Number(id), { 
+        status, 
+        remarks 
+      });
+      
+      // If approved, update user's KYC status
+      if (status === 'approved') {
+        await storage.updateUser(kyc.userId, { isKycVerified: true });
+      }
+      
+      res.json(updatedKyc);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update KYC status" });
+    }
+  });
+  
+  // Dashboard statistics for admin
+  adminRouter.get('/users/stats', authorize(['admin']), async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const drivers = users.filter(user => user.role === 'driver').length;
+      const customers = users.filter(user => user.role === 'customer').length;
+      
+      res.json({
+        total: users.length,
+        drivers,
+        customers,
+        admin: users.length - drivers - customers
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve user statistics" });
+    }
+  });
+  
+  adminRouter.get('/kyc/stats', authorize(['admin']), async (req, res) => {
+    try {
+      const allKyc = await storage.getPendingKycVerifications();
+      const pending = allKyc.filter(kyc => kyc.status === 'pending').length;
+      const approved = allKyc.filter(kyc => kyc.status === 'approved').length;
+      const rejected = allKyc.filter(kyc => kyc.status === 'rejected').length;
+      
+      // Get 5 most recent KYC submissions for the dashboard
+      const recentKyc = await Promise.all(
+        allKyc
+          .sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+          })
+          .slice(0, 5)
+          .map(async (kyc) => {
+            const user = await storage.getUser(kyc.userId);
+            return { ...kyc, user };
+          })
+      );
+      
+      res.json({
+        total: allKyc.length,
+        pending,
+        approved,
+        rejected,
+        recent: recentKyc
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve KYC statistics" });
+    }
+  });
+  
+  adminRouter.get('/rides/stats', authorize(['admin']), async (req, res) => {
+    try {
+      const rides = await storage.getAllRides();
+      const now = new Date();
+      const active = rides.filter(ride => new Date(ride.departureDate) > now).length;
+      const completed = rides.length - active;
+      
+      res.json({
+        total: rides.length,
+        active,
+        completed
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve ride statistics" });
+    }
+  });
+  
+  adminRouter.get('/bookings/stats', authorize(['admin']), async (req, res) => {
+    try {
+      const bookings = await storage.getAllBookings();
+      const confirmed = bookings.filter(booking => booking.status === 'confirmed').length;
+      const pending = bookings.filter(booking => booking.status === 'pending').length;
+      const cancelled = bookings.filter(booking => booking.status === 'cancelled').length;
+      
+      // Get 5 most recent bookings for the dashboard
+      const recentBookings = await Promise.all(
+        bookings
+          .sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+          })
+          .slice(0, 5)
+          .map(async (booking) => {
+            const ride = await storage.getRide(booking.rideId);
+            const customer = await storage.getUser(booking.customerId);
+            const driver = ride ? await storage.getUser(ride.driverId) : null;
+            
+            return { 
+              ...booking, 
+              ride, 
+              customer, 
+              driver 
+            };
+          })
+      );
+      
+      res.json({
+        total: bookings.length,
+        confirmed,
+        pending,
+        cancelled,
+        recent: recentBookings
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve booking statistics" });
+    }
+  });
   
   adminRouter.get('/users', authorize(['admin']), async (req, res) => {
     try {
