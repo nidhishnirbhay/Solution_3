@@ -1,0 +1,271 @@
+import { useState } from "react";
+import { format } from "date-fns";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Calendar, MapPin } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { RatingForm } from "@/components/rating/rating-form";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+interface BookingProps {
+  id: number;
+  customerId: number;
+  rideId: number;
+  numberOfSeats: number;
+  status: string;
+  bookingFee: number;
+  isPaid: boolean;
+  createdAt: string;
+  hasRated?: boolean;
+  ride: {
+    id: number;
+    fromLocation: string;
+    toLocation: string;
+    departureDate: string;
+    price: number;
+    rideType: string;
+    vehicleType: string;
+    vehicleNumber: string;
+  };
+  driver?: {
+    id: number;
+    fullName: string;
+    averageRating: number;
+  };
+  customer?: {
+    id: number;
+    fullName: string;
+    averageRating: number;
+  };
+  viewAs: "customer" | "driver";
+}
+
+export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs: "customer" | "driver" }) {
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const { toast } = useToast();
+
+  const formattedDate = format(new Date(booking.ride.departureDate), "MMM dd, yyyy 'at' h:mm a");
+  const bookingDate = format(new Date(booking.createdAt), "MMM dd, yyyy");
+  
+  const person = viewAs === "customer" ? booking.driver : booking.customer;
+  
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const res = await apiRequest("PUT", `/api/bookings/${id}/status`, { status });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ 
+        queryKey: [viewAs === "customer" ? "/api/bookings/my-bookings" : "/api/bookings/ride-bookings"]
+      });
+      toast({
+        title: "Status updated",
+        description: "The booking status has been updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update failed",
+        description: error.message || "There was an error updating the booking status",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Get status badge color
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "pending":
+        return <Badge variant="outline" className="text-yellow-500 border-yellow-500">Pending</Badge>;
+      case "confirmed":
+        return <Badge variant="outline" className="text-green-500 border-green-500">Confirmed</Badge>;
+      case "completed":
+        return <Badge variant="outline" className="text-blue-500 border-blue-500">Completed</Badge>;
+      case "cancelled":
+        return <Badge variant="outline" className="text-red-500 border-red-500">Cancelled</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  // Helper function to get user initials
+  const getInitials = (name: string = "User") => {
+    return name
+      .split(" ")
+      .map(part => part[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  const handleStatusUpdate = (status: string) => {
+    updateStatusMutation.mutate({ id: booking.id, status });
+  };
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-0">
+        <div className="p-4 border-b">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <div className="flex items-center gap-1 mb-1">
+                <MapPin className="h-4 w-4 text-primary" />
+                <span className="font-medium">{booking.ride.fromLocation}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <MapPin className="h-4 w-4 text-primary" />
+                <span className="font-medium">{booking.ride.toLocation}</span>
+              </div>
+            </div>
+            <div>
+              {getStatusBadge(booking.status)}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-muted-foreground">Travel Date</p>
+              <div className="flex items-center">
+                <Calendar className="h-3 w-3 mr-1" />
+                <span>{formattedDate}</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Booking Date</p>
+              <div className="flex items-center">
+                <Calendar className="h-3 w-3 mr-1" />
+                <span>{bookingDate}</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Vehicle</p>
+              <p>{booking.ride.vehicleType} ({booking.ride.vehicleNumber})</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Seats</p>
+              <p>{booking.numberOfSeats}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Ride Type</p>
+              <p>{booking.ride.rideType === "one-way" ? "One-Way Full Booking" : "Sharing/Pooling"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Total Amount</p>
+              <p className="font-medium">₹{(booking.ride.price * booking.numberOfSeats) + booking.bookingFee}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-4 bg-gray-50">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Avatar>
+                <AvatarImage src="" alt={person?.fullName || "User"} />
+                <AvatarFallback>{getInitials(person?.fullName)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="font-medium">
+                  {viewAs === "customer" ? "Driver: " : "Customer: "}
+                  {person?.fullName || "User"}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              {/* Actions based on booking status and user role */}
+              {booking.status === "pending" && (
+                <>
+                  {viewAs === "driver" && (
+                    <Button 
+                      size="sm" 
+                      className="bg-green-500 hover:bg-green-600"
+                      onClick={() => handleStatusUpdate("confirmed")}
+                      disabled={updateStatusMutation.isPending}
+                    >
+                      Confirm
+                    </Button>
+                  )}
+                  <Button 
+                    size="sm" 
+                    variant="destructive"
+                    onClick={() => handleStatusUpdate("cancelled")}
+                    disabled={updateStatusMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              )}
+              
+              {booking.status === "confirmed" && (
+                <>
+                  {viewAs === "driver" && (
+                    <Button 
+                      size="sm" 
+                      className="bg-blue-500 hover:bg-blue-600"
+                      onClick={() => handleStatusUpdate("completed")}
+                      disabled={updateStatusMutation.isPending}
+                    >
+                      Mark Completed
+                    </Button>
+                  )}
+                  <Button 
+                    size="sm" 
+                    variant="destructive"
+                    onClick={() => handleStatusUpdate("cancelled")}
+                    disabled={updateStatusMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              )}
+              
+              {booking.status === "completed" && !booking.hasRated && (
+                <Dialog open={showRatingModal} onOpenChange={setShowRatingModal}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="bg-primary hover:bg-primary/90">
+                      Rate {viewAs === "customer" ? "Driver" : "Customer"}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>
+                        Rate your {viewAs === "customer" ? "Driver" : "Customer"}
+                      </DialogTitle>
+                      <DialogDescription>
+                        Please share your experience with {person?.fullName}
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <RatingForm 
+                      bookingId={booking.id}
+                      toUserId={person?.id || 0}
+                      onSuccess={() => setShowRatingModal(false)}
+                    />
+                  </DialogContent>
+                </Dialog>
+              )}
+              
+              {booking.status === "completed" && booking.hasRated && (
+                <Badge variant="outline" className="bg-green-50">
+                  Rated
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

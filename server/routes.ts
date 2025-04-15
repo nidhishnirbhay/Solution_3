@@ -1,0 +1,653 @@
+import express, { type Express, Request, Response } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { z } from "zod";
+import {
+  insertUserSchema,
+  insertKycSchema,
+  insertRideSchema,
+  insertBookingSchema,
+  insertRatingSchema
+} from "@shared/schema";
+import session from "express-session";
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import MemoryStore from "memorystore";
+
+// Helper function to handle validation and response
+function validateBody<T>(schema: z.ZodType<T>) {
+  return (req: Request, res: Response, next: Function) => {
+    try {
+      const parsed = schema.parse(req.body);
+      req.body = parsed;
+      next();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: error.errors 
+        });
+      }
+      next(error);
+    }
+  };
+}
+
+// Helper to check user roles
+function authorize(roles: string[]) {
+  return (req: Request, res: Response, next: Function) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    const user = req.user as any;
+    if (!roles.includes(user.role)) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    
+    next();
+  };
+}
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  const MemorySessionStore = MemoryStore(session);
+  
+  // Configure session and passport
+  app.use(session({
+    secret: 'oyegaadi-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }, // 1 day
+    store: new MemorySessionStore({ checkPeriod: 86400000 })
+  }));
+  
+  app.use(passport.initialize());
+  app.use(passport.session());
+  
+  // Configure passport local strategy
+  passport.use(new LocalStrategy(
+    async (username, password, done) => {
+      try {
+        const user = await storage.getUserByUsername(username);
+        if (!user) {
+          return done(null, false, { message: 'Invalid username or password' });
+        }
+        if (user.password !== password) {
+          return done(null, false, { message: 'Invalid username or password' });
+        }
+        return done(null, user);
+      } catch (err) {
+        return done(err);
+      }
+    }
+  ));
+  
+  passport.serializeUser((user: any, done) => {
+    done(null, user.id);
+  });
+  
+  passport.deserializeUser(async (id: number, done) => {
+    try {
+      const user = await storage.getUser(id);
+      done(null, user);
+    } catch (err) {
+      done(err);
+    }
+  });
+  
+  // Auth routes
+  const authRouter = express.Router();
+  
+  authRouter.post('/login', (req, res, next) => {
+    passport.authenticate('local', (err, user, info) => {
+      if (err) return next(err);
+      if (!user) return res.status(401).json({ message: info.message });
+      
+      req.logIn(user, (err) => {
+        if (err) return next(err);
+        return res.json({
+          id: user.id,
+          username: user.username,
+          fullName: user.fullName,
+          role: user.role,
+          isKycVerified: user.isKycVerified
+        });
+      });
+    })(req, res, next);
+  });
+  
+  authRouter.post('/register', validateBody(insertUserSchema), async (req, res) => {
+    try {
+      const { username, mobile } = req.body;
+      
+      // Check if username or mobile already exists
+      const existingUsername = await storage.getUserByUsername(username);
+      if (existingUsername) {
+        return res.status(400).json({ error: "Username already taken" });
+      }
+      
+      const existingMobile = await storage.getUserByMobile(mobile);
+      if (existingMobile) {
+        return res.status(400).json({ error: "Mobile number already registered" });
+      }
+      
+      const newUser = await storage.createUser(req.body);
+      
+      // Auto-login after registration
+      req.logIn(newUser, (err) => {
+        if (err) return res.status(500).json({ error: "Login after registration failed" });
+        return res.status(201).json({
+          id: newUser.id,
+          username: newUser.username,
+          fullName: newUser.fullName,
+          role: newUser.role,
+          isKycVerified: newUser.isKycVerified
+        });
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Registration failed" });
+    }
+  });
+  
+  authRouter.get('/logout', (req, res) => {
+    req.logout(() => {
+      res.json({ success: true });
+    });
+  });
+  
+  authRouter.get('/current-user', (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    const user = req.user as any;
+    res.json({
+      id: user.id,
+      username: user.username,
+      fullName: user.fullName,
+      role: user.role,
+      isKycVerified: user.isKycVerified,
+      mobile: user.mobile,
+      averageRating: user.averageRating
+    });
+  });
+  
+  // KYC routes
+  const kycRouter = express.Router();
+  
+  kycRouter.post('/', validateBody(insertKycSchema), async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    try {
+      const user = req.user as any;
+      const kycData = { ...req.body, userId: user.id };
+      const kyc = await storage.createKycVerification(kycData);
+      res.status(201).json(kyc);
+    } catch (error) {
+      res.status(500).json({ error: "KYC submission failed" });
+    }
+  });
+  
+  kycRouter.get('/my-kyc', async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    try {
+      const user = req.user as any;
+      const kycDocuments = await storage.getKycVerificationsByUserId(user.id);
+      res.json(kycDocuments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve KYC documents" });
+    }
+  });
+  
+  kycRouter.get('/pending', authorize(['admin']), async (req, res) => {
+    try {
+      const pendingKyc = await storage.getPendingKycVerifications();
+      
+      // Get user details for each KYC
+      const pendingKycWithUsers = await Promise.all(
+        pendingKyc.map(async (kyc) => {
+          const user = await storage.getUser(kyc.userId);
+          return { ...kyc, user };
+        })
+      );
+      
+      res.json(pendingKycWithUsers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve pending KYC verifications" });
+    }
+  });
+  
+  kycRouter.put('/:id', authorize(['admin']), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, remarks } = req.body;
+      
+      if (!['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      
+      const updated = await storage.updateKycVerification(Number(id), { status, remarks });
+      
+      if (!updated) {
+        return res.status(404).json({ error: "KYC verification not found" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update KYC verification" });
+    }
+  });
+  
+  // Ride routes
+  const rideRouter = express.Router();
+  
+  rideRouter.post('/', authorize(['driver']), validateBody(insertRideSchema), async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      // Check if driver is KYC verified
+      if (!user.isKycVerified) {
+        return res.status(403).json({ error: "KYC verification required to publish rides" });
+      }
+      
+      const rideData = { ...req.body, driverId: user.id };
+      const ride = await storage.createRide(rideData);
+      res.status(201).json(ride);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create ride" });
+    }
+  });
+  
+  rideRouter.get('/search', async (req, res) => {
+    try {
+      const { from, to, date, type } = req.query;
+      
+      if (!from || !to) {
+        return res.status(400).json({ error: "From and To locations are required" });
+      }
+      
+      const rides = await storage.searchRides(
+        from as string, 
+        to as string, 
+        date as string | undefined, 
+        type as string | undefined
+      );
+      
+      // Get driver details for each ride
+      const ridesWithDrivers = await Promise.all(
+        rides.map(async (ride) => {
+          const driver = await storage.getUser(ride.driverId);
+          return { ...ride, driver };
+        })
+      );
+      
+      res.json(ridesWithDrivers);
+    } catch (error) {
+      res.status(500).json({ error: "Search failed" });
+    }
+  });
+  
+  rideRouter.get('/my-rides', authorize(['driver']), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const rides = await storage.getRidesByDriverId(user.id);
+      res.json(rides);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve rides" });
+    }
+  });
+  
+  rideRouter.get('/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const ride = await storage.getRide(Number(id));
+      
+      if (!ride) {
+        return res.status(404).json({ error: "Ride not found" });
+      }
+      
+      const driver = await storage.getUser(ride.driverId);
+      res.json({ ...ride, driver });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve ride" });
+    }
+  });
+  
+  rideRouter.put('/:id', authorize(['driver']), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = req.user as any;
+      
+      const ride = await storage.getRide(Number(id));
+      if (!ride) {
+        return res.status(404).json({ error: "Ride not found" });
+      }
+      
+      if (ride.driverId !== user.id) {
+        return res.status(403).json({ error: "You can only update your own rides" });
+      }
+      
+      const updated = await storage.updateRide(Number(id), req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update ride" });
+    }
+  });
+  
+  // Booking routes
+  const bookingRouter = express.Router();
+  
+  bookingRouter.post('/', authorize(['customer']), validateBody(insertBookingSchema), async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      // Check if customer needs KYC verification
+      if (!user.isKycVerified) {
+        // Get customer's existing bookings
+        const bookings = await storage.getBookingsByCustomerId(user.id);
+        if (bookings.length >= 1) {
+          return res.status(403).json({ 
+            error: "KYC verification required after your first booking", 
+            kycRequired: true 
+          });
+        }
+      }
+      
+      const ride = await storage.getRide(req.body.rideId);
+      if (!ride) {
+        return res.status(404).json({ error: "Ride not found" });
+      }
+      
+      if (ride.availableSeats < req.body.numberOfSeats) {
+        return res.status(400).json({ error: "Not enough available seats" });
+      }
+      
+      const bookingData = { 
+        ...req.body, 
+        customerId: user.id,
+        bookingFee: 200,
+        status: 'pending'
+      };
+      
+      const booking = await storage.createBooking(bookingData);
+      res.status(201).json(booking);
+    } catch (error) {
+      res.status(500).json({ error: "Booking failed" });
+    }
+  });
+  
+  bookingRouter.get('/my-bookings', authorize(['customer']), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const bookings = await storage.getBookingsByCustomerId(user.id);
+      
+      // Get ride details for each booking
+      const bookingsWithRides = await Promise.all(
+        bookings.map(async (booking) => {
+          const ride = await storage.getRide(booking.rideId);
+          const driver = ride ? await storage.getUser(ride.driverId) : null;
+          const rating = await storage.getRatingByBookingId(booking.id);
+          return { 
+            ...booking, 
+            ride, 
+            driver,
+            hasRated: !!rating 
+          };
+        })
+      );
+      
+      res.json(bookingsWithRides);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve bookings" });
+    }
+  });
+  
+  bookingRouter.get('/ride-bookings', authorize(['driver']), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const rides = await storage.getRidesByDriverId(user.id);
+      
+      const allBookings = [];
+      for (const ride of rides) {
+        const bookings = await storage.getBookingsByRideId(ride.id);
+        
+        // Get customer details for each booking
+        const bookingsWithCustomers = await Promise.all(
+          bookings.map(async (booking) => {
+            const customer = await storage.getUser(booking.customerId);
+            const rating = await storage.getRatingByBookingId(booking.id);
+            return { 
+              ...booking, 
+              ride, 
+              customer,
+              hasRated: !!rating 
+            };
+          })
+        );
+        
+        allBookings.push(...bookingsWithCustomers);
+      }
+      
+      res.json(allBookings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve bookings" });
+    }
+  });
+  
+  bookingRouter.put('/:id/status', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      if (!['confirmed', 'cancelled', 'completed'].includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      
+      const booking = await storage.getBooking(Number(id));
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      // Authorize - either the customer who made the booking or the driver of the ride
+      if (req.isAuthenticated()) {
+        const user = req.user as any;
+        const ride = await storage.getRide(booking.rideId);
+        
+        if (booking.customerId !== user.id && ride?.driverId !== user.id && user.role !== 'admin') {
+          return res.status(403).json({ error: "Not authorized to update this booking" });
+        }
+      } else {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const updated = await storage.updateBooking(Number(id), { status });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update booking status" });
+    }
+  });
+  
+  // Rating routes
+  const ratingRouter = express.Router();
+  
+  ratingRouter.post('/', validateBody(insertRatingSchema), async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    try {
+      const user = req.user as any;
+      
+      // Validate the booking exists and belongs to the user
+      const booking = await storage.getBooking(req.body.bookingId);
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      // Check if booking is completed
+      if (booking.status !== 'completed') {
+        return res.status(400).json({ error: "Can only rate completed bookings" });
+      }
+      
+      // Check if already rated
+      const existingRating = await storage.getRatingByBookingId(booking.id);
+      if (existingRating) {
+        return res.status(400).json({ error: "Booking already rated" });
+      }
+      
+      // Determine who is rating whom
+      let fromUserId, toUserId;
+      
+      // Get the ride to find driver
+      const ride = await storage.getRide(booking.rideId);
+      if (!ride) {
+        return res.status(404).json({ error: "Ride not found" });
+      }
+      
+      if (user.id === booking.customerId) {
+        // Customer rating driver
+        fromUserId = user.id;
+        toUserId = ride.driverId;
+      } else if (user.id === ride.driverId) {
+        // Driver rating customer
+        fromUserId = user.id;
+        toUserId = booking.customerId;
+      } else {
+        return res.status(403).json({ error: "You can only rate your own bookings" });
+      }
+      
+      const ratingData = {
+        ...req.body,
+        fromUserId,
+        toUserId
+      };
+      
+      const rating = await storage.createRating(ratingData);
+      res.status(201).json(rating);
+    } catch (error) {
+      res.status(500).json({ error: "Rating submission failed" });
+    }
+  });
+  
+  ratingRouter.get('/user/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const ratings = await storage.getRatingsByToUserId(Number(userId));
+      
+      // Get user details for each rating
+      const ratingsWithUsers = await Promise.all(
+        ratings.map(async (rating) => {
+          const fromUser = await storage.getUser(rating.fromUserId);
+          return { 
+            ...rating, 
+            fromUser: {
+              id: fromUser?.id,
+              fullName: fromUser?.fullName,
+              role: fromUser?.role
+            }
+          };
+        })
+      );
+      
+      res.json(ratingsWithUsers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve ratings" });
+    }
+  });
+  
+  // Admin routes
+  const adminRouter = express.Router();
+  
+  adminRouter.get('/users', authorize(['admin']), async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve users" });
+    }
+  });
+  
+  adminRouter.get('/rides', authorize(['admin']), async (req, res) => {
+    try {
+      const rides = await storage.getAllRides();
+      
+      // Get driver details for each ride
+      const ridesWithDrivers = await Promise.all(
+        rides.map(async (ride) => {
+          const driver = await storage.getUser(ride.driverId);
+          return { ...ride, driver };
+        })
+      );
+      
+      res.json(ridesWithDrivers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve rides" });
+    }
+  });
+  
+  adminRouter.get('/bookings', authorize(['admin']), async (req, res) => {
+    try {
+      const bookings = await storage.getAllBookings();
+      
+      // Get ride and user details for each booking
+      const detailedBookings = await Promise.all(
+        bookings.map(async (booking) => {
+          const ride = await storage.getRide(booking.rideId);
+          const customer = await storage.getUser(booking.customerId);
+          const driver = ride ? await storage.getUser(ride.driverId) : null;
+          
+          return { 
+            ...booking, 
+            ride, 
+            customer, 
+            driver 
+          };
+        })
+      );
+      
+      res.json(detailedBookings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve bookings" });
+    }
+  });
+  
+  adminRouter.get('/ratings', authorize(['admin']), async (req, res) => {
+    try {
+      const ratings = await storage.getAllRatings();
+      
+      // Get user details for each rating
+      const detailedRatings = await Promise.all(
+        ratings.map(async (rating) => {
+          const fromUser = await storage.getUser(rating.fromUserId);
+          const toUser = await storage.getUser(rating.toUserId);
+          
+          return { 
+            ...rating, 
+            fromUser, 
+            toUser 
+          };
+        })
+      );
+      
+      res.json(detailedRatings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve ratings" });
+    }
+  });
+  
+  // Register all routes
+  app.use('/api/auth', authRouter);
+  app.use('/api/kyc', kycRouter);
+  app.use('/api/rides', rideRouter);
+  app.use('/api/bookings', bookingRouter);
+  app.use('/api/ratings', ratingRouter);
+  app.use('/api/admin', adminRouter);
+  
+  const httpServer = createServer(app);
+  
+  return httpServer;
+}
