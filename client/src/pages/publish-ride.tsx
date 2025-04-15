@@ -41,13 +41,36 @@ const publishRideSchema = z.object({
   departureTime: z.string().min(1, { message: "Departure time is required" }),
   estimatedArrivalDate: z.string().optional(),
   estimatedArrivalTime: z.string().optional(),
-  rideType: z.enum(["one-way", "sharing"]),
-  price: z.string().min(1, { message: "Price is required" }).transform(Number),
-  totalSeats: z.string().min(1, { message: "Total seats is required" }).transform(Number),
-  availableSeats: z.string().min(1, { message: "Available seats is required" }).transform(Number),
+  rideTypes: z.array(z.enum(["one-way", "sharing"])).min(1, { message: "At least one ride type is required" }),
+  oneWayPrice: z.string().optional()
+    .refine(val => val && val.length > 0, { message: "One-way price is required" })
+    .transform(val => val ? Number(val) : undefined),
+  sharingPrice: z.string().optional()
+    .refine(val => val && val.length > 0, { message: "Sharing price is required" })
+    .transform(val => val ? Number(val) : undefined),
+  totalSeats: z.string().min(1, { message: "Total seats is required" })
+    .transform(val => Number(val)),
+  availableSeats: z.string().min(1, { message: "Available seats is required" })
+    .transform(val => Number(val)),
   vehicleType: z.string().min(1, { message: "Vehicle type is required" }),
   vehicleNumber: z.string().min(1, { message: "Vehicle number is required" }),
   description: z.string().optional(),
+}).superRefine((data, ctx) => {
+  // Ensure prices are provided based on selected ride types
+  if (data.rideTypes.includes("one-way") && !data.oneWayPrice) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "One-way price is required when one-way ride type is selected",
+      path: ["oneWayPrice"]
+    });
+  }
+  if (data.rideTypes.includes("sharing") && !data.sharingPrice) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Sharing price is required when sharing ride type is selected",
+      path: ["sharingPrice"]
+    });
+  }
 });
 
 type PublishRideFormValues = z.infer<typeof publishRideSchema>;
@@ -66,10 +89,11 @@ export default function PublishRide() {
       departureTime: format(new Date(), "HH:mm"),
       estimatedArrivalDate: format(addHours(new Date(), 3), "yyyy-MM-dd"),
       estimatedArrivalTime: format(addHours(new Date(), 3), "HH:mm"),
-      rideType: "one-way",
-      price: 0,
-      totalSeats: 4,
-      availableSeats: 4,
+      rideTypes: ["one-way"],  // Default to one-way ride
+      oneWayPrice: "",
+      sharingPrice: "",
+      totalSeats: "4",
+      availableSeats: "4",
       vehicleType: "",
       vehicleNumber: "",
       description: "",
@@ -107,16 +131,24 @@ export default function PublishRide() {
       estimatedArrivalDateTime = new Date(`${data.estimatedArrivalDate}T${data.estimatedArrivalTime}`).toISOString();
     }
 
+    // Determine price based on selected ride types
+    let price = 0;
+    if (data.rideTypes.includes("one-way") && data.oneWayPrice) {
+      price = parseInt(data.oneWayPrice.toString(), 10);
+    } else if (data.rideTypes.includes("sharing") && data.sharingPrice) {
+      price = parseInt(data.sharingPrice.toString(), 10);
+    }
+
     // Convert form data to the format expected by the API
     const rideData = {
       fromLocation: data.fromLocation,
       toLocation: data.toLocation,
       departureDate: combineDepartureDateTime,
       estimatedArrivalDate: estimatedArrivalDateTime,
-      rideType: data.rideType,
-      price: data.price,
-      totalSeats: data.totalSeats,
-      availableSeats: data.availableSeats,
+      rideType: data.rideTypes,  // Now an array of ride types
+      price: price,
+      totalSeats: parseInt(data.totalSeats.toString(), 10),
+      availableSeats: parseInt(data.availableSeats.toString(), 10),
       vehicleType: data.vehicleType,
       vehicleNumber: data.vehicleNumber,
       description: data.description,
@@ -257,70 +289,127 @@ export default function PublishRide() {
                       <h3 className="text-lg font-medium">Ride Configuration</h3>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="rideType"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Ride Type</FormLabel>
-                              <Select 
-                                onValueChange={(value) => {
-                                  field.onChange(value);
-                                  
-                                  // When ride type changes, update price placeholder
-                                  // If changing to "one-way", adjust total seats if needed
-                                  if (value === "one-way") {
-                                    // For one-way rides, typically the entire vehicle is booked
-                                    form.setValue("availableSeats", form.getValues("totalSeats"));
-                                  }
-                                }} 
-                                value={field.value}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select ride type" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="one-way">One-Way Full Booking</SelectItem>
-                                  <SelectItem value="sharing">Sharing / Pooling</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormDescription>
-                                {field.value === "one-way" 
-                                  ? "Customers book the entire vehicle" 
-                                  : "Customers can book individual seats"}
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <div>
+                          <FormLabel className="mb-2 block">Ride Types Offered</FormLabel>
+                          <div className="space-y-4 mb-2">
+                            <FormField
+                              control={form.control}
+                              name="rideTypes"
+                              render={() => (
+                                <FormItem className="space-y-3">
+                                  <div className="space-y-1">
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                      <FormControl>
+                                        <Checkbox 
+                                          checked={form.watch("rideTypes").includes("one-way")}
+                                          onCheckedChange={(checked) => {
+                                            const currentValue = form.getValues("rideTypes");
+                                            const updatedValue = checked 
+                                              ? [...currentValue, "one-way"]
+                                              : currentValue.filter(type => type !== "one-way");
+                                            
+                                            form.setValue("rideTypes", updatedValue);
+                                            
+                                            // If one-way is selected, set available seats equal to total seats
+                                            if (checked) {
+                                              const totalSeats = parseInt(form.getValues("totalSeats"), 10);
+                                              form.setValue("availableSeats", totalSeats.toString());
+                                            }
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <div className="space-y-1 leading-none">
+                                        <FormLabel className="font-medium">
+                                          One-Way Full Booking
+                                        </FormLabel>
+                                        <FormDescription>
+                                          Customers book the entire vehicle
+                                        </FormDescription>
+                                      </div>
+                                    </FormItem>
+                                    
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                      <FormControl>
+                                        <Checkbox 
+                                          checked={form.watch("rideTypes").includes("sharing")}
+                                          onCheckedChange={(checked) => {
+                                            const currentValue = form.getValues("rideTypes");
+                                            const updatedValue = checked 
+                                              ? [...currentValue, "sharing"]
+                                              : currentValue.filter(type => type !== "sharing");
+                                            
+                                            form.setValue("rideTypes", updatedValue);
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <div className="space-y-1 leading-none">
+                                        <FormLabel className="font-medium">
+                                          Sharing / Pooling
+                                        </FormLabel>
+                                        <FormDescription>
+                                          Customers can book individual seats
+                                        </FormDescription>
+                                      </div>
+                                    </FormItem>
+                                  </div>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
 
-                        <FormField
-                          control={form.control}
-                          name="price"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Price (₹)</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number" 
-                                  min="1" 
-                                  placeholder={form.watch("rideType") === "one-way" 
-                                    ? "Total ride price" 
-                                    : "Price per seat"}
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                {form.watch("rideType") === "one-way" 
-                                  ? "Total price for the ride" 
-                                  : "Price per seat"}
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <div>
+                          <div className="space-y-4">
+                            {form.watch("rideTypes").includes("one-way") && (
+                              <FormField
+                                control={form.control}
+                                name="oneWayPrice"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>One-Way Price (₹)</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number" 
+                                        min="1" 
+                                        placeholder="Total ride price"
+                                        {...field} 
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Total price for the entire vehicle
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            )}
+                            
+                            {form.watch("rideTypes").includes("sharing") && (
+                              <FormField
+                                control={form.control}
+                                name="sharingPrice"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Sharing Price (₹)</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number" 
+                                        min="1" 
+                                        placeholder="Price per seat"
+                                        {...field} 
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Price per individual seat
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            )}
+                          </div>
+                        </div>
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

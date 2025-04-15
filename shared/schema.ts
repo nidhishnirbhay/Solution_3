@@ -61,7 +61,7 @@ export const rides = pgTable("rides", {
   toLocation: text("to_location").notNull(),
   departureDate: timestamp("departure_date").notNull(),
   estimatedArrivalDate: timestamp("estimated_arrival_date"),
-  rideType: text("ride_type").notNull(), // one-way, sharing
+  rideType: text("ride_type").array().notNull(), // Array of "one-way", "sharing"
   price: integer("price").notNull(),
   totalSeats: integer("total_seats").notNull(),
   availableSeats: integer("available_seats").notNull(),
