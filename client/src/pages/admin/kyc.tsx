@@ -59,11 +59,24 @@ export default function AdminKyc() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Invalidate all KYC related queries
       queryClient.invalidateQueries({ queryKey: ["/api/admin/kyc"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/kyc/stats"] });
+      
+      // Reset remarks
+      setRemarks("");
+      
+      // Update filter to match the new status (or keep it at "all" to show everything)
+      // This ensures the user can see the result of their action
+      if (filterStatus !== "all" && filterStatus !== data.status) {
+        // Only change filter if current filter would hide the updated KYC
+        setFilterStatus(data.status);
+      }
+      
       toast({
         title: "KYC status updated",
-        description: "The KYC verification status has been updated successfully.",
+        description: `The KYC verification status has been updated to ${data.status}.`,
       });
     },
     onError: (error: any) => {

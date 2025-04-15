@@ -101,11 +101,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Configure session and passport
   app.use(session({
-    secret: 'oyegaadi-secret-key',
+    secret: 'oyegaadi-secret-key-for-production-use-env-var',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }, // 1 day
-    store: new MemorySessionStore({ checkPeriod: 86400000 })
+    cookie: { 
+      secure: process.env.NODE_ENV === 'production', 
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      httpOnly: true,
+      sameSite: 'lax'
+    },
+    store: new MemorySessionStore({ 
+      checkPeriod: 86400000, // 1 day cleanup period
+      stale: false // Don't delete stale sessions
+    })
   }));
   
   app.use(passport.initialize());
