@@ -117,7 +117,18 @@ export default function KycVerification() {
   // Submit KYC mutation
   const submitKycMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/kyc", data);
+      // Make sure we have the correct data format
+      const formattedData = {
+        ...data,
+        // Convert to the format expected by the server
+        userId: user?.id // Ensure userId is included and is a number
+      };
+      
+      const res = await apiRequest("POST", "/api/kyc", formattedData);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Submission failed");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -132,6 +143,7 @@ export default function KycVerification() {
       customerForm.reset();
     },
     onError: (error: any) => {
+      console.error("KYC submission error:", error);
       toast({
         title: "Submission failed",
         description: error.message || "There was an error submitting your KYC",
