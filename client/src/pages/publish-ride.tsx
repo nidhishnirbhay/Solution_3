@@ -142,17 +142,18 @@ export default function PublishRide() {
 
     // Convert form data to the format expected by the API
     const rideData = {
+      driverId: user?.id,  // Include driver ID from user context
       fromLocation: data.fromLocation,
       toLocation: data.toLocation,
       departureDate: combineDepartureDateTime,
-      estimatedArrivalDate: estimatedArrivalDateTime,
-      rideTypes: data.rideTypes,  // Using the correct property name
+      estimatedArrivalDate: estimatedArrivalDateTime || null,  // Ensure null if undefined
+      rideType: data.rideTypes,  // Server expects 'rideType' not 'rideTypes'
       price: price,
       totalSeats: parseInt(data.totalSeats.toString(), 10),
       availableSeats: parseInt(data.availableSeats.toString(), 10),
       vehicleType: data.vehicleType,
       vehicleNumber: data.vehicleNumber,
-      description: data.description,
+      description: data.description || "",
     };
 
     publishRideMutation.mutate(rideData);
