@@ -263,7 +263,19 @@ export default function PublishRide() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Ride Type</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <Select 
+                                onValueChange={(value) => {
+                                  field.onChange(value);
+                                  
+                                  // When ride type changes, update price placeholder
+                                  // If changing to "one-way", adjust total seats if needed
+                                  if (value === "one-way") {
+                                    // For one-way rides, typically the entire vehicle is booked
+                                    form.setValue("availableSeats", form.getValues("totalSeats"));
+                                  }
+                                }} 
+                                value={field.value}
+                              >
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select ride type" />
@@ -319,7 +331,22 @@ export default function PublishRide() {
                             <FormItem>
                               <FormLabel>Total Seats</FormLabel>
                               <FormControl>
-                                <Input type="number" min="1" max="50" {...field} />
+                                <Input 
+                                  type="number" 
+                                  min="1" 
+                                  max="50"
+                                  {...field}
+                                  onChange={(e) => {
+                                    // Update total seats
+                                    field.onChange(e);
+                                    
+                                    // If ride type is one-way, available seats should equal total seats
+                                    if (form.getValues("rideType") === "one-way") {
+                                      const numValue = parseInt(e.target.value, 10);
+                                      form.setValue("availableSeats", numValue || 0);
+                                    }
+                                  }}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -337,9 +364,15 @@ export default function PublishRide() {
                                   type="number" 
                                   min="1" 
                                   max={form.watch("totalSeats")} 
+                                  disabled={form.watch("rideType") === "one-way"} 
                                   {...field} 
                                 />
                               </FormControl>
+                              <FormDescription>
+                                {form.watch("rideType") === "one-way" 
+                                  ? "For one-way rides, all seats are automatically available" 
+                                  : "Number of seats available for booking"}
+                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
