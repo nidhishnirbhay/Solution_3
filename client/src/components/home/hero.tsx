@@ -66,7 +66,7 @@ export function Hero() {
           </p>
 
           {/* Search Box */}
-          <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
+          <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 text-gray-800">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="flex flex-col md:flex-row gap-4">

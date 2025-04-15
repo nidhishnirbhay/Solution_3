@@ -158,15 +158,16 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+        <DialogHeader className="relative">
           <DialogTitle className="text-xl font-semibold">
             {activeTab === "login" ? "Login to OyeGaadi" : "Create an Account"}
           </DialogTitle>
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-4 top-4"
+            className="absolute right-0 top-0"
             onClick={onClose}
+            type="button"
           >
             <X className="h-4 w-4" />
           </Button>
