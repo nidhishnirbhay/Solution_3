@@ -1,0 +1,150 @@
+📘 Full Business Requirement Document (BRD)
+🚖 Project: One-Way Ride Booking System (OyeGaadi)
+🧑‍💼 1. User Roles & Permissions
+
+Role	Access & Abilities
+Admin	Full backend access. Can manage all rides, users, bookings, KYC, and system data
+Fleet Operator / Driver	Can publish and manage rides, complete KYC, view bookings, and rate customers
+Customer	Can search, book rides, complete KYC, and rate drivers
+🧱 2. System Modules
+🧑‍💼 A. Admin Module
+Admin-only login (hidden from public login page)
+
+Manage:
+
+Users (Drivers & Customers)
+
+Rides (One-Way & Sharing)
+
+Bookings
+
+Ratings/Reviews
+
+KYC Verifications (Approve/Reject)
+
+Suspend users with abusive reviews or fake documents
+
+🚗 B. Fleet Operator / Driver Module
+Register/Login
+
+Submit KYC for Approval
+
+After KYC approval:
+
+Publish rides (One-Way / Pooling)
+
+View and manage bookings
+
+View & submit customer ratings
+
+Update profile, vehicle info
+
+👤 C. Customer Module
+Register/Login
+
+Submit KYC before first full booking
+
+Search rides by type (All, One-Way, Pooling)
+
+Book rides (₹200 booking fee)
+
+View upcoming & past bookings
+
+Rate drivers after completed rides
+
+🚘 3. Ride Types
+
+Type	Description
+One-Way Full Booking	Book the entire vehicle for one way
+Sharing / Pooling	Book 1 or more seats in a shared vehicle
+⏱️ 4. Time-Sensitive Ride Disclaimer
+OyeGaadi does not encourage booking for flights, exams, or urgent time-bound events.
+Customers are shown a warning notice before confirming such bookings.
+
+⭐ 5. Ratings & Reviews System
+
+Rater	Rates	Trigger
+Customer	Driver	After ride completion
+Driver	Customer	After ride completion
+1 to 5 stars with optional review (max 150 chars)
+
+Average rating shown on profile cards
+
+Admin can moderate/delete reviews
+
+🧾 6. KYC Verification System
+📄 Why?
+Prevent spam/fraud, ensure genuine users
+
+Required to build trust in Tier 2/3 markets
+
+👨‍✈️ Fleet Operator / Driver KYC
+
+Field	Required
+Full Name	✅
+Mobile Number (OTP)	✅
+Vehicle Type & Number	✅
+Driving License Upload	✅ (PDF or Image)
+Aadhaar or PAN Upload	✅
+Live Selfie Upload	Optional
+KYC Status: pending → approved / rejected
+
+Cannot publish rides until KYC is approved
+
+👤 Customer KYC
+
+Field	Required
+Full Name	✅
+Mobile Number (OTP)	✅
+Aadhaar or PAN Upload	✅ (for trust)
+Emergency Contact	Optional
+Must complete KYC before full ride booking (limit to 1 ride max without KYC)
+
+KYC visible in Admin dashboard for approval
+
+🧑‍💼 Admin KYC Panel
+View pending submissions
+
+Preview uploaded docs
+
+Approve or reject with remarks
+
+Re-verification possible if rejected
+
+💳 7. Payments
+
+Action	Fee	Purpose
+Ride Booking	₹200	Paid by customer to confirm booking
+📁 8. Replit Directory Structure
+pgsql
+Copy
+Edit
+/one-way-booking-system
+│
+├── frontend/
+│   ├── index.html
+│   ├── customer.html
+│   ├── operator.html
+│   ├── admin.html
+│   └── components/
+│
+├── backend/
+│   ├── server.js
+│   ├── routes/
+│   │   ├── auth.js
+│   │   ├── rides.js
+│   │   ├── bookings.js
+│   │   ├── ratings.js
+│   │   ├── kyc.js         <-- NEW
+│   │   └── admin.js
+│   ├── models/
+│   │   ├── User.js        <-- Includes KYC schema
+│   │   ├── Ride.js
+│   │   ├── Booking.js
+│   │   └── Rating.js
+│
+├── config/
+│   ├── authMiddleware.js
+│   ├── roles.js
+│
+└── README.md
