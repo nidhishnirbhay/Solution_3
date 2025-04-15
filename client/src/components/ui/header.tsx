@@ -129,12 +129,28 @@ export function Header() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>My Profile</DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Link href="/my-bookings">
-                        <a className="w-full">My Bookings</a>
-                      </Link>
-                    </DropdownMenuItem>
+                    {user.role === "admin" ? (
+                      <DropdownMenuItem>
+                        <Link href="/admin">
+                          <a className="w-full">Admin Dashboard</a>
+                        </Link>
+                      </DropdownMenuItem>
+                    ) : (
+                      <>
+                        <DropdownMenuItem>
+                          <Link href="/my-bookings">
+                            <a className="w-full">My Bookings</a>
+                          </Link>
+                        </DropdownMenuItem>
+                        {user.role === "driver" && (
+                          <DropdownMenuItem>
+                            <Link href="/publish-ride">
+                              <a className="w-full">Publish Ride</a>
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                      </>
+                    )}
                     <DropdownMenuItem>
                       <Link href="/kyc-verification">
                         <a className="w-full">KYC Verification</a>
@@ -186,6 +202,31 @@ export function Header() {
               
               {user ? (
                 <>
+                  {/* Only show for customers and drivers */}
+                  {user.role !== "admin" && (
+                    <Link href="/my-bookings">
+                      <a
+                        className="block py-2 text-neutral-700 hover:text-primary"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        My Bookings
+                      </a>
+                    </Link>
+                  )}
+                  
+                  {/* Only show for driver */}
+                  {user.role === "driver" && (
+                    <Link href="/publish-ride">
+                      <a
+                        className="block py-2 text-neutral-700 hover:text-primary"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Publish Ride
+                      </a>
+                    </Link>
+                  )}
+                  
+                  {/* Show for all users */}
                   <Link href="/kyc-verification">
                     <a
                       className="block py-2 text-neutral-700 hover:text-primary"
@@ -194,6 +235,7 @@ export function Header() {
                       KYC Verification
                     </a>
                   </Link>
+                  
                   <Button
                     variant="ghost"
                     className="w-full justify-start p-2"

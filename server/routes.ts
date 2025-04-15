@@ -181,10 +181,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const user = req.user as any;
-      const kycData = { ...req.body, userId: user.id };
+      const userId = Number(user.id);
+      
+      // Prepare the data ensuring userId is a number
+      const kycData = { 
+        ...req.body, 
+        userId: userId
+      };
+      
       const kyc = await storage.createKycVerification(kycData);
       res.status(201).json(kyc);
     } catch (error) {
+      console.error("KYC submission error:", error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: error.errors 
+        });
+      }
+      
       res.status(500).json({ error: "KYC submission failed" });
     }
   });
