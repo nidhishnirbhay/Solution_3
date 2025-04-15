@@ -13,9 +13,8 @@ import PublishRide from "@/pages/publish-ride";
 import MyBookings from "@/pages/my-bookings";
 import KycVerification from "@/pages/kyc-verification";
 import AdminDashboard from "@/pages/admin/dashboard";
-import AdminUsers from "@/pages/admin/users";
-import AdminRides from "@/pages/admin/rides";
 import AdminKYC from "@/pages/admin/kyc";
+import AdminLogin from "@/pages/admin/login";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -49,9 +48,13 @@ function Router() {
         <Route path="/kyc-verification" component={KycVerification} />
         
         {/* Admin routes */}
-        <Route path="/admin" component={AdminDashboard} />
-        <Route path="/admin/users" component={AdminUsers} />
-        <Route path="/admin/rides" component={AdminRides} />
+        <Route path="/admin" component={() => {
+          // Redirect root admin path to dashboard
+          window.location.href = "/admin/dashboard";
+          return null;
+        }} />
+        <Route path="/admin/login" component={() => import("@/pages/admin/login").then(m => <m.default />)} />
+        <Route path="/admin/dashboard" component={AdminDashboard} />
         <Route path="/admin/kyc" component={AdminKYC} />
         
         {/* Fallback to 404 */}

@@ -262,13 +262,19 @@ export default function KycVerification() {
                         <div>
                           <h2 className="text-xl font-semibold">KYC Status</h2>
                           <p className="text-muted-foreground">
-                            {user?.isKycVerified
-                              ? "Your KYC is verified. You have full access to all features."
-                              : latestKyc
-                                ? latestKyc.status === "pending"
-                                  ? "Your KYC is under review. This usually takes 24-48 hours."
-                                  : "Your KYC needs to be completed or was rejected."
-                                : "You haven't submitted your KYC yet."}
+                            {user?.isKycVerified ? (
+                              "Your KYC is verified. You have full access to all features."
+                            ) : latestKyc ? (
+                              latestKyc.status === "pending" ? (
+                                "Your KYC is under review. This usually takes 24-48 hours."
+                              ) : latestKyc.status === "rejected" ? (
+                                "Your KYC verification was rejected. Please review the details below and submit again."
+                              ) : (
+                                "Your KYC is being processed."
+                              )
+                            ) : (
+                              "You haven't submitted your KYC yet. Please complete the form below to verify your identity."
+                            )}
                           </p>
                         </div>
                       </div>
