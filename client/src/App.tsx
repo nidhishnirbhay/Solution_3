@@ -56,6 +56,9 @@ function Router() {
         <Route path="/admin/login" component={AdminLogin} />
         <Route path="/admin/dashboard" component={AdminDashboard} />
         <Route path="/admin/kyc" component={AdminKYC} />
+        <Route path="/admin/users" component={() => <AdminDashboard title="Users" />} />
+        <Route path="/admin/rides" component={() => <AdminDashboard title="Rides" />} />
+        <Route path="/admin/bookings" component={() => <AdminDashboard title="Bookings" />} />
         
         {/* Fallback to 404 */}
         <Route component={NotFound} />

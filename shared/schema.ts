@@ -85,6 +85,10 @@ export const insertRideSchema = createInsertSchema(rides).pick({
   vehicleType: true,
   vehicleNumber: true,
   description: true,
+}).extend({
+  availableSeats: z.coerce.number().int().min(1, "At least one seat must be available"),
+  totalSeats: z.coerce.number().int().min(1, "At least one seat must be available"),
+  price: z.coerce.number().int().min(1, "Price must be greater than 0"),
 });
 
 // Booking related schemas
@@ -107,6 +111,9 @@ export const insertBookingSchema = createInsertSchema(bookings).pick({
   status: true,
   bookingFee: true,
   isPaid: true,
+}).extend({
+  numberOfSeats: z.coerce.number().int().min(1, "At least one seat is required"),
+  bookingFee: z.coerce.number().int().optional(),
 });
 
 // Rating related schemas
