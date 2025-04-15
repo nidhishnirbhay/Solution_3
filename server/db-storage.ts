@@ -163,8 +163,12 @@ export class DatabaseStorage implements IStorage {
       results = results.filter(ride => ride.rideType === rideType);
     }
     
-    // Filter active rides only (status field might not exist in schema)
-    results = results.filter(ride => ride.status === "active");
+    // Only return active rides
+    // Note: We're using an alternative field check since status might not be in the schema
+    results = results.filter(ride => {
+      const status = 'status' in ride ? (ride as any).status : null;
+      return status === null || status === "active";
+    });
     
     return results;
   }
@@ -229,8 +233,9 @@ export class DatabaseStorage implements IStorage {
     // Handle seat adjustments if booking is cancelled
     if (booking.status !== 'cancelled' && data.status === 'cancelled') {
       const ride = await this.getRide(booking.rideId);
-      if (ride) {
-        const newAvailableSeats = ride.availableSeats + booking.numberOfSeats;
+      if (ride && booking.numberOfSeats) {
+        const seatsToReturn = booking.numberOfSeats || 1; // Default to 1 if not specified
+        const newAvailableSeats = ride.availableSeats + seatsToReturn;
         await this.updateRide(ride.id, { availableSeats: newAvailableSeats });
       }
     }
