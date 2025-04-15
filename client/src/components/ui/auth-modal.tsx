@@ -162,15 +162,6 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
           <DialogTitle className="text-xl font-semibold">
             {activeTab === "login" ? "Login to OyeGaadi" : "Create an Account"}
           </DialogTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-0 top-0"
-            onClick={onClose}
-            type="button"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as "login" | "register")}>
