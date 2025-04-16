@@ -470,11 +470,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get bookings related to this ride to handle them
       const bookings = await storage.getBookingsByRideId(Number(id));
       
-      // Update the ride status to cancelled
-      const updated = await storage.updateRide(Number(id), { 
-        status: "cancelled",
-        cancellationReason: cancellationReason || "Cancelled by driver"
-      });
+      // Debug: log ride and update data
+      console.log("Ride to be updated:", ride);
+      console.log("Column names from the schema:", 
+        Object.keys(rides).filter(key => typeof key === 'string' && !key.startsWith('_')));
+      
+      // Use a simplified update with only status (known to work)
+      const updated = await db
+        .update(rides)
+        .set({
+          status: "cancelled",
+          cancellation_reason: cancellationReason || "Cancelled by driver"
+        })
+        .where(eq(rides.id, Number(id)))
+        .returning();
       
       // Update all related bookings to cancelled
       if (bookings.length > 0) {
