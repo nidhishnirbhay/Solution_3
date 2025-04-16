@@ -68,6 +68,8 @@ export const rides = pgTable("rides", {
   vehicleType: text("vehicle_type").notNull(),
   vehicleNumber: text("vehicle_number").notNull(),
   description: text("description"),
+  status: text("status").default("active").notNull(), // active, cancelled
+  cancellationReason: text("cancellation_reason"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -107,13 +109,13 @@ export const bookings = pgTable("bookings", {
 });
 
 export const insertBookingSchema = createInsertSchema(bookings).pick({
-  customerId: true,
   rideId: true,
   numberOfSeats: true,
   status: true,
   bookingFee: true,
   isPaid: true,
 }).extend({
+  // customerId is handled by the server using session data
   numberOfSeats: z.coerce.number().int().min(1, "At least one seat is required"),
   bookingFee: z.coerce.number().int().optional(),
 });

@@ -17,7 +17,9 @@ import {
   DialogDescription,
   DialogFooter,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface BookingProps {
   id: number;
@@ -61,9 +63,12 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
   
   const person = viewAs === "customer" ? booking.driver : booking.customer;
   
+  const [cancellationReason, setCancellationReason] = useState("");
+  const [showCancellationDialog, setShowCancellationDialog] = useState(false);
+  
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const res = await apiRequest("PUT", `/api/bookings/${id}/status`, { status });
+    mutationFn: async ({ id, status, reason }: { id: number; status: string; reason?: string }) => {
+      const res = await apiRequest("PUT", `/api/bookings/${id}/status`, { status, reason });
       return res.json();
     },
     onSuccess: () => {
@@ -111,7 +116,21 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
   };
 
   const handleStatusUpdate = (status: string) => {
-    updateStatusMutation.mutate({ id: booking.id, status });
+    if (status === "cancelled") {
+      setShowCancellationDialog(true);
+    } else {
+      updateStatusMutation.mutate({ id: booking.id, status });
+    }
+  };
+  
+  const handleCancellation = () => {
+    updateStatusMutation.mutate({ 
+      id: booking.id, 
+      status: "cancelled", 
+      reason: cancellationReason 
+    });
+    setShowCancellationDialog(false);
+    setCancellationReason("");
   };
 
   return (
@@ -133,6 +152,38 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
               {getStatusBadge(booking.status)}
             </div>
           </div>
+          
+          {/* Cancellation Dialog */}
+          <Dialog open={showCancellationDialog} onOpenChange={setShowCancellationDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Cancel Booking</DialogTitle>
+                <DialogDescription>
+                  Please provide a reason for cancellation
+                </DialogDescription>
+              </DialogHeader>
+              
+              <Textarea
+                placeholder="Enter reason for cancellation"
+                value={cancellationReason}
+                onChange={(e) => setCancellationReason(e.target.value)}
+                className="h-24"
+              />
+              
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Nevermind</Button>
+                </DialogClose>
+                <Button 
+                  variant="destructive" 
+                  onClick={handleCancellation}
+                  disabled={!cancellationReason.trim() || updateStatusMutation.isPending}
+                >
+                  {updateStatusMutation.isPending ? "Cancelling..." : "Confirm Cancellation"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
