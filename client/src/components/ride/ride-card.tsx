@@ -53,6 +53,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
   
   const bookingMutation = useMutation({
     mutationFn: async (data: { rideId: number; numberOfSeats: number }) => {
+      // customerId is added by the server from the session - we don't need to provide it
       const res = await apiRequest("POST", "/api/bookings", data);
       return res.json();
     },
