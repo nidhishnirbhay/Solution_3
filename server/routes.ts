@@ -724,14 +724,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Can only rate completed bookings" });
       }
       
-      // Check if already rated
-      const existingRating = await storage.getRatingByBookingId(booking.id);
-      if (existingRating) {
-        return res.status(400).json({ error: "Booking already rated" });
-      }
-      
       // Determine who is rating whom
       let fromUserId, toUserId;
+      let isCustomerRatingDriver = false;
       
       // Get the ride to find driver
       const ride = await storage.getRide(booking.rideId);
@@ -741,12 +736,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (user.id === booking.customerId) {
         // Customer rating driver
+        isCustomerRatingDriver = true;
         fromUserId = user.id;
         toUserId = ride.driverId;
+        
+        // Check if customer has already rated the driver
+        if (booking.driverRated) {
+          return res.status(400).json({ error: "You have already rated this driver" });
+        }
       } else if (user.id === ride.driverId) {
         // Driver rating customer
+        isCustomerRatingDriver = false;
         fromUserId = user.id;
         toUserId = booking.customerId;
+        
+        // Check if driver has already rated the customer
+        if (booking.customerRated) {
+          return res.status(400).json({ error: "You have already rated this customer" });
+        }
       } else {
         return res.status(403).json({ error: "You can only rate your own bookings" });
       }
@@ -757,7 +764,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         toUserId
       };
       
+      // Create the rating
       const rating = await storage.createRating(ratingData);
+      
+      // Update the appropriate rating flag in the booking
+      const updateData = isCustomerRatingDriver 
+        ? { driverRated: true } 
+        : { customerRated: true };
+        
+      await storage.updateBooking(booking.id, updateData);
+      
       res.status(201).json(rating);
     } catch (error) {
       res.status(500).json({ error: "Rating submission failed" });
