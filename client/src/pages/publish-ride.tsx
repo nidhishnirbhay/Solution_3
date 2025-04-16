@@ -43,29 +43,29 @@ const publishRideSchema = z.object({
   estimatedArrivalDate: z.string().optional(),
   estimatedArrivalTime: z.string().optional(),
   rideTypes: z.array(z.enum(["one-way", "sharing"])).min(1, { message: "At least one ride type is required" }),
-  oneWayPrice: z.string().optional()
-    .refine(val => val && val.length > 0, { message: "One-way price is required" })
-    .transform(val => val ? Number(val) : undefined),
-  sharingPrice: z.string().optional()
-    .refine(val => val && val.length > 0, { message: "Sharing price is required" })
-    .transform(val => val ? Number(val) : undefined),
-  totalSeats: z.string().min(1, { message: "Total seats is required" })
-    .transform(val => Number(val)),
-  availableSeats: z.string().min(1, { message: "Available seats is required" })
-    .transform(val => Number(val)),
+  oneWayPrice: z.coerce.number().optional()
+    .refine(val => val !== undefined && val > 0, { 
+      message: "One-way price is required and must be greater than 0" 
+    }),
+  sharingPrice: z.coerce.number().optional()
+    .refine(val => val !== undefined && val > 0, { 
+      message: "Sharing price is required and must be greater than 0" 
+    }),
+  totalSeats: z.coerce.number().min(1, { message: "Total seats is required" }),
+  availableSeats: z.coerce.number().min(1, { message: "Available seats is required" }),
   vehicleType: z.string().min(1, { message: "Vehicle type is required" }),
   vehicleNumber: z.string().min(1, { message: "Vehicle number is required" }),
   description: z.string().optional(),
 }).superRefine((data, ctx) => {
   // Ensure prices are provided based on selected ride types
-  if (data.rideTypes.includes("one-way") && !data.oneWayPrice) {
+  if (data.rideTypes.includes("one-way") && (!data.oneWayPrice || data.oneWayPrice <= 0)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "One-way price is required when one-way ride type is selected",
       path: ["oneWayPrice"]
     });
   }
-  if (data.rideTypes.includes("sharing") && !data.sharingPrice) {
+  if (data.rideTypes.includes("sharing") && (!data.sharingPrice || data.sharingPrice <= 0)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Sharing price is required when sharing ride type is selected",
@@ -90,11 +90,11 @@ export default function PublishRide() {
       departureTime: format(new Date(), "HH:mm"),
       estimatedArrivalDate: format(addHours(new Date(), 3), "yyyy-MM-dd"),
       estimatedArrivalTime: format(addHours(new Date(), 3), "HH:mm"),
-      rideTypes: ["one-way"],  // Default to one-way ride
-      oneWayPrice: "",
-      sharingPrice: "",
-      totalSeats: "4",
-      availableSeats: "4",
+      rideTypes: ["one-way"] as ["one-way" | "sharing"],  // Default to one-way ride
+      oneWayPrice: 0,
+      sharingPrice: 0,
+      totalSeats: 4,
+      availableSeats: 4,
       vehicleType: "",
       vehicleNumber: "",
       description: "",
@@ -308,15 +308,15 @@ export default function PublishRide() {
                                           onCheckedChange={(checked) => {
                                             const currentValue = form.getValues("rideTypes");
                                             const updatedValue = checked 
-                                              ? [...currentValue, "one-way"]
+                                              ? [...currentValue, "one-way"] as ("one-way" | "sharing")[]
                                               : currentValue.filter(type => type !== "one-way");
                                             
                                             form.setValue("rideTypes", updatedValue);
                                             
                                             // If one-way is selected, set available seats equal to total seats
                                             if (checked) {
-                                              const totalSeats = parseInt(form.getValues("totalSeats"), 10);
-                                              form.setValue("availableSeats", totalSeats.toString());
+                                              const totalSeats = form.getValues("totalSeats");
+                                              form.setValue("availableSeats", totalSeats);
                                             }
                                           }}
                                         />
