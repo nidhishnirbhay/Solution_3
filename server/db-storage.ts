@@ -194,26 +194,37 @@ export class DatabaseStorage implements IStorage {
 
   // Booking methods
   async createBooking(booking: InsertBooking): Promise<Booking> {
-    const [newBooking] = await db
-      .insert(bookings)
-      .values({
-        ...booking,
-        isPaid: false
-      })
-      .returning();
-    
-    // Update available seats in the ride
-    const [ride] = await db.select().from(rides).where(eq(rides.id, booking.rideId));
-    if (ride && booking.numberOfSeats) {
-      const seatsToBook = booking.numberOfSeats || 1; // Default to 1 seat if not specified
-      const updatedAvailableSeats = ride.availableSeats - seatsToBook;
-      await db
-        .update(rides)
-        .set({ availableSeats: updatedAvailableSeats })
-        .where(eq(rides.id, ride.id));
+    try {
+      console.log("Creating booking with data:", JSON.stringify(booking, null, 2));
+      
+      const [newBooking] = await db
+        .insert(bookings)
+        .values({
+          ...booking,
+          isPaid: false,
+          customerRated: false,
+          driverRated: false
+        })
+        .returning();
+      
+      console.log("Booking created successfully:", newBooking.id);
+      
+      // Update available seats in the ride
+      const [ride] = await db.select().from(rides).where(eq(rides.id, booking.rideId));
+      if (ride && booking.numberOfSeats) {
+        const seatsToBook = booking.numberOfSeats || 1; // Default to 1 seat if not specified
+        const updatedAvailableSeats = ride.availableSeats - seatsToBook;
+        await db
+          .update(rides)
+          .set({ availableSeats: updatedAvailableSeats })
+          .where(eq(rides.id, ride.id));
+      }
+      
+      return newBooking;
+    } catch (error) {
+      console.error("Error in createBooking:", error);
+      throw error;
     }
-    
-    return newBooking;
   }
 
   async getBooking(id: number): Promise<Booking | undefined> {
