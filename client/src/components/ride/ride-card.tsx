@@ -36,6 +36,8 @@ export interface RideProps {
   vehicleType: string;
   vehicleNumber: string;
   description?: string;
+  status?: string; // "active", "cancelled", "completed"
+  cancellationReason?: string;
   driver?: {
     id: number;
     fullName: string;
@@ -53,6 +55,13 @@ export function RideCard({ ride }: { ride: RideProps }) {
   const [cancelReason, setCancelReason] = useState("");
   const { toast } = useToast();
   const { user } = useAuth();
+  
+  // Check if this is a past ride (based on departure date)
+  const isPastRide = useMemo(() => {
+    const rideDate = new Date(ride.departureDate);
+    const now = new Date();
+    return rideDate < now;
+  }, [ride.departureDate]);
   
   // Check if the current user has already booked this ride
   const { data: myBookings } = useQuery({

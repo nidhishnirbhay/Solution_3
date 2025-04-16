@@ -456,6 +456,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint for marking a ride as completed
+  rideRouter.patch('/:id/complete', authorize(['driver']), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = req.user as any;
+      
+      // Verify the ride exists
+      const ride = await storage.getRide(Number(id));
+      if (!ride) {
+        return res.status(404).json({ error: "Ride not found" });
+      }
+      
+      // Ensure only the driver of the ride can mark it as completed
+      if (ride.driverId !== user.id) {
+        return res.status(403).json({ error: "You can only mark your own rides as completed" });
+      }
+      
+      // Get bookings related to this ride to update their status
+      const bookings = await storage.getBookingsByRideId(Number(id));
+      
+      // Use direct database update with snake_case column names
+      const updated = await db
+        .update(rides)
+        .set({
+          status: "completed"
+        } as any) // Use type assertion to bypass TypeScript checking
+        .where(eq(rides.id, Number(id)))
+        .returning();
+      
+      // Update all related bookings to completed
+      if (bookings.length > 0) {
+        for (const booking of bookings) {
+          if (booking.status === 'confirmed') {
+            // Only update confirmed bookings to completed
+            await db
+              .update(bookings)
+              .set({
+                status: "completed"
+              } as any)
+              .where(eq(bookings.id, booking.id))
+              .returning();
+          }
+        }
+      }
+      
+      res.json(updated[0]);
+    } catch (error) {
+      console.error("Error completing ride:", error);
+      res.status(500).json({ error: "Failed to mark ride as completed" });
+    }
+  });
+  
   // Endpoint for cancelling a ride
   rideRouter.patch('/:id/cancel', authorize(['driver']), async (req, res) => {
     try {

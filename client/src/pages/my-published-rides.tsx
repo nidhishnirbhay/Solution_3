@@ -42,10 +42,16 @@ export default function MyPublishedRides() {
       (acc, ride) => {
         const rideDate = new Date(ride.departureDate);
         
-        if (rideDate < now) {
+        // Check if ride is completed based on either:
+        // 1. Past departure date
+        // 2. Explicitly marked as status "completed"
+        if (rideDate < now || ride.status === "completed") {
           acc.completed.push(ride);
         } else {
-          acc.active.push(ride);
+          // Only show active rides that aren't cancelled
+          if (ride.status !== "cancelled") {
+            acc.active.push(ride);
+          }
         }
         
         return acc;
