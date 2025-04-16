@@ -18,11 +18,25 @@ import MemoryStore from "memorystore";
 function validateBody<T>(schema: z.ZodType<T>) {
   return (req: Request, res: Response, next: Function) => {
     try {
+      // Special case for ride data to handle date fields properly
+      if (req.path === '/rides' && req.method === 'POST') {
+        // Pre-process date fields to convert ISO strings to Date objects
+        if (req.body.departureDate && typeof req.body.departureDate === 'string') {
+          req.body.departureDate = new Date(req.body.departureDate);
+        }
+        
+        if (req.body.estimatedArrivalDate && typeof req.body.estimatedArrivalDate === 'string') {
+          req.body.estimatedArrivalDate = new Date(req.body.estimatedArrivalDate);
+        }
+      }
+      
+      // Now parse with schema
       const parsed = schema.parse(req.body);
       req.body = parsed;
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.log("Validation error:", error.errors);
         return res.status(400).json({ 
           error: "Validation failed", 
           details: error.errors 
@@ -325,10 +339,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "KYC verification required to publish rides" });
       }
       
-      const rideData = { ...req.body, driverId: user.id };
+      // Ensure dates are properly handled
+      let rideData = { ...req.body, driverId: user.id };
+      
+      // Additional date conversion assurance
+      if (rideData.departureDate && !(rideData.departureDate instanceof Date)) {
+        console.log("Converting departureDate from", rideData.departureDate, "to Date object");
+        rideData.departureDate = new Date(rideData.departureDate);
+      }
+      
+      if (rideData.estimatedArrivalDate && !(rideData.estimatedArrivalDate instanceof Date)) {
+        console.log("Converting estimatedArrivalDate from", rideData.estimatedArrivalDate, "to Date object");
+        rideData.estimatedArrivalDate = new Date(rideData.estimatedArrivalDate);
+      }
+      
       const ride = await storage.createRide(rideData);
       res.status(201).json(ride);
     } catch (error) {
+      console.error("Ride creation error:", error);
       res.status(500).json({ error: "Failed to create ride" });
     }
   });
