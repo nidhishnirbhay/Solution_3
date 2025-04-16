@@ -489,13 +489,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(rides.id, Number(id)))
         .returning();
       
-      // Update all related bookings to cancelled
+      // Update all related bookings to cancelled with direct DB access
       if (bookings.length > 0) {
         for (const booking of bookings) {
-          await storage.updateBooking(booking.id, {
-            status: "cancelled",
-            cancellationReason: "Ride cancelled by driver: " + (cancellationReason || "No reason provided")
-          });
+          // Use direct DB update for consistent column naming
+          await db
+            .update(bookings)
+            .set({
+              status: "cancelled",
+              cancellation_reason: "Ride cancelled by driver: " + (cancellationReason || "No reason provided")
+            } as any) // Type assertion for snake_case columns
+            .where(eq(bookings.id, booking.id));
         }
       }
       
