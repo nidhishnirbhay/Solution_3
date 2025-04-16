@@ -88,6 +88,10 @@ export function RideCard({ ride }: { ride: RideProps }) {
   
   const cancelRideMutation = useMutation({
     mutationFn: async (data: { id: number; reason: string }) => {
+      console.log("Sending ride cancellation request with data:", {
+        id: data.id,
+        cancellationReason: data.reason
+      });
       const res = await apiRequest("PATCH", `/api/rides/${data.id}/cancel`, { cancellationReason: data.reason });
       return res.json();
     },

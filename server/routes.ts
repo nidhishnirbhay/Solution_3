@@ -2,12 +2,15 @@ import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import {
   insertUserSchema,
   insertKycSchema,
   insertRideSchema,
   insertBookingSchema,
-  insertRatingSchema
+  insertRatingSchema,
+  rides
 } from "@shared/schema";
 import session from "express-session";
 import passport from "passport";
@@ -480,7 +483,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .update(rides)
         .set({
           status: "cancelled",
-          cancellation_reason: cancellationReason || "Cancelled by driver"
+          cancellationReason: cancellationReason || "Cancelled by driver"
         })
         .where(eq(rides.id, Number(id)))
         .returning();
