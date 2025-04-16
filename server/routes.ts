@@ -399,8 +399,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = req.user as any;
       const rides = await storage.getRidesByDriverId(user.id);
       
-      // Add driver information to each ride
-      const ridesWithDriver = rides.map(ride => ({
+      // Filter out cancelled rides
+      const activeRides = rides.filter(ride => ride.status !== 'cancelled');
+      
+      // Add driver information to each active ride
+      const ridesWithDriver = activeRides.map(ride => ({
         ...ride,
         driver: {
           id: user.id,
@@ -489,7 +492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(rides.id, Number(id)))
         .returning();
       
-      // Update all related bookings to cancelled with direct DB access
+      // Update all related bookings to cancelled
       if (bookings.length > 0) {
         for (const booking of bookings) {
           // Use direct DB update for consistent column naming
@@ -500,6 +503,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               cancellation_reason: "Ride cancelled by driver: " + (cancellationReason || "No reason provided")
             } as any) // Type assertion for snake_case columns
             .where(eq(bookings.id, booking.id));
+            
+          // Restore the seats in the ride
+          if (booking.numberOfSeats > 0) {
+            const rideToUpdate = await storage.getRide(booking.rideId);
+            if (rideToUpdate) {
+              await storage.updateRide(rideToUpdate.id, {
+                availableSeats: rideToUpdate.availableSeats + booking.numberOfSeats
+              });
+            }
+          }
         }
       }
       

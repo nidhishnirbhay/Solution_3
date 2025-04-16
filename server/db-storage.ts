@@ -134,7 +134,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchRides(fromLocation: string, toLocation: string, date?: string, rideType?: string): Promise<Ride[]> {
-    // Base query with conditions
+    // Base query with conditions - explicitly exclude cancelled rides
     let baseQuery = db
       .select()
       .from(rides)
@@ -142,7 +142,8 @@ export class DatabaseStorage implements IStorage {
         and(
           sql`LOWER(${rides.fromLocation}) LIKE LOWER(${'%' + fromLocation + '%'})`,
           sql`LOWER(${rides.toLocation}) LIKE LOWER(${'%' + toLocation + '%'})`,
-          sql`${rides.availableSeats} > 0`
+          sql`${rides.availableSeats} > 0`,
+          sql`${rides.status} != 'cancelled'` // Explicitly exclude cancelled rides
         )
       );
     
@@ -160,15 +161,17 @@ export class DatabaseStorage implements IStorage {
     
     // Filter by ride type if provided
     if (rideType && rideType !== "all") {
-      results = results.filter(ride => ride.rideType === rideType);
+      results = results.filter(ride => {
+        // Handle ride type as array or string
+        if (Array.isArray(ride.rideType)) {
+          return ride.rideType.includes(rideType);
+        } else {
+          return ride.rideType === rideType;
+        }
+      });
     }
     
-    // Only return active rides
-    // Note: We're using an alternative field check since status might not be in the schema
-    results = results.filter(ride => {
-      const status = 'status' in ride ? (ride as any).status : null;
-      return status === null || status === "active";
-    });
+    console.log(`Search results: ${results.length} rides found matching from=${fromLocation}, to=${toLocation}`);
     
     return results;
   }
