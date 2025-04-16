@@ -47,7 +47,8 @@ export interface RideProps {
 
 export function RideCard({ ride }: { ride: RideProps }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [seatsToBook, setSeatsToBook] = useState(1);
+  // For full vehicle booking, we use total seats
+  const [seatsToBook] = useState(ride.totalSeats);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const { toast } = useToast();
@@ -272,32 +273,12 @@ export function RideCard({ ride }: { ride: RideProps }) {
                       </div>
                     </div>
                     
-                    {(Array.isArray(ride.rideType) ? 
-                      ride.rideType.includes("sharing") : 
-                      ride.rideType === "sharing") && (
-                      <div className="mb-4">
-                        <p className="font-medium mb-2">Number of seats</p>
-                        <div className="flex items-center">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => setSeatsToBook(Math.max(1, seatsToBook - 1))}
-                            disabled={seatsToBook <= 1}
-                          >
-                            -
-                          </Button>
-                          <span className="mx-4 font-medium">{seatsToBook}</span>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => setSeatsToBook(Math.min(ride.availableSeats, seatsToBook + 1))}
-                            disabled={seatsToBook >= ride.availableSeats}
-                          >
-                            +
-                          </Button>
-                        </div>
+                    <div className="mb-4">
+                      <div className="flex justify-between">
+                        <p className="font-medium">Booking Type</p>
+                        <p className="font-medium">Full Vehicle</p>
                       </div>
-                    )}
+                    </div>
                     
                     <Separator className="my-2" />
                     

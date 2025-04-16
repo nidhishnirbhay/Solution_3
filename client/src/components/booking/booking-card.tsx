@@ -207,8 +207,8 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
               <p>{booking.ride.vehicleType} ({booking.ride.vehicleNumber})</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Seats</p>
-              <p>{booking.numberOfSeats}</p>
+              <p className="text-muted-foreground">Booking Type</p>
+              <p>Full Vehicle</p>
             </div>
             <div>
               <p className="text-muted-foreground">Ride Type</p>
