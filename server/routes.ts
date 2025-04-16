@@ -592,12 +592,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const ride = await storage.getRide(booking.rideId);
           const driver = ride ? await storage.getUser(ride.driverId) : null;
           
-          // Get ratings for this booking directly from storage
-          const ratingsForBooking = await storage.getRatingByBookingId(booking.id);
-          
-          // For now, let's use the database fields directly
-          const driverRated = booking.driverRated || false;
-          const customerRated = booking.customerRated || false;
+          // Use the booking's existing flags for driverRated and customerRated
+          // If they don't exist, default to false
+          const driverRated = booking.driverRated === true;
+          const customerRated = booking.customerRated === true;
           
           // Include driver's mobile number if booking is confirmed
           const driverInfo = driver ? {
@@ -637,12 +635,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           bookings.map(async (booking) => {
             const customer = await storage.getUser(booking.customerId);
             
-            // Get ratings for this booking directly from storage
-            const ratingsForBooking = await storage.getRatingByBookingId(booking.id);
-            
-            // For now, let's use the database fields directly
-            const driverRated = booking.driverRated || false;
-            const customerRated = booking.customerRated || false;
+            // Use the booking's existing flags for driverRated and customerRated
+            // If they don't exist, default to false
+            const driverRated = booking.driverRated === true;
+            const customerRated = booking.customerRated === true;
             
             return { 
               ...booking, 
