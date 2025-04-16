@@ -540,7 +540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   bookingRouter.put('/:id/status', async (req, res) => {
     try {
       const { id } = req.params;
-      const { status } = req.body;
+      const { status, reason } = req.body;
       
       if (!['confirmed', 'cancelled', 'completed'].includes(status)) {
         return res.status(400).json({ error: "Invalid status" });
@@ -563,7 +563,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
       
-      const updated = await storage.updateBooking(Number(id), { status });
+      // Check if reason is provided for cancellation
+      if (status === 'cancelled' && !reason) {
+        return res.status(400).json({ error: "Cancellation reason is required" });
+      }
+      
+      // If status is cancelled, include the reason in the update
+      const updateData: any = { status };
+      if (status === 'cancelled' && reason) {
+        updateData.cancellationReason = reason;
+      }
+      
+      const updated = await storage.updateBooking(Number(id), updateData);
       res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to update booking status" });

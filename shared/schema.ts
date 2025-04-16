@@ -104,6 +104,7 @@ export const bookings = pgTable("bookings", {
   status: text("status").notNull().default('pending'), // pending, confirmed, cancelled, completed
   bookingFee: integer("booking_fee").notNull().default(200),
   isPaid: boolean("is_paid").default(false),
+  cancellationReason: text("cancellation_reason"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

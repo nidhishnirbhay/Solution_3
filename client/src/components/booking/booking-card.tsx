@@ -30,6 +30,7 @@ interface BookingProps {
   bookingFee: number;
   isPaid: boolean;
   createdAt: string;
+  cancellationReason?: string;
   hasRated?: boolean;
   ride: {
     id: number;
@@ -216,6 +217,13 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
               <p className="text-muted-foreground">Total Amount</p>
               <p className="font-medium">₹{(booking.ride.price * booking.numberOfSeats) + booking.bookingFee}</p>
             </div>
+            
+            {booking.status === "cancelled" && booking.cancellationReason && (
+              <div className="col-span-2 mt-2 p-3 bg-red-50 rounded-md">
+                <p className="text-red-800 font-medium mb-1">Cancellation Reason:</p>
+                <p className="text-red-700">{booking.cancellationReason}</p>
+              </div>
+            )}
           </div>
         </div>
         
