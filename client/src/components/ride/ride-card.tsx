@@ -135,6 +135,28 @@ export function RideCard({ ride }: { ride: RideProps }) {
       });
     }
   });
+  
+  // Mutation for marking a ride as completed
+  const completeRideMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("PATCH", `/api/rides/${id}/complete`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/rides/my-rides"] });
+      toast({
+        title: "Ride completed",
+        description: "Your ride has been marked as completed",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Action failed",
+        description: error.message || "There was an error marking the ride as completed",
+        variant: "destructive",
+      });
+    }
+  });
 
   const handleBooking = () => {
     if (!user) {
@@ -185,6 +207,11 @@ export function RideCard({ ride }: { ride: RideProps }) {
       reason: cancelReason
     });
   };
+  
+  // Handle mark ride as completed
+  const handleCompleteRide = () => {
+    completeRideMutation.mutate(ride.id);
+  };
 
   // If the driver info isn't available but we're in the driver's view, use current user
   const isCurrentUserDriver = user?.id === ride.driverId;
@@ -212,6 +239,21 @@ export function RideCard({ ride }: { ride: RideProps }) {
                 <Badge variant="default">
                   One-Way Full Booking
                 </Badge>
+                {ride.status && (
+                  <Badge 
+                    variant={
+                      ride.status === "cancelled" ? "destructive" : 
+                      "outline"
+                    }
+                    className={
+                      ride.status === "completed" ? "bg-green-500 hover:bg-green-600 text-white" : 
+                      ride.status === "cancelled" ? "" : 
+                      "bg-blue-500 hover:bg-blue-600 text-white"
+                    }
+                  >
+                    {ride.status.charAt(0).toUpperCase() + ride.status.slice(1)}
+                  </Badge>
+                )}
               </div>
             </div>
             <div className="text-right">
@@ -247,12 +289,33 @@ export function RideCard({ ride }: { ride: RideProps }) {
             
             {/* Show different buttons based on user role and if they're the driver */}
             {isCurrentUserDriver ? (
-              <Button 
-                variant="destructive" 
-                onClick={() => setShowCancelDialog(true)}
-              >
-                Cancel Ride
-              </Button>
+              isPastRide && ride.status !== "completed" ? (
+                <Button 
+                  variant="outline" 
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={handleCompleteRide}
+                  disabled={completeRideMutation.isPending}
+                >
+                  {completeRideMutation.isPending ? (
+                    <>
+                      <span className="animate-spin mr-1">⟳</span> Processing...
+                    </>
+                  ) : (
+                    "Mark as Completed"
+                  )}
+                </Button>
+              ) : ride.status !== "completed" ? (
+                <Button 
+                  variant="destructive" 
+                  onClick={() => setShowCancelDialog(true)}
+                >
+                  Cancel Ride
+                </Button>
+              ) : (
+                <Button variant="outline" disabled className="cursor-not-allowed">
+                  Completed
+                </Button>
+              )
             ) : alreadyBooked ? (
               <Button variant="outline" disabled className="cursor-not-allowed">
                 Already Booked
