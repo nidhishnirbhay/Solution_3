@@ -31,7 +31,8 @@ interface BookingProps {
   isPaid: boolean;
   createdAt: string;
   cancellationReason?: string;
-  hasRated?: boolean;
+  driverRated?: boolean;
+  customerRated?: boolean;
   ride: {
     id: number;
     fromLocation: string;
@@ -300,36 +301,40 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
                 </>
               )}
               
-              {booking.status === "completed" && !booking.hasRated && (
-                <Dialog open={showRatingModal} onOpenChange={setShowRatingModal}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" className="bg-primary hover:bg-primary/90">
-                      Rate {viewAs === "customer" ? "Driver" : "Customer"}
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>
-                        Rate your {viewAs === "customer" ? "Driver" : "Customer"}
-                      </DialogTitle>
-                      <DialogDescription>
-                        Please share your experience with {person?.fullName}
-                      </DialogDescription>
-                    </DialogHeader>
-                    
-                    <RatingForm 
-                      bookingId={booking.id}
-                      toUserId={person?.id || 0}
-                      onSuccess={() => setShowRatingModal(false)}
-                    />
-                  </DialogContent>
-                </Dialog>
+              {booking.status === "completed" && (
+                (viewAs === "customer" && !booking.driverRated || viewAs === "driver" && !booking.customerRated) && (
+                  <Dialog open={showRatingModal} onOpenChange={setShowRatingModal}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="bg-primary hover:bg-primary/90">
+                        Rate {viewAs === "customer" ? "Driver" : "Customer"}
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>
+                          Rate your {viewAs === "customer" ? "Driver" : "Customer"}
+                        </DialogTitle>
+                        <DialogDescription>
+                          Please share your experience with {person?.fullName}
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <RatingForm 
+                        bookingId={booking.id}
+                        toUserId={person?.id || 0}
+                        onSuccess={() => setShowRatingModal(false)}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                )
               )}
               
-              {booking.status === "completed" && booking.hasRated && (
-                <Badge variant="outline" className="bg-green-50">
-                  Rated
-                </Badge>
+              {booking.status === "completed" && (
+                (viewAs === "customer" && booking.driverRated || viewAs === "driver" && booking.customerRated) && (
+                  <Badge variant="outline" className="bg-green-50">
+                    Rated
+                  </Badge>
+                )
               )}
             </div>
           </div>

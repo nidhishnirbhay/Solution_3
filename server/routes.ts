@@ -590,7 +590,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bookings.map(async (booking) => {
           const ride = await storage.getRide(booking.rideId);
           const driver = ride ? await storage.getUser(ride.driverId) : null;
-          const rating = await storage.getRatingByBookingId(booking.id);
+          
+          // Check for ratings in both directions
+          const ratingsList = await db
+            .select()
+            .from(ratings)
+            .where(eq(ratings.bookingId, booking.id));
+            
+          // Find ratings by specific users
+          const customerRating = ratingsList.find((r: any) => r.fromUserId === user.id);
+          const driverRating = ratingsList.find((r: any) => driver && r.fromUserId === driver.id);
           
           // Include driver's mobile number if booking is confirmed
           const driverInfo = driver ? {
@@ -604,7 +613,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...booking, 
             ride, 
             driver: driverInfo,
-            hasRated: !!rating 
+            driverRated: !!customerRating,  // Customer has rated the driver
+            customerRated: !!driverRating   // Driver has rated the customer
           };
         })
       );
@@ -628,12 +638,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const bookingsWithCustomers = await Promise.all(
           bookings.map(async (booking) => {
             const customer = await storage.getUser(booking.customerId);
-            const rating = await storage.getRatingByBookingId(booking.id);
+            
+            // Check for ratings in both directions
+            const ratingsList = await db
+              .select()
+              .from(ratings)
+              .where(eq(ratings.bookingId, booking.id));
+              
+            // Find ratings by specific users
+            const customerRating = ratingsList.find((r: any) => r.fromUserId === booking.customerId);
+            const driverRating = ratingsList.find((r: any) => r.fromUserId === user.id);
+            
             return { 
               ...booking, 
               ride, 
               customer,
-              hasRated: !!rating 
+              driverRated: !!customerRating,  // Customer has rated the driver
+              customerRated: !!driverRating   // Driver has rated the customer
             };
           })
         );
