@@ -42,36 +42,17 @@ const publishRideSchema = z.object({
   departureTime: z.string().min(1, { message: "Departure time is required" }),
   estimatedArrivalDate: z.string().optional(),
   estimatedArrivalTime: z.string().optional(),
-  rideTypes: z.array(z.enum(["one-way", "sharing"])).min(1, { message: "At least one ride type is required" }),
-  oneWayPrice: z.coerce.number().optional()
+  rideTypes: z.array(z.enum(["one-way"])).default(["one-way"]),
+  oneWayPrice: z.coerce.number()
     .refine(val => val !== undefined && val > 0, { 
       message: "One-way price is required and must be greater than 0" 
     }),
-  sharingPrice: z.coerce.number().optional()
-    .refine(val => val !== undefined && val > 0, { 
-      message: "Sharing price is required and must be greater than 0" 
-    }),
+  sharingPrice: z.coerce.number().optional(),
   totalSeats: z.coerce.number().min(1, { message: "Total seats is required" }),
   availableSeats: z.coerce.number().min(1, { message: "Available seats is required" }),
   vehicleType: z.string().min(1, { message: "Vehicle type is required" }),
   vehicleNumber: z.string().min(1, { message: "Vehicle number is required" }),
   description: z.string().optional(),
-}).superRefine((data, ctx) => {
-  // Ensure prices are provided based on selected ride types
-  if (data.rideTypes.includes("one-way") && (!data.oneWayPrice || data.oneWayPrice <= 0)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "One-way price is required when one-way ride type is selected",
-      path: ["oneWayPrice"]
-    });
-  }
-  if (data.rideTypes.includes("sharing") && (!data.sharingPrice || data.sharingPrice <= 0)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Sharing price is required when sharing ride type is selected",
-      path: ["sharingPrice"]
-    });
-  }
 });
 
 type PublishRideFormValues = z.infer<typeof publishRideSchema>;
@@ -90,7 +71,7 @@ export default function PublishRide() {
       departureTime: format(new Date(), "HH:mm"),
       estimatedArrivalDate: format(addHours(new Date(), 3), "yyyy-MM-dd"),
       estimatedArrivalTime: format(addHours(new Date(), 3), "HH:mm"),
-      rideTypes: ["one-way"] as ["one-way" | "sharing"],  // Default to one-way ride
+      rideTypes: ["one-way"] as ["one-way"],  // Default to one-way ride
       oneWayPrice: 0,
       sharingPrice: 0,
       totalSeats: 4,
@@ -132,13 +113,11 @@ export default function PublishRide() {
       estimatedArrivalDateTime = new Date(`${data.estimatedArrivalDate}T${data.estimatedArrivalTime}`).toISOString();
     }
 
-    // Determine price based on selected ride types
-    let price = 0;
-    if (data.rideTypes.includes("one-way") && data.oneWayPrice) {
-      price = data.oneWayPrice;
-    } else if (data.rideTypes.includes("sharing") && data.sharingPrice) {
-      price = data.sharingPrice;
-    }
+    // Always use one-way price
+    const price = data.oneWayPrice;
+
+    // For one-way rides, available seats should always equal total seats
+    const availableSeats = data.totalSeats;
 
     // Creating request payload as plain objects, let server handle conversion
     const rideData = {
@@ -148,10 +127,10 @@ export default function PublishRide() {
       // Directly send ISO date strings, server will parse them
       departureDate: combineDepartureDateTime,
       estimatedArrivalDate: estimatedArrivalDateTime || null,
-      rideType: data.rideTypes,  // Server expects 'rideType' not 'rideTypes'
+      rideType: ["one-way"],  // Always use one-way ride type
       price: price,
       totalSeats: data.totalSeats,
-      availableSeats: data.availableSeats,
+      availableSeats: availableSeats,
       vehicleType: data.vehicleType,
       vehicleNumber: data.vehicleNumber,
       description: data.description || "",
@@ -293,7 +272,7 @@ export default function PublishRide() {
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <FormLabel className="mb-2 block">Ride Types Offered</FormLabel>
+                          <FormLabel className="mb-2 block">Ride Type</FormLabel>
                           <div className="space-y-4 mb-2">
                             <FormField
                               control={form.control}
@@ -304,21 +283,8 @@ export default function PublishRide() {
                                     <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                       <FormControl>
                                         <Checkbox 
-                                          checked={form.watch("rideTypes").includes("one-way")}
-                                          onCheckedChange={(checked) => {
-                                            const currentValue = form.getValues("rideTypes");
-                                            const updatedValue = checked 
-                                              ? [...currentValue, "one-way"] as ("one-way" | "sharing")[]
-                                              : currentValue.filter(type => type !== "one-way");
-                                            
-                                            form.setValue("rideTypes", updatedValue);
-                                            
-                                            // If one-way is selected, set available seats equal to total seats
-                                            if (checked) {
-                                              const totalSeats = form.getValues("totalSeats");
-                                              form.setValue("availableSeats", totalSeats);
-                                            }
-                                          }}
+                                          checked={true}
+                                          disabled={true}
                                         />
                                       </FormControl>
                                       <div className="space-y-1 leading-none">
@@ -327,30 +293,6 @@ export default function PublishRide() {
                                         </FormLabel>
                                         <FormDescription>
                                           Customers book the entire vehicle
-                                        </FormDescription>
-                                      </div>
-                                    </FormItem>
-                                    
-                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                      <FormControl>
-                                        <Checkbox 
-                                          checked={form.watch("rideTypes").includes("sharing")}
-                                          onCheckedChange={(checked) => {
-                                            const currentValue = form.getValues("rideTypes");
-                                            const updatedValue = checked 
-                                              ? [...currentValue, "sharing"] as ("one-way" | "sharing")[]
-                                              : currentValue.filter(type => type !== "sharing");
-                                            
-                                            form.setValue("rideTypes", updatedValue);
-                                          }}
-                                        />
-                                      </FormControl>
-                                      <div className="space-y-1 leading-none">
-                                        <FormLabel className="font-medium">
-                                          Sharing / Pooling
-                                        </FormLabel>
-                                        <FormDescription>
-                                          Customers can book individual seats
                                         </FormDescription>
                                       </div>
                                     </FormItem>
@@ -388,29 +330,7 @@ export default function PublishRide() {
                               />
                             )}
                             
-                            {form.watch("rideTypes").includes("sharing") && (
-                              <FormField
-                                control={form.control}
-                                name="sharingPrice"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Sharing Price (₹)</FormLabel>
-                                    <FormControl>
-                                      <Input 
-                                        type="number" 
-                                        min="1" 
-                                        placeholder="Price per seat"
-                                        {...field} 
-                                      />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Price per individual seat
-                                    </FormDescription>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            )}
+{/* Sharing ride option is disabled */}
                           </div>
                         </div>
                       </div>
