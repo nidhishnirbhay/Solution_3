@@ -34,12 +34,12 @@ export default function MyPublishedRides() {
   }
 
   const getRidesList = () => {
-    if (!rides) return { active: [], completed: [] };
+    if (!rides || !Array.isArray(rides)) return { active: [], completed: [] };
     
     const now = new Date();
     
-    return rides.reduce(
-      (acc: { active: RideProps[], completed: RideProps[] }, ride: RideProps) => {
+    return rides.reduce<{ active: RideProps[], completed: RideProps[] }>(
+      (acc, ride) => {
         const rideDate = new Date(ride.departureDate);
         
         if (rideDate < now) {
@@ -106,7 +106,7 @@ export default function MyPublishedRides() {
               </div>
             ) : (
               <>
-                {rides && rides.length === 0 ? (
+                {rides && Array.isArray(rides) && rides.length === 0 ? (
                   <Card>
                     <CardContent className="p-6 text-center">
                       <Info className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -141,7 +141,7 @@ export default function MyPublishedRides() {
                           </p>
                         </div>
                       ) : (
-                        active.map((ride) => (
+                        active.map((ride: RideProps) => (
                           <RideCard 
                             key={ride.id} 
                             ride={ride} 
@@ -159,7 +159,7 @@ export default function MyPublishedRides() {
                           </p>
                         </div>
                       ) : (
-                        completed.map((ride) => (
+                        completed.map((ride: RideProps) => (
                           <RideCard 
                             key={ride.id} 
                             ride={ride} 
