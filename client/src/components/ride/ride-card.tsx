@@ -303,7 +303,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
                     
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
-                        <p className="text-sm text-muted-foreground">Total ride fare</p>
+                        <p className="text-sm text-muted-foreground">Full vehicle booking</p>
                         <p className="font-medium">₹{ride.price}</p>
                       </div>
                       <div>

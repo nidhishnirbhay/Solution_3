@@ -589,10 +589,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const ride = await storage.getRide(booking.rideId);
           const driver = ride ? await storage.getUser(ride.driverId) : null;
           const rating = await storage.getRatingByBookingId(booking.id);
+          
+          // Include driver's mobile number if booking is confirmed
+          const driverInfo = driver ? {
+            id: driver.id,
+            fullName: driver.fullName,
+            averageRating: driver.averageRating,
+            mobile: booking.status === 'confirmed' || booking.status === 'completed' ? driver.mobile : undefined
+          } : null;
+          
           return { 
             ...booking, 
             ride, 
-            driver,
+            driver: driverInfo,
             hasRated: !!rating 
           };
         })

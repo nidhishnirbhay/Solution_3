@@ -46,6 +46,7 @@ interface BookingProps {
     id: number;
     fullName: string;
     averageRating: number;
+    mobile?: string;
   };
   customer?: {
     id: number;
@@ -211,11 +212,11 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
             </div>
             <div>
               <p className="text-muted-foreground">Ride Type</p>
-              <p>{booking.ride.rideType === "one-way" ? "One-Way Full Booking" : "Sharing/Pooling"}</p>
+              <p>One-Way Full Booking</p>
             </div>
             <div>
               <p className="text-muted-foreground">Total Amount</p>
-              <p className="font-medium">₹{(booking.ride.price * booking.numberOfSeats) + booking.bookingFee}</p>
+              <p className="font-medium">₹{booking.ride.price + booking.bookingFee}</p>
             </div>
             
             {booking.status === "cancelled" && booking.cancellationReason && (
@@ -239,6 +240,15 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
                   {viewAs === "customer" ? "Driver: " : "Customer: "}
                   {person?.fullName || "User"}
                 </div>
+                {/* Display driver contact info if booking is confirmed and viewing as customer */}
+                {viewAs === "customer" && 
+                 (booking.status === "confirmed" || booking.status === "completed") && 
+                 booking.driver?.mobile && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Contact: </span>
+                    <span className="font-medium">{booking.driver.mobile}</span>
+                  </div>
+                )}
               </div>
             </div>
             
