@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 
 const ratingSchema = z.object({
   rating: z.number().min(1).max(5),
@@ -33,6 +34,7 @@ interface RatingFormProps {
 export function RatingForm({ bookingId, toUserId, onSuccess }: RatingFormProps) {
   const [hoverRating, setHoverRating] = useState(0);
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const form = useForm<RatingFormValues>({
     resolver: zodResolver(ratingSchema),
@@ -44,10 +46,15 @@ export function RatingForm({ bookingId, toUserId, onSuccess }: RatingFormProps) 
 
   const ratingMutation = useMutation({
     mutationFn: async (data: RatingFormValues) => {
+      if (!user) {
+        throw new Error("You must be logged in to submit a rating");
+      }
+      
       const payload = {
         ...data,
         bookingId,
         toUserId,
+        fromUserId: user.id, // Add the current user's ID as the fromUserId
       };
       const res = await apiRequest("POST", "/api/ratings", payload);
       return res.json();
