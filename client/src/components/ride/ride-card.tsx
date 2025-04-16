@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { Star, Calendar, MapPin, User, Users } from "lucide-react";
 import { format } from "date-fns";
 import { useMutation } from "@tanstack/react-query";
@@ -47,6 +48,8 @@ export interface RideProps {
 export function RideCard({ ride }: { ride: RideProps }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [seatsToBook, setSeatsToBook] = useState(1);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -82,6 +85,28 @@ export function RideCard({ ride }: { ride: RideProps }) {
       }
     }
   });
+  
+  const cancelRideMutation = useMutation({
+    mutationFn: async (data: { id: number; reason: string }) => {
+      const res = await apiRequest("PATCH", `/api/rides/${data.id}/cancel`, { cancellationReason: data.reason });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/rides/my-rides"] });
+      toast({
+        title: "Ride cancelled",
+        description: "Your ride has been cancelled successfully",
+      });
+      setShowCancelDialog(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Cancellation failed",
+        description: error.message || "There was an error cancelling your ride",
+        variant: "destructive",
+      });
+    }
+  });
 
   const handleBooking = () => {
     if (!user) {
@@ -93,6 +118,16 @@ export function RideCard({ ride }: { ride: RideProps }) {
       toast({
         title: "Cannot book as driver",
         description: "Please use a customer account to book rides",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Prevent booking if the user is the driver of this ride
+    if (user.id === ride.driverId) {
+      toast({
+        title: "Cannot book your own ride",
+        description: "You can't book a ride that you published",
         variant: "destructive",
       });
       return;
@@ -113,6 +148,14 @@ export function RideCard({ ride }: { ride: RideProps }) {
       .join("")
       .toUpperCase()
       .substring(0, 2);
+  };
+
+  // Handle cancel ride
+  const handleCancelRide = () => {
+    cancelRideMutation.mutate({
+      id: ride.id,
+      reason: cancelReason
+    });
   };
 
   // If the driver info isn't available but we're in the driver's view, use current user
@@ -185,124 +228,189 @@ export function RideCard({ ride }: { ride: RideProps }) {
               </div>
             </div>
             
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-primary/90">Book Now</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Book this ride</DialogTitle>
-                  <DialogDescription>
-                    Confirm your booking details below
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <div className="py-4">
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">From</p>
-                      <p className="font-medium">{ride.fromLocation}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">To</p>
-                      <p className="font-medium">{ride.toLocation}</p>
-                    </div>
-                  </div>
+            {/* Show different buttons based on user role and if they're the driver */}
+            {isCurrentUserDriver ? (
+              <Button 
+                variant="destructive" 
+                onClick={() => setShowCancelDialog(true)}
+              >
+                Cancel Ride
+              </Button>
+            ) : (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="bg-primary hover:bg-primary/90">Book Now</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Book this ride</DialogTitle>
+                    <DialogDescription>
+                      Confirm your booking details below
+                    </DialogDescription>
+                  </DialogHeader>
                   
-                  <div className="mb-4">
-                    <p className="text-sm text-muted-foreground">Date & Time</p>
-                    <p className="font-medium">{formattedDate}</p>
-                  </div>
-                  
-                  <Separator className="my-2" />
-                  
-                  <div className="flex justify-between items-center mb-4">
-                    <p className="font-medium">Driver</p>
-                    <div className="flex items-center">
-                      <span>{driverName}</span>
-                      <div className="flex items-center ml-2">
-                        <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                        <span className="text-sm ml-1">{ride.driver?.averageRating?.toFixed(1) || "4.0"}</span>
+                  <div className="py-4">
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">From</p>
+                        <p className="font-medium">{ride.fromLocation}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">To</p>
+                        <p className="font-medium">{ride.toLocation}</p>
                       </div>
                     </div>
-                  </div>
-                  
-                  {(Array.isArray(ride.rideType) ? 
-                    ride.rideType.includes("sharing") : 
-                    ride.rideType === "sharing") && (
+                    
                     <div className="mb-4">
-                      <p className="font-medium mb-2">Number of seats</p>
+                      <p className="text-sm text-muted-foreground">Date & Time</p>
+                      <p className="font-medium">{formattedDate}</p>
+                    </div>
+                    
+                    <Separator className="my-2" />
+                    
+                    <div className="flex justify-between items-center mb-4">
+                      <p className="font-medium">Driver</p>
                       <div className="flex items-center">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setSeatsToBook(Math.max(1, seatsToBook - 1))}
-                          disabled={seatsToBook <= 1}
-                        >
-                          -
-                        </Button>
-                        <span className="mx-4 font-medium">{seatsToBook}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setSeatsToBook(Math.min(ride.availableSeats, seatsToBook + 1))}
-                          disabled={seatsToBook >= ride.availableSeats}
-                        >
-                          +
-                        </Button>
+                        <span>{driverName}</span>
+                        <div className="flex items-center ml-2">
+                          <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                          <span className="text-sm ml-1">{ride.driver?.averageRating?.toFixed(1) || "4.0"}</span>
+                        </div>
                       </div>
                     </div>
-                  )}
-                  
-                  <Separator className="my-2" />
-                  
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Price per seat</p>
-                      <p className="font-medium">₹{ride.price}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Booking fee</p>
-                      <p className="font-medium">₹200</p>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-orange-50 rounded-lg p-3 text-sm mb-4">
-                    <p className="font-medium mb-1 text-orange-800">Important:</p>
-                    <p className="text-orange-700">
-                      OyeGaadi does not encourage booking for flights, exams, or urgent time-bound events as delays may occur due to traffic or other conditions.
-                    </p>
-                  </div>
-                  
-                  <div className="flex justify-between items-center font-medium text-lg mt-4">
-                    <span>Total amount</span>
-                    <span className="text-primary">₹{(ride.price * seatsToBook) + 200}</span>
-                  </div>
-                </div>
-                
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
-                  </DialogClose>
-                  <Button 
-                    className="bg-primary hover:bg-primary/90" 
-                    onClick={handleBooking}
-                    disabled={bookingMutation.isPending}
-                  >
-                    {bookingMutation.isPending ? (
-                      <>
-                        <span className="animate-spin mr-1">⟳</span> Processing...
-                      </>
-                    ) : (
-                      "Confirm Booking"
+                    
+                    {(Array.isArray(ride.rideType) ? 
+                      ride.rideType.includes("sharing") : 
+                      ride.rideType === "sharing") && (
+                      <div className="mb-4">
+                        <p className="font-medium mb-2">Number of seats</p>
+                        <div className="flex items-center">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setSeatsToBook(Math.max(1, seatsToBook - 1))}
+                            disabled={seatsToBook <= 1}
+                          >
+                            -
+                          </Button>
+                          <span className="mx-4 font-medium">{seatsToBook}</span>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setSeatsToBook(Math.min(ride.availableSeats, seatsToBook + 1))}
+                            disabled={seatsToBook >= ride.availableSeats}
+                          >
+                            +
+                          </Button>
+                        </div>
+                      </div>
                     )}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                    
+                    <Separator className="my-2" />
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Price per seat</p>
+                        <p className="font-medium">₹{ride.price}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Booking fee</p>
+                        <p className="font-medium">₹200</p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-orange-50 rounded-lg p-3 text-sm mb-4">
+                      <p className="font-medium mb-1 text-orange-800">Important:</p>
+                      <p className="text-orange-700">
+                        OyeGaadi does not encourage booking for flights, exams, or urgent time-bound events as delays may occur due to traffic or other conditions.
+                      </p>
+                    </div>
+                    
+                    <div className="flex justify-between items-center font-medium text-lg mt-4">
+                      <span>Total amount</span>
+                      <span className="text-primary">₹{(ride.price * seatsToBook) + 200}</span>
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button 
+                      className="bg-primary hover:bg-primary/90" 
+                      onClick={handleBooking}
+                      disabled={bookingMutation.isPending}
+                    >
+                      {bookingMutation.isPending ? (
+                        <>
+                          <span className="animate-spin mr-1">⟳</span> Processing...
+                        </>
+                      ) : (
+                        "Confirm Booking"
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </div>
       </CardContent>
+      
+      {/* Modal for driver to cancel a ride */}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Ride</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this ride? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium block mb-2">
+                  Reason for cancellation
+                </label>
+                <Textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Please provide a reason for cancellation"
+                  className="w-full"
+                />
+              </div>
+              
+              <div className="bg-amber-50 p-3 rounded-md border border-amber-200">
+                <p className="text-sm text-amber-800">
+                  <strong>Important:</strong> Cancelling rides frequently may affect your driver rating. 
+                  Remember that passengers may have made plans based on your scheduled ride.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCancelDialog(false)}>
+              Keep Ride
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleCancelRide}
+              disabled={cancelRideMutation.isPending || !cancelReason.trim()}
+            >
+              {cancelRideMutation.isPending ? (
+                <>
+                  <span className="animate-spin mr-1">⟳</span> Processing...
+                </>
+              ) : (
+                "Confirm Cancellation"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </Card>
   );
