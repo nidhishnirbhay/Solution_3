@@ -648,8 +648,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ...booking, 
               ride, 
               customer,
-              driverRated: !!customerRating,  // Customer has rated the driver
-              customerRated: !!driverRating   // Driver has rated the customer
+              driverRated,  // Customer has rated the driver
+              customerRated // Driver has rated the customer
             };
           })
         );
