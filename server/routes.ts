@@ -10,7 +10,8 @@ import {
   insertRideSchema,
   insertBookingSchema,
   insertRatingSchema,
-  rides
+  rides,
+  bookings
 } from "@shared/schema";
 import session from "express-session";
 import passport from "passport";
@@ -478,13 +479,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Column names from the schema:", 
         Object.keys(rides).filter(key => typeof key === 'string' && !key.startsWith('_')));
       
-      // Use a simplified update with only status (known to work)
+      // Use direct database update with snake_case column names
       const updated = await db
         .update(rides)
         .set({
           status: "cancelled",
-          cancellationReason: cancellationReason || "Cancelled by driver"
-        })
+          cancellation_reason: cancellationReason || "Cancelled by driver"
+        } as any) // Use type assertion to bypass TypeScript checking
         .where(eq(rides.id, Number(id)))
         .returning();
       
@@ -636,14 +637,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Cancellation reason is required" });
       }
       
-      // If status is cancelled, include the reason in the update
-      const updateData: any = { status };
+      // For booking cancellation, use direct database update with snake_case column names
       if (status === 'cancelled' && reason) {
-        updateData.cancellationReason = reason;
+        // Use direct DB update to bypass TypeScript and Drizzle ORM mapping issues
+        const [updated] = await db
+          .update(bookings)
+          .set({
+            status: "cancelled",
+            cancellation_reason: reason
+          } as any) // Use type assertion to bypass TypeScript checking
+          .where(eq(bookings.id, Number(id)))
+          .returning();
+        
+        res.json(updated);
+      } else {
+        // For other status changes, use the storage interface
+        const updateData: any = { status };
+        const updated = await storage.updateBooking(Number(id), updateData);
+        res.json(updated);
       }
-      
-      const updated = await storage.updateBooking(Number(id), updateData);
-      res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to update booking status" });
     }
