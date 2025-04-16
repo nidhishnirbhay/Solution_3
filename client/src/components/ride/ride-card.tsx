@@ -28,19 +28,20 @@ export interface RideProps {
   fromLocation: string;
   toLocation: string;
   departureDate: string;
-  rideType: string;
+  rideType: string | string[];
   price: number;
   availableSeats: number;
   totalSeats: number;
   vehicleType: string;
   vehicleNumber: string;
   description?: string;
-  driver: {
+  driver?: {
     id: number;
     fullName: string;
     averageRating: number;
     isKycVerified: boolean;
   };
+  driverId?: number; // For when driver object isn't included
 }
 
 export function RideCard({ ride }: { ride: RideProps }) {
@@ -104,7 +105,8 @@ export function RideCard({ ride }: { ride: RideProps }) {
   };
 
   // Helper function to get user initials
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | undefined) => {
+    if (!name) return "DR";
     return name
       .split(" ")
       .map(part => part[0])
@@ -112,6 +114,10 @@ export function RideCard({ ride }: { ride: RideProps }) {
       .toUpperCase()
       .substring(0, 2);
   };
+
+  // If the driver info isn't available but we're in the driver's view, use current user
+  const isCurrentUserDriver = user?.id === ride.driverId;
+  const driverName = ride.driver?.fullName || (isCurrentUserDriver ? user?.fullName : "Driver");
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
@@ -153,15 +159,15 @@ export function RideCard({ ride }: { ride: RideProps }) {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Avatar>
-                <AvatarImage src="" alt={ride.driver.fullName} />
-                <AvatarFallback>{getInitials(ride.driver.fullName)}</AvatarFallback>
+                <AvatarImage src="" alt={driverName} />
+                <AvatarFallback>{getInitials(driverName)}</AvatarFallback>
               </Avatar>
               <div>
-                <div className="font-medium">{ride.driver.fullName}</div>
+                <div className="font-medium">{driverName}</div>
                 <div className="flex items-center text-sm">
                   <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 mr-1" />
-                  <span>{ride.driver.averageRating.toFixed(1)}</span>
-                  {ride.driver.isKycVerified && (
+                  <span>{ride.driver?.averageRating?.toFixed(1) || "4.0"}</span>
+                  {ride.driver?.isKycVerified && (
                     <Badge variant="outline" className="ml-2 text-xs">Verified</Badge>
                   )}
                 </div>
@@ -202,10 +208,10 @@ export function RideCard({ ride }: { ride: RideProps }) {
                   <div className="flex justify-between items-center mb-4">
                     <p className="font-medium">Driver</p>
                     <div className="flex items-center">
-                      <span>{ride.driver.fullName}</span>
+                      <span>{driverName}</span>
                       <div className="flex items-center ml-2">
                         <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                        <span className="text-sm ml-1">{ride.driver.averageRating.toFixed(1)}</span>
+                        <span className="text-sm ml-1">{ride.driver?.averageRating?.toFixed(1) || "4.0"}</span>
                       </div>
                     </div>
                   </div>
