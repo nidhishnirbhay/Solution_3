@@ -138,9 +138,20 @@ export function RideCard({ ride }: { ride: RideProps }) {
                 <span>{formattedDate}</span>
               </div>
               <div className="flex gap-2 mb-2">
-                <Badge variant={ride.rideType === "one-way" ? "default" : "secondary"}>
-                  {ride.rideType === "one-way" ? "One-Way Full Booking" : "Sharing/Pooling"}
-                </Badge>
+                {Array.isArray(ride.rideType) ? (
+                  ride.rideType.map((type, index) => (
+                    <Badge 
+                      key={index}
+                      variant={type === "one-way" ? "default" : "secondary"}
+                    >
+                      {type === "one-way" ? "One-Way Full Booking" : "Sharing/Pooling"}
+                    </Badge>
+                  ))
+                ) : (
+                  <Badge variant={ride.rideType === "one-way" ? "default" : "secondary"}>
+                    {ride.rideType === "one-way" ? "One-Way Full Booking" : "Sharing/Pooling"}
+                  </Badge>
+                )}
               </div>
             </div>
             <div className="text-right">
@@ -159,7 +170,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Avatar>
-                <AvatarImage src="" alt={driverName} />
+                <AvatarImage src="" alt={driverName || ""} />
                 <AvatarFallback>{getInitials(driverName)}</AvatarFallback>
               </Avatar>
               <div>
@@ -216,7 +227,9 @@ export function RideCard({ ride }: { ride: RideProps }) {
                     </div>
                   </div>
                   
-                  {ride.rideType === "sharing" && (
+                  {(Array.isArray(ride.rideType) ? 
+                    ride.rideType.includes("sharing") : 
+                    ride.rideType === "sharing") && (
                     <div className="mb-4">
                       <p className="font-medium mb-2">Number of seats</p>
                       <div className="flex items-center">

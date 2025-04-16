@@ -394,7 +394,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = req.user as any;
       const rides = await storage.getRidesByDriverId(user.id);
-      res.json(rides);
+      
+      // Add driver information to each ride
+      const ridesWithDriver = rides.map(ride => ({
+        ...ride,
+        driver: {
+          id: user.id,
+          fullName: user.fullName,
+          averageRating: user.averageRating || 0,
+          isKycVerified: user.isKycVerified
+        }
+      }));
+      
+      res.json(ridesWithDriver);
     } catch (error) {
       res.status(500).json({ error: "Failed to retrieve rides" });
     }
