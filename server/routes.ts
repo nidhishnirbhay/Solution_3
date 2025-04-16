@@ -11,8 +11,7 @@ import {
   insertBookingSchema,
   insertRatingSchema,
   rides,
-  bookings,
-  ratings
+  bookings
 } from "@shared/schema";
 import session from "express-session";
 import passport from "passport";
@@ -529,9 +528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   bookingRouter.post('/', authorize(['customer']), validateBody(insertBookingSchema), async (req, res) => {
     try {
-      console.log("Booking request received from user");
       const user = req.user as any;
-      console.log("User ID:", user.id, "Username:", user.username);
       
       // Check if customer needs KYC verification
       if (!user.isKycVerified) {
@@ -549,7 +546,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!ride) {
         return res.status(404).json({ error: "Ride not found" });
       }
-      console.log("Ride found:", ride.id, "From:", ride.fromLocation, "To:", ride.toLocation);
       
       if (ride.availableSeats < req.body.numberOfSeats) {
         return res.status(400).json({ error: "Not enough available seats" });
@@ -574,154 +570,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerId: user.id,
         bookingFee: 200,
         status: 'pending',
-        numberOfSeats: ride.totalSeats, // Always book the total seats for full vehicle booking
-        driverRated: false,
-        customerRated: false
+        numberOfSeats: ride.totalSeats // Always book the total seats for full vehicle booking
       };
       
-      console.log("Creating booking with data:", JSON.stringify(bookingData, null, 2));
       const booking = await storage.createBooking(bookingData);
-      console.log("Booking created successfully:", booking.id);
-      
       res.status(201).json(booking);
     } catch (error) {
-      console.error("Booking creation error:", error);
-      res.status(500).json({ error: "Booking failed", details: error instanceof Error ? error.message : "Unknown error" });
+      res.status(500).json({ error: "Booking failed" });
     }
   });
   
   bookingRouter.get('/my-bookings', authorize(['customer']), async (req, res) => {
     try {
-      console.log("Fetching my bookings for customer");
       const user = req.user as any;
-      console.log("User ID:", user.id, "Username:", user.username);
-      
       const bookings = await storage.getBookingsByCustomerId(user.id);
-      console.log("Found bookings count:", bookings.length);
       
       // Get ride details for each booking
       const bookingsWithRides = await Promise.all(
         bookings.map(async (booking) => {
-          try {
-            console.log("Processing booking ID:", booking.id);
-            const ride = await storage.getRide(booking.rideId);
-            if (!ride) {
-              console.log("Warning: Ride not found for booking:", booking.id, "Ride ID:", booking.rideId);
-            }
-            
-            const driver = ride ? await storage.getUser(ride.driverId) : null;
-            if (ride && !driver) {
-              console.log("Warning: Driver not found for ride:", ride.id, "Driver ID:", ride.driverId);
-            }
-            
-            // Use the booking's existing flags for driverRated and customerRated
-            // If they don't exist, default to false
-            const driverRated = booking.driverRated === true;
-            const customerRated = booking.customerRated === true;
-            
-            // Include driver's mobile number if booking is confirmed
-            const driverInfo = driver ? {
-              id: driver.id,
-              fullName: driver.fullName,
-              averageRating: driver.averageRating,
-              mobile: booking.status === 'confirmed' || booking.status === 'completed' ? driver.mobile : undefined
-            } : null;
-            
-            return { 
-              ...booking, 
-              ride, 
-              driver: driverInfo,
-              driverRated,  // Flag shows if customer has rated driver
-              customerRated // Flag shows if driver has rated customer
-            };
-          } catch (err) {
-            console.error("Error processing booking:", booking.id, err);
-            // Return the booking without associated data rather than failing completely
-            return { 
-              ...booking, 
-              ride: null, 
-              driver: null,
-              driverRated: false,
-              customerRated: false
-            };
-          }
+          const ride = await storage.getRide(booking.rideId);
+          const driver = ride ? await storage.getUser(ride.driverId) : null;
+          const rating = await storage.getRatingByBookingId(booking.id);
+          
+          // Include driver's mobile number if booking is confirmed
+          const driverInfo = driver ? {
+            id: driver.id,
+            fullName: driver.fullName,
+            averageRating: driver.averageRating,
+            mobile: booking.status === 'confirmed' || booking.status === 'completed' ? driver.mobile : undefined
+          } : null;
+          
+          return { 
+            ...booking, 
+            ride, 
+            driver: driverInfo,
+            hasRated: !!rating 
+          };
         })
       );
       
-      console.log("Successfully processed all bookings");
       res.json(bookingsWithRides);
     } catch (error) {
-      console.error("Error fetching my-bookings:", error);
-      res.status(500).json({ error: "Failed to retrieve bookings", details: error instanceof Error ? error.message : "Unknown error" });
+      res.status(500).json({ error: "Failed to retrieve bookings" });
     }
   });
   
   bookingRouter.get('/ride-bookings', authorize(['driver']), async (req, res) => {
     try {
-      console.log("Fetching ride bookings for driver");
       const user = req.user as any;
-      console.log("Driver ID:", user.id, "Username:", user.username);
-      
       const rides = await storage.getRidesByDriverId(user.id);
-      console.log("Found rides count:", rides.length);
       
       const allBookings = [];
       for (const ride of rides) {
-        try {
-          console.log("Processing ride ID:", ride.id);
-          const bookings = await storage.getBookingsByRideId(ride.id);
-          console.log("Found bookings for ride:", bookings.length);
-          
-          // Get customer details for each booking
-          const bookingsWithCustomers = await Promise.all(
-            bookings.map(async (booking) => {
-              try {
-                console.log("Processing booking ID:", booking.id);
-                
-                const customer = await storage.getUser(booking.customerId);
-                if (!customer) {
-                  console.log("Warning: Customer not found for booking:", booking.id, "Customer ID:", booking.customerId);
-                }
-                
-                // Use the booking's existing flags for driverRated and customerRated
-                // If they don't exist, default to false
-                const driverRated = booking.driverRated === true;
-                const customerRated = booking.customerRated === true;
-                
-                return { 
-                  ...booking, 
-                  ride, 
-                  customer,
-                  driverRated,  // Customer has rated the driver
-                  customerRated // Driver has rated the customer
-                };
-              } catch (err) {
-                console.error("Error processing booking:", booking.id, err);
-                // Return the booking without associated data rather than failing completely
-                return { 
-                  ...booking, 
-                  ride, 
-                  customer: null,
-                  driverRated: false,
-                  customerRated: false
-                };
-              }
-            })
-          );
-          
-          allBookings.push(...bookingsWithCustomers);
-        } catch (err) {
-          console.error("Error processing ride:", ride.id, err);
-          // Continue to the next ride instead of failing completely
-          continue;
-        }
+        const bookings = await storage.getBookingsByRideId(ride.id);
+        
+        // Get customer details for each booking
+        const bookingsWithCustomers = await Promise.all(
+          bookings.map(async (booking) => {
+            const customer = await storage.getUser(booking.customerId);
+            const rating = await storage.getRatingByBookingId(booking.id);
+            return { 
+              ...booking, 
+              ride, 
+              customer,
+              hasRated: !!rating 
+            };
+          })
+        );
+        
+        allBookings.push(...bookingsWithCustomers);
       }
       
-      console.log("Successfully processed all ride bookings, total count:", allBookings.length);
       res.json(allBookings);
     } catch (error) {
-      console.error("Error fetching ride-bookings:", error);
-      res.status(500).json({ error: "Failed to retrieve bookings", details: error instanceof Error ? error.message : "Unknown error" });
+      res.status(500).json({ error: "Failed to retrieve bookings" });
     }
   });
   
@@ -802,9 +724,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Can only rate completed bookings" });
       }
       
+      // Check if already rated
+      const existingRating = await storage.getRatingByBookingId(booking.id);
+      if (existingRating) {
+        return res.status(400).json({ error: "Booking already rated" });
+      }
+      
       // Determine who is rating whom
       let fromUserId, toUserId;
-      let isCustomerRatingDriver = false;
       
       // Get the ride to find driver
       const ride = await storage.getRide(booking.rideId);
@@ -814,24 +741,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (user.id === booking.customerId) {
         // Customer rating driver
-        isCustomerRatingDriver = true;
         fromUserId = user.id;
         toUserId = ride.driverId;
-        
-        // Check if customer has already rated the driver
-        if (booking.driverRated) {
-          return res.status(400).json({ error: "You have already rated this driver" });
-        }
       } else if (user.id === ride.driverId) {
         // Driver rating customer
-        isCustomerRatingDriver = false;
         fromUserId = user.id;
         toUserId = booking.customerId;
-        
-        // Check if driver has already rated the customer
-        if (booking.customerRated) {
-          return res.status(400).json({ error: "You have already rated this customer" });
-        }
       } else {
         return res.status(403).json({ error: "You can only rate your own bookings" });
       }
@@ -842,16 +757,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         toUserId
       };
       
-      // Create the rating
       const rating = await storage.createRating(ratingData);
-      
-      // Update the appropriate rating flag in the booking
-      const updateData = isCustomerRatingDriver 
-        ? { driverRated: true } 
-        : { customerRated: true };
-        
-      await storage.updateBooking(booking.id, updateData);
-      
       res.status(201).json(rating);
     } catch (error) {
       res.status(500).json({ error: "Rating submission failed" });

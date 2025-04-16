@@ -40,12 +40,9 @@ export default function MyPublishedRides() {
     
     return rides.reduce<{ active: RideProps[], completed: RideProps[] }>(
       (acc, ride) => {
-        // Move rides to completed if they have status "completed", "cancelled", or they're past departure date
-        if (
-          ride.status === "completed" || 
-          ride.status === "cancelled" || 
-          new Date(ride.departureDate) < now
-        ) {
+        const rideDate = new Date(ride.departureDate);
+        
+        if (rideDate < now) {
           acc.completed.push(ride);
         } else {
           acc.active.push(ride);
