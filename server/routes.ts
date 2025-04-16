@@ -551,6 +551,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Not enough available seats" });
       }
       
+      // Check if user already has a booking for this ride
+      const existingBookings = await storage.getBookingsByCustomerId(user.id);
+      const alreadyBooked = existingBookings.some(booking => 
+        booking.rideId === req.body.rideId && 
+        booking.status !== 'cancelled'
+      );
+      
+      if (alreadyBooked) {
+        return res.status(400).json({ 
+          error: "You have already booked this ride. Check your bookings." 
+        });
+      }
+      
       const bookingData = { 
         ...req.body, 
         customerId: user.id,

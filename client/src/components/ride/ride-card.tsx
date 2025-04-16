@@ -185,26 +185,15 @@ export function RideCard({ ride }: { ride: RideProps }) {
                 <span>{formattedDate}</span>
               </div>
               <div className="flex gap-2 mb-2">
-                {Array.isArray(ride.rideType) ? (
-                  ride.rideType.map((type, index) => (
-                    <Badge 
-                      key={index}
-                      variant={type === "one-way" ? "default" : "secondary"}
-                    >
-                      {type === "one-way" ? "One-Way Full Booking" : "Sharing/Pooling"}
-                    </Badge>
-                  ))
-                ) : (
-                  <Badge variant={ride.rideType === "one-way" ? "default" : "secondary"}>
-                    {ride.rideType === "one-way" ? "One-Way Full Booking" : "Sharing/Pooling"}
-                  </Badge>
-                )}
+                <Badge variant="default">
+                  One-Way Full Booking
+                </Badge>
               </div>
             </div>
             <div className="text-right">
               <div className="text-xl font-semibold text-primary">₹{ride.price}</div>
               <div className="text-sm text-muted-foreground">
-                {ride.availableSeats} {ride.availableSeats === 1 ? "seat" : "seats"} available
+                Full vehicle booking
               </div>
               <div className="text-sm">
                 {ride.vehicleType} ({ride.vehicleNumber})
@@ -314,7 +303,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
                     
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
-                        <p className="text-sm text-muted-foreground">Price per seat</p>
+                        <p className="text-sm text-muted-foreground">Total ride fare</p>
                         <p className="font-medium">₹{ride.price}</p>
                       </div>
                       <div>
@@ -332,7 +321,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
                     
                     <div className="flex justify-between items-center font-medium text-lg mt-4">
                       <span>Total amount</span>
-                      <span className="text-primary">₹{(ride.price * seatsToBook) + 200}</span>
+                      <span className="text-primary">₹{ride.price + 200}</span>
                     </div>
                   </div>
                   
@@ -340,19 +329,21 @@ export function RideCard({ ride }: { ride: RideProps }) {
                     <DialogClose asChild>
                       <Button variant="outline">Cancel</Button>
                     </DialogClose>
-                    <Button 
-                      className="bg-primary hover:bg-primary/90" 
-                      onClick={handleBooking}
-                      disabled={bookingMutation.isPending}
-                    >
-                      {bookingMutation.isPending ? (
-                        <>
-                          <span className="animate-spin mr-1">⟳</span> Processing...
-                        </>
-                      ) : (
-                        "Confirm Booking"
-                      )}
-                    </Button>
+                    <DialogClose asChild>
+                      <Button 
+                        className="bg-primary hover:bg-primary/90" 
+                        onClick={handleBooking}
+                        disabled={bookingMutation.isPending}
+                      >
+                        {bookingMutation.isPending ? (
+                          <>
+                            <span className="animate-spin mr-1">⟳</span> Processing...
+                          </>
+                        ) : (
+                          "Confirm Booking"
+                        )}
+                      </Button>
+                    </DialogClose>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
