@@ -11,6 +11,7 @@ import Home from "@/pages/home";
 import FindRides from "@/pages/find-rides";
 import PublishRide from "@/pages/publish-ride";
 import MyBookings from "@/pages/my-bookings";
+import MyPublishedRides from "@/pages/my-published-rides";
 import KycVerification from "@/pages/kyc-verification";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminKYC from "@/pages/admin/kyc";
@@ -45,6 +46,7 @@ function Router() {
         <Route path="/find-rides" component={FindRides} />
         <Route path="/publish-ride" component={PublishRide} />
         <Route path="/my-bookings" component={MyBookings} />
+        <Route path="/my-published-rides" component={MyPublishedRides} />
         <Route path="/kyc-verification" component={KycVerification} />
         
         {/* Admin routes */}

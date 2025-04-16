@@ -57,6 +57,7 @@ export function Header() {
       return [
         ...commonLinks,
         { path: "/publish-ride", label: "Publish Ride" },
+        { path: "/my-published-rides", label: "My Rides" },
         { path: "/my-bookings", label: "My Bookings" },
       ];
     }
@@ -143,11 +144,18 @@ export function Header() {
                           </Link>
                         </DropdownMenuItem>
                         {user.role === "driver" && (
-                          <DropdownMenuItem>
-                            <Link href="/publish-ride">
-                              <a className="w-full">Publish Ride</a>
-                            </Link>
-                          </DropdownMenuItem>
+                          <>
+                            <DropdownMenuItem>
+                              <Link href="/publish-ride">
+                                <a className="w-full">Publish Ride</a>
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Link href="/my-published-rides">
+                                <a className="w-full">My Rides</a>
+                              </Link>
+                            </DropdownMenuItem>
+                          </>
                         )}
                       </>
                     )}
@@ -216,14 +224,24 @@ export function Header() {
                   
                   {/* Only show for driver */}
                   {user.role === "driver" && (
-                    <Link href="/publish-ride">
-                      <a
-                        className="block py-2 text-neutral-700 hover:text-primary"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        Publish Ride
-                      </a>
-                    </Link>
+                    <>
+                      <Link href="/publish-ride">
+                        <a
+                          className="block py-2 text-neutral-700 hover:text-primary"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          Publish Ride
+                        </a>
+                      </Link>
+                      <Link href="/my-published-rides">
+                        <a
+                          className="block py-2 text-neutral-700 hover:text-primary"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          My Rides
+                        </a>
+                      </Link>
+                    </>
                   )}
                   
                   {/* Show for all users */}
