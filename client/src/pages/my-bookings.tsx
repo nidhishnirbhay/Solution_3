@@ -26,7 +26,7 @@ export default function MyBookings() {
         ? "/api/bookings/my-bookings" 
         : "/api/bookings/ride-bookings"
     ],
-    enabled: !!user,
+    enabled: !!user
   });
 
   // Fetch driver rides if user is a driver
@@ -35,21 +35,20 @@ export default function MyBookings() {
     enabled: user?.role === "driver",
   });
 
-  if (isError) {
-    toast({
-      title: "Error fetching bookings",
-      description: "Could not load your bookings. Please try again later.",
-      variant: "destructive",
-    });
-  }
-
   const getBookingsList = () => {
-    if (!bookings) return { upcoming: [], past: [] };
+    if (!bookings || !Array.isArray(bookings) || bookings.length === 0) {
+      return { upcoming: [], past: [] };
+    }
 
     const now = new Date();
     
     return bookings.reduce(
-      (acc, booking) => {
+      (acc: { upcoming: any[], past: any[] }, booking: any) => {
+        // Safety check for booking.ride
+        if (!booking || !booking.ride || !booking.ride.departureDate) {
+          return acc;
+        }
+        
         const rideDate = new Date(booking.ride.departureDate);
         
         if (booking.status === "cancelled") {
@@ -103,10 +102,10 @@ export default function MyBookings() {
             
             {/* KYC notice for customers */}
             {user?.role === "customer" && !user.isKycVerified && (
-              <Alert variant="warning" className="mb-6">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>KYC Verification Required</AlertTitle>
-                <AlertDescription>
+              <Alert className="mb-6 border-yellow-500 bg-yellow-50">
+                <AlertCircle className="h-4 w-4 text-yellow-600" />
+                <AlertTitle className="text-yellow-800">KYC Verification Required</AlertTitle>
+                <AlertDescription className="text-yellow-700">
                   Complete your KYC verification to continue booking rides.
                   <br />
                   <Link href="/kyc-verification">
@@ -141,7 +140,7 @@ export default function MyBookings() {
               </div>
             ) : (
               <>
-                {bookings && bookings.length === 0 ? (
+                {!bookings || !Array.isArray(bookings) || bookings.length === 0 ? (
                   <Card>
                     <CardContent className="p-6 text-center">
                       <Info className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
