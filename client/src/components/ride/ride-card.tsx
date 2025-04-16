@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Star, Calendar, MapPin, User, Users } from "lucide-react";
 import { format } from "date-fns";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
@@ -53,6 +53,20 @@ export function RideCard({ ride }: { ride: RideProps }) {
   const [cancelReason, setCancelReason] = useState("");
   const { toast } = useToast();
   const { user } = useAuth();
+  
+  // Check if the current user has already booked this ride
+  const { data: myBookings } = useQuery({
+    queryKey: ["/api/bookings/my-bookings"],
+    enabled: !!user && user.role === "customer", // Only fetch if user is logged in and is a customer
+  });
+  
+  // Check if this ride is already booked by the current user
+  const alreadyBooked = useMemo(() => {
+    if (!myBookings || !user) return false;
+    return myBookings.some((booking: any) => 
+      booking.rideId === ride.id && booking.status !== 'cancelled'
+    );
+  }, [myBookings, ride.id, user]);
 
   const formattedDate = format(new Date(ride.departureDate), "MMM dd, yyyy 'at' h:mm a");
   
@@ -229,6 +243,10 @@ export function RideCard({ ride }: { ride: RideProps }) {
                 onClick={() => setShowCancelDialog(true)}
               >
                 Cancel Ride
+              </Button>
+            ) : alreadyBooked ? (
+              <Button variant="outline" disabled className="cursor-not-allowed">
+                Already Booked
               </Button>
             ) : (
               <Dialog>
