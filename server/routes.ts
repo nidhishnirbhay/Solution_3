@@ -564,11 +564,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // For full vehicle booking, we always book the total seats
       const bookingData = { 
         ...req.body, 
         customerId: user.id,
         bookingFee: 200,
-        status: 'pending'
+        status: 'pending',
+        numberOfSeats: ride.totalSeats // Always book the total seats for full vehicle booking
       };
       
       const booking = await storage.createBooking(bookingData);
