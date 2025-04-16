@@ -140,13 +140,14 @@ export default function PublishRide() {
       price = parseInt(data.sharingPrice.toString(), 10);
     }
 
-    // Convert form data to the format expected by the API
+    // Creating request payload as plain objects, let server handle conversion
     const rideData = {
       driverId: user?.id,  // Include driver ID from user context
       fromLocation: data.fromLocation,
       toLocation: data.toLocation,
-      departureDate: new Date(combineDepartureDateTime),  // Convert to Date object
-      estimatedArrivalDate: estimatedArrivalDateTime ? new Date(estimatedArrivalDateTime) : null,
+      // Directly send ISO date strings, server will parse them
+      departureDate: combineDepartureDateTime,
+      estimatedArrivalDate: estimatedArrivalDateTime || null,
       rideType: data.rideTypes,  // Server expects 'rideType' not 'rideTypes'
       price: price,
       totalSeats: parseInt(data.totalSeats.toString(), 10),

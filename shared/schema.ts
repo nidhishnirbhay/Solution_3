@@ -86,6 +86,8 @@ export const insertRideSchema = createInsertSchema(rides).pick({
   vehicleNumber: true,
   description: true,
 }).extend({
+  departureDate: z.coerce.date(),
+  estimatedArrivalDate: z.coerce.date().nullable(),
   availableSeats: z.coerce.number().int().min(1, "At least one seat must be available"),
   totalSeats: z.coerce.number().int().min(1, "At least one seat must be available"),
   price: z.coerce.number().int().min(1, "Price must be greater than 0"),
