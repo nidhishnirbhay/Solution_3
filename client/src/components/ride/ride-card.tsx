@@ -62,7 +62,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
   
   // Check if this ride is already booked by the current user
   const alreadyBooked = useMemo(() => {
-    if (!myBookings || !user) return false;
+    if (!myBookings || !user || !Array.isArray(myBookings)) return false;
     return myBookings.some((booking: any) => 
       booking.rideId === ride.id && booking.status !== 'cancelled'
     );
