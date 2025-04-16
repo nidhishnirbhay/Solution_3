@@ -135,9 +135,9 @@ export default function PublishRide() {
     // Determine price based on selected ride types
     let price = 0;
     if (data.rideTypes.includes("one-way") && data.oneWayPrice) {
-      price = parseInt(data.oneWayPrice.toString(), 10);
+      price = data.oneWayPrice;
     } else if (data.rideTypes.includes("sharing") && data.sharingPrice) {
-      price = parseInt(data.sharingPrice.toString(), 10);
+      price = data.sharingPrice;
     }
 
     // Creating request payload as plain objects, let server handle conversion
@@ -150,8 +150,8 @@ export default function PublishRide() {
       estimatedArrivalDate: estimatedArrivalDateTime || null,
       rideType: data.rideTypes,  // Server expects 'rideType' not 'rideTypes'
       price: price,
-      totalSeats: parseInt(data.totalSeats.toString(), 10),
-      availableSeats: parseInt(data.availableSeats.toString(), 10),
+      totalSeats: data.totalSeats,
+      availableSeats: data.availableSeats,
       vehicleType: data.vehicleType,
       vehicleNumber: data.vehicleNumber,
       description: data.description || "",
@@ -338,7 +338,7 @@ export default function PublishRide() {
                                           onCheckedChange={(checked) => {
                                             const currentValue = form.getValues("rideTypes");
                                             const updatedValue = checked 
-                                              ? [...currentValue, "sharing"]
+                                              ? [...currentValue, "sharing"] as ("one-way" | "sharing")[]
                                               : currentValue.filter(type => type !== "sharing");
                                             
                                             form.setValue("rideTypes", updatedValue);
@@ -435,7 +435,7 @@ export default function PublishRide() {
                                     // If ride types includes one-way, available seats should equal total seats
                                     if (form.watch("rideTypes").includes("one-way")) {
                                       const numValue = parseInt(e.target.value, 10);
-                                      form.setValue("availableSeats", numValue.toString());
+                                      form.setValue("availableSeats", numValue);
                                     }
                                   }}
                                 />
