@@ -448,6 +448,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to update ride" });
     }
   });
+
+  // Endpoint for cancelling a ride
+  rideRouter.patch('/:id/cancel', authorize(['driver']), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { cancellationReason } = req.body;
+      const user = req.user as any;
+      
+      // Verify the ride exists
+      const ride = await storage.getRide(Number(id));
+      if (!ride) {
+        return res.status(404).json({ error: "Ride not found" });
+      }
+      
+      // Ensure only the driver of the ride can cancel it
+      if (ride.driverId !== user.id) {
+        return res.status(403).json({ error: "You can only cancel your own rides" });
+      }
+      
+      // Get bookings related to this ride to handle them
+      const bookings = await storage.getBookingsByRideId(Number(id));
+      
+      // Update the ride status to cancelled
+      const updated = await storage.updateRide(Number(id), { 
+        status: "cancelled",
+        cancellationReason: cancellationReason || "Cancelled by driver"
+      });
+      
+      // Update all related bookings to cancelled
+      if (bookings.length > 0) {
+        for (const booking of bookings) {
+          await storage.updateBooking(booking.id, {
+            status: "cancelled",
+            cancellationReason: "Ride cancelled by driver: " + (cancellationReason || "No reason provided")
+          });
+        }
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error cancelling ride:", error);
+      res.status(500).json({ error: "Failed to cancel ride" });
+    }
+  });
   
   // Booking routes
   const bookingRouter = express.Router();
