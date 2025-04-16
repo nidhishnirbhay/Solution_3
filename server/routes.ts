@@ -11,7 +11,8 @@ import {
   insertBookingSchema,
   insertRatingSchema,
   rides,
-  bookings
+  bookings,
+  ratings
 } from "@shared/schema";
 import session from "express-session";
 import passport from "passport";
@@ -591,15 +592,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const ride = await storage.getRide(booking.rideId);
           const driver = ride ? await storage.getUser(ride.driverId) : null;
           
-          // Check for ratings in both directions
-          const ratingsList = await db
-            .select()
-            .from(ratings)
-            .where(eq(ratings.bookingId, booking.id));
-            
-          // Find ratings by specific users
-          const customerRating = ratingsList.find((r: any) => r.fromUserId === user.id);
-          const driverRating = ratingsList.find((r: any) => driver && r.fromUserId === driver.id);
+          // Get ratings for this booking directly from storage
+          const ratingsForBooking = await storage.getRatingByBookingId(booking.id);
+          
+          // For now, let's use the database fields directly
+          const driverRated = booking.driverRated || false;
+          const customerRated = booking.customerRated || false;
           
           // Include driver's mobile number if booking is confirmed
           const driverInfo = driver ? {
@@ -613,8 +611,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...booking, 
             ride, 
             driver: driverInfo,
-            driverRated: !!customerRating,  // Customer has rated the driver
-            customerRated: !!driverRating   // Driver has rated the customer
+            driverRated,  // Flag shows if customer has rated driver
+            customerRated // Flag shows if driver has rated customer
           };
         })
       );
@@ -639,15 +637,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           bookings.map(async (booking) => {
             const customer = await storage.getUser(booking.customerId);
             
-            // Check for ratings in both directions
-            const ratingsList = await db
-              .select()
-              .from(ratings)
-              .where(eq(ratings.bookingId, booking.id));
-              
-            // Find ratings by specific users
-            const customerRating = ratingsList.find((r: any) => r.fromUserId === booking.customerId);
-            const driverRating = ratingsList.find((r: any) => r.fromUserId === user.id);
+            // Get ratings for this booking directly from storage
+            const ratingsForBooking = await storage.getRatingByBookingId(booking.id);
+            
+            // For now, let's use the database fields directly
+            const driverRated = booking.driverRated || false;
+            const customerRated = booking.customerRated || false;
             
             return { 
               ...booking, 
