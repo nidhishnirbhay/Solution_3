@@ -23,10 +23,9 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -34,12 +33,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -50,76 +43,79 @@ import {
   TabsList, 
   TabsTrigger 
 } from "@/components/ui/tabs";
-import { 
-  MapPin, 
-  Calendar, 
-  Car, 
-  Users, 
-  Search, 
-  Filter, 
-  ChevronDown, 
-  MoreHorizontal, 
-  Eye, 
-  AlertCircle,
-  CheckCircle,
+import {
+  Search,
+  Filter,
+  ChevronDown,
+  Eye,
+  MapPin,
+  Calendar,
+  Clock,
   User,
+  Car,
+  Banknote,
+  ArrowUpDown,
   RefreshCw,
 } from "lucide-react";
 
 export default function AdminRides() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [selectedRide, setSelectedRide] = useState<any>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const { toast } = useToast();
 
-  // Fetch rides data with auto-refresh
+  // Fetch rides data
   const { data: rides, isLoading, refetch } = useQuery({
     queryKey: ["/api/admin/rides"],
     staleTime: 30 * 1000, // 30 seconds
   });
 
-  // Format date for display
+  // Format date and time for display
   const formatDate = (dateString: string) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return date.toLocaleString("en-US", {
+    return date.toLocaleDateString("en-US", {
       day: "numeric",
       month: "short",
       year: "numeric",
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "numeric",
       hour12: true,
     });
   };
 
-  // Get appropriate badge color for ride status
+  // Get status badge styling
   const getStatusBadge = (status: string) => {
     const statusLower = status.toLowerCase();
+    if (statusLower === "published") return "bg-blue-100 text-blue-800";
     if (statusLower === "active") return "bg-green-100 text-green-800";
-    if (statusLower === "completed") return "bg-blue-100 text-blue-800";
+    if (statusLower === "completed") return "bg-purple-100 text-purple-800";
     if (statusLower === "cancelled") return "bg-red-100 text-red-800";
     return "bg-gray-100 text-gray-800";
   };
 
-  // Filter rides based on search query and active tab
+  // Filter rides based on search query and status filter
   const filteredRides = rides
     ? rides.filter((ride: any) => {
-        // Search filter - search in from/to locations and vehicle number
+        // Search filter
         const matchesSearch =
           searchQuery === "" ||
           ride.fromLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
           ride.toLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          ride.vehicleNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (ride.driver?.fullName && ride.driver.fullName.toLowerCase().includes(searchQuery.toLowerCase()));
+          ride.driver?.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          ride.vehicleNumber?.toLowerCase().includes(searchQuery.toLowerCase());
 
-        // Tab filter
-        if (activeTab === "all") return matchesSearch;
-        if (activeTab === "active") return matchesSearch && ride.status.toLowerCase() === "active";
-        if (activeTab === "completed") return matchesSearch && ride.status.toLowerCase() === "completed";
-        if (activeTab === "cancelled") return matchesSearch && ride.status.toLowerCase() === "cancelled";
-        
-        return matchesSearch;
+        // Status filter
+        if (statusFilter === "all") return matchesSearch;
+        return matchesSearch && ride.status.toLowerCase() === statusFilter.toLowerCase();
       })
     : [];
 
@@ -158,16 +154,19 @@ export default function AdminRides() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setActiveTab("all")}>
+                <DropdownMenuItem onClick={() => setStatusFilter("all")}>
                   All Rides
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActiveTab("active")}>
+                <DropdownMenuItem onClick={() => setStatusFilter("published")}>
+                  Published Rides
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("active")}>
                   Active Rides
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActiveTab("completed")}>
+                <DropdownMenuItem onClick={() => setStatusFilter("completed")}>
                   Completed Rides
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActiveTab("cancelled")}>
+                <DropdownMenuItem onClick={() => setStatusFilter("cancelled")}>
                   Cancelled Rides
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -175,27 +174,30 @@ export default function AdminRides() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+        {/* Status tabs */}
+        <Tabs value={statusFilter} onValueChange={setStatusFilter} className="mb-6">
           <TabsList>
             <TabsTrigger value="all">All Rides</TabsTrigger>
+            <TabsTrigger value="published">Published</TabsTrigger>
             <TabsTrigger value="active">Active</TabsTrigger>
             <TabsTrigger value="completed">Completed</TabsTrigger>
             <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
           </TabsList>
         </Tabs>
 
-        {/* Rides listing */}
+        {/* Rides table */}
         <Card>
           <CardHeader>
             <CardTitle>
-              {activeTab === "all" 
+              {statusFilter === "all" 
                 ? "All Rides" 
-                : activeTab === "active" 
-                  ? "Active Rides" 
-                  : activeTab === "completed" 
-                    ? "Completed Rides" 
-                    : "Cancelled Rides"}
+                : statusFilter === "published" 
+                  ? "Published Rides" 
+                  : statusFilter === "active" 
+                    ? "Active Rides" 
+                    : statusFilter === "completed"
+                      ? "Completed Rides"
+                      : "Cancelled Rides"}
               {filteredRides.length > 0 && (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
                   ({filteredRides.length})
@@ -232,11 +234,11 @@ export default function AdminRides() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>ID</TableHead>
-                      <TableHead>From → To</TableHead>
+                      <TableHead>Route</TableHead>
                       <TableHead>Driver</TableHead>
                       <TableHead>Departure</TableHead>
-                      <TableHead>Vehicle</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Vehicle</TableHead>
                       <TableHead>Price</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -247,9 +249,9 @@ export default function AdminRides() {
                         <TableCell className="font-medium">#{ride.id}</TableCell>
                         <TableCell>
                           <div className="flex flex-col">
-                            <span className="font-semibold">{ride.fromLocation}</span>
+                            <span className="font-medium">{ride.fromLocation}</span>
                             <span className="text-xs text-muted-foreground">to</span>
-                            <span className="font-semibold">{ride.toLocation}</span>
+                            <span className="font-medium">{ride.toLocation}</span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -259,16 +261,15 @@ export default function AdminRides() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col">
-                            <span className="text-xs text-muted-foreground">
-                              {formatDate(ride.departureDate)}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span>{ride.vehicleType}</span>
-                            <span className="text-xs text-muted-foreground">{ride.vehicleNumber}</span>
+                          <div className="text-xs space-y-1">
+                            <div className="flex items-center">
+                              <Calendar className="h-3 w-3 mr-1 text-muted-foreground" />
+                              <span>{formatDate(ride.departureDate)}</span>
+                            </div>
+                            <div className="flex items-center">
+                              <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
+                              <span>{formatTime(ride.departureDate)}</span>
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -278,14 +279,12 @@ export default function AdminRides() {
                           >
                             {ride.status}
                           </Badge>
-                          {ride.status.toLowerCase() === "cancelled" && ride.cancellationReason && (
-                            <span 
-                              className="block text-xs text-red-500 mt-1 cursor-help" 
-                              title={ride.cancellationReason}
-                            >
-                              View reason
-                            </span>
-                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-xs space-y-1">
+                            <div>{ride.vehicleType}</div>
+                            <div className="font-medium">{ride.vehicleNumber}</div>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <span className="font-semibold">₹{ride.price}</span>
@@ -317,14 +316,14 @@ export default function AdminRides() {
             <DialogHeader>
               <DialogTitle>Ride Details</DialogTitle>
               <DialogDescription>
-                Comprehensive details about the selected ride
+                Complete information about the ride
               </DialogDescription>
             </DialogHeader>
 
             {selectedRide && (
               <div className="space-y-6">
-                {/* Status and basic info */}
-                <div className="flex flex-col md:flex-row justify-between gap-4">
+                {/* Ride status and ID */}
+                <div className="flex justify-between items-start">
                   <div>
                     <Badge 
                       className={getStatusBadge(selectedRide.status)} 
@@ -332,91 +331,21 @@ export default function AdminRides() {
                     >
                       {selectedRide.status}
                     </Badge>
-                    <h3 className="text-xl font-bold mt-2">{selectedRide.fromLocation} to {selectedRide.toLocation}</h3>
-                    <p className="text-sm text-muted-foreground">Ride ID: {selectedRide.id}</p>
+                    <h3 className="text-lg font-bold mt-2">Ride #{selectedRide.id}</h3>
+                    <p className="text-sm text-gray-500">
+                      Published on {formatDate(selectedRide.createdAt)} at {formatTime(selectedRide.createdAt)}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-primary">₹{selectedRide.price}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Posted on {formatDate(selectedRide.createdAt)}
+                    <p className="text-xl font-bold text-primary">
+                      ₹{selectedRide.price}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Full Vehicle
                     </p>
                   </div>
                 </div>
 
-                {/* Cancellation reason if applicable */}
-                {selectedRide.status.toLowerCase() === "cancelled" && selectedRide.cancellationReason && (
-                  <div className="bg-red-50 p-4 rounded-md border border-red-200">
-                    <div className="flex items-center">
-                      <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-                      <h4 className="font-semibold text-red-800">Cancellation Reason</h4>
-                    </div>
-                    <p className="mt-1 text-red-700">{selectedRide.cancellationReason}</p>
-                  </div>
-                )}
-
-                {/* Driver details and ride info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Driver info */}
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base flex items-center">
-                        <User className="h-4 w-4 mr-2" />
-                        Driver Information
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <dl className="space-y-2">
-                        <div className="flex justify-between">
-                          <dt className="text-sm font-medium text-gray-500">Name</dt>
-                          <dd className="text-sm text-gray-900">{selectedRide.driver?.fullName || "Unknown"}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-sm font-medium text-gray-500">KYC Status</dt>
-                          <dd className="text-sm">
-                            {selectedRide.driver?.isKycVerified ? (
-                              <span className="inline-flex items-center text-green-600">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Verified
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center text-red-600">
-                                <AlertCircle className="h-3 w-3 mr-1" />
-                                Not Verified
-                              </span>
-                            )}
-                          </dd>
-                        </div>
-                      </dl>
-                    </CardContent>
-                  </Card>
-
-                  {/* Vehicle info */}
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base flex items-center">
-                        <Car className="h-4 w-4 mr-2" />
-                        Vehicle Information
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <dl className="space-y-2">
-                        <div className="flex justify-between">
-                          <dt className="text-sm font-medium text-gray-500">Vehicle Type</dt>
-                          <dd className="text-sm text-gray-900">{selectedRide.vehicleType}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-sm font-medium text-gray-500">Registration Number</dt>
-                          <dd className="text-sm text-gray-900">{selectedRide.vehicleNumber}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-sm font-medium text-gray-500">Seating Capacity</dt>
-                          <dd className="text-sm text-gray-900">{selectedRide.totalSeats} seats</dd>
-                        </div>
-                      </dl>
-                    </CardContent>
-                  </Card>
-                </div>
-                
                 {/* Journey details */}
                 <Card>
                   <CardHeader className="pb-2">
@@ -443,44 +372,129 @@ export default function AdminRides() {
                       </dl>
                       <dl className="space-y-2">
                         <div className="flex justify-between">
+                          <dt className="text-sm font-medium text-gray-500">Departure Time</dt>
+                          <dd className="text-sm text-gray-900">{formatTime(selectedRide.departureDate)}</dd>
+                        </div>
+                        <div className="flex justify-between">
                           <dt className="text-sm font-medium text-gray-500">Ride Type</dt>
-                          <dd className="text-sm text-gray-900">
-                            Full Vehicle Booking
-                          </dd>
+                          <dd className="text-sm text-gray-900">One-Way Full Booking</dd>
                         </div>
                         <div className="flex justify-between">
-                          <dt className="text-sm font-medium text-gray-500">Total Seats</dt>
-                          <dd className="text-sm text-gray-900">{selectedRide.totalSeats}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-sm font-medium text-gray-500">Available Seats</dt>
-                          <dd className="text-sm text-gray-900">{selectedRide.availableSeats}</dd>
+                          <dt className="text-sm font-medium text-gray-500">Distance</dt>
+                          <dd className="text-sm text-gray-900">{selectedRide.distance || "N/A"}</dd>
                         </div>
                       </dl>
                     </div>
-                    {selectedRide.description && (
-                      <div className="mt-4">
-                        <h4 className="text-sm font-medium text-gray-500 mb-1">Additional Information</h4>
-                        <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded">{selectedRide.description}</p>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
 
-                {/* Associated bookings in accordion */}
-                {/* This would be implemented with actual booking data */}
-                <Accordion type="single" collapsible className="w-full">
-                  <AccordionItem value="bookings">
-                    <AccordionTrigger className="text-base font-medium">
-                      Associated Bookings
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-4">
-                      <p className="text-center text-muted-foreground text-sm">
-                        Booking data would be fetched and displayed here
-                      </p>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
+                {/* Driver details */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      Driver Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="space-y-2">
+                      <div className="flex justify-between">
+                        <dt className="text-sm font-medium text-gray-500">Name</dt>
+                        <dd className="text-sm text-gray-900">{selectedRide.driver?.fullName || "Unknown"}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-sm font-medium text-gray-500">Contact</dt>
+                        <dd className="text-sm text-gray-900">{selectedRide.driver?.mobile || "N/A"}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-sm font-medium text-gray-500">KYC Status</dt>
+                        <dd className="text-sm text-gray-900">
+                          {selectedRide.driver?.isKycVerified ? "Verified" : "Not Verified"}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-sm font-medium text-gray-500">Rating</dt>
+                        <dd className="text-sm text-gray-900">
+                          {selectedRide.driver?.averageRating 
+                            ? `${selectedRide.driver.averageRating.toFixed(1)}/5` 
+                            : "No ratings yet"}
+                        </dd>
+                      </div>
+                    </dl>
+                  </CardContent>
+                </Card>
+
+                {/* Vehicle details */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <Car className="h-4 w-4 mr-2" />
+                      Vehicle Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="space-y-2">
+                      <div className="flex justify-between">
+                        <dt className="text-sm font-medium text-gray-500">Vehicle Type</dt>
+                        <dd className="text-sm text-gray-900">{selectedRide.vehicleType}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-sm font-medium text-gray-500">Vehicle Number</dt>
+                        <dd className="text-sm text-gray-900">{selectedRide.vehicleNumber}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-sm font-medium text-gray-500">Capacity</dt>
+                        <dd className="text-sm text-gray-900">Full Vehicle</dd>
+                      </div>
+                    </dl>
+                  </CardContent>
+                </Card>
+
+                {/* Bookings information */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <Banknote className="h-4 w-4 mr-2" />
+                      Booking Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedRide.bookings && selectedRide.bookings.length > 0 ? (
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>ID</TableHead>
+                              <TableHead>Customer</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead>Payment</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {selectedRide.bookings.map((booking: any) => (
+                              <TableRow key={booking.id}>
+                                <TableCell>#{booking.id}</TableCell>
+                                <TableCell>{booking.customer?.fullName || "Unknown"}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">
+                                    {booking.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>₹{booking.bookingFee + selectedRide.price}</TableCell>
+                                <TableCell>
+                                  {booking.isPaid ? "Paid" : "Pending"}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No bookings found for this ride.</p>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
             )}
             

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/layout/admin-layout";
-import { FileCheck, X, Check, Eye } from "lucide-react";
+import { FileCheck, X, Check, Eye, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -45,8 +45,9 @@ export default function AdminKyc() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
   // Fetch KYC verifications
-  const { data: kycVerifications, isLoading } = useQuery({
+  const { data: kycVerifications, isLoading, refetch } = useQuery({
     queryKey: ["/api/admin/kyc"],
+    staleTime: 30 * 1000, // 30 seconds
   });
 
   // Update KYC status mutation
@@ -132,20 +133,32 @@ export default function AdminKyc() {
               KYC Verification Management
             </div>
           </CardTitle>
-          <Select
-            value={filterStatus}
-            onValueChange={setFilterStatus}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Verifications</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => refetch()}
+              className="flex items-center gap-1"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span>Refresh</span>
+            </Button>
+            
+            <Select
+              value={filterStatus}
+              onValueChange={setFilterStatus}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Verifications</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
