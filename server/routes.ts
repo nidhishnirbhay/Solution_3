@@ -859,6 +859,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log("Booking cancelled:", updated);
         res.json(updated);
+      } else if (status === 'completed') {
+        // Special handling for completion to ensure both booking and ride are marked as completed
+        console.log("🔄 IMPORTANT: Marking booking as completed:", id);
+        
+        try {
+          // First get the ride
+          const ride = await storage.getRide(booking.rideId);
+          if (!ride) {
+            return res.status(404).json({ error: "Associated ride not found" });
+          }
+          
+          console.log("Found associated ride:", ride.id, "current status:", ride.status);
+          
+          // 1. Update the booking status first
+          console.log("Step 1: Updating booking to completed");
+          const updatedBooking = await storage.updateBooking(Number(id), { status: "completed" });
+          
+          // 2. Update the ride status using direct SQL for reliability
+          console.log("Step 2: Ensuring ride is marked as completed using direct SQL");
+          const result = await pool.query(
+            'UPDATE rides SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+            ['completed', ride.id]
+          );
+          
+          console.log("Ride update SQL result:", result.rows[0]?.status || "No rows updated");
+          
+          // 3. Verify the update success
+          const verifyResult = await pool.query('SELECT id, status FROM rides WHERE id = $1', [ride.id]);
+          console.log("Verification query result:", verifyResult.rows[0]);
+          
+          // Return the updated booking with additional information
+          res.json({
+            ...updatedBooking,
+            rideStatusUpdated: verifyResult.rows[0]?.status === 'completed',
+            rideStatus: verifyResult.rows[0]?.status || ride.status
+          });
+        } catch (dbError: any) {
+          console.error("Database error during booking/ride completion:", dbError);
+          return res.status(500).json({ error: "Database error updating statuses", details: dbError.message });
+        }
       } else {
         // For other status changes
         console.log("Updating booking status:", id, "to:", status);

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { Link } from "wouter";
@@ -12,28 +12,84 @@ import { Footer } from "@/components/ui/footer";
 import { RequireAuth } from "@/components/layout/require-auth";
 import { BookingCard } from "@/components/booking/booking-card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Info, PlusCircle, AlertCircle } from "lucide-react";
+import { Info, PlusCircle, AlertCircle, RefreshCw } from "lucide-react";
 
 export default function MyBookings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("upcoming");
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshFlag, setRefreshFlag] = useState(0);
+  const queryClient = useQueryClient();
+  
+  // Determine the correct endpoint based on user role
+  const bookingsEndpoint = user?.role === "customer" 
+    ? "/api/bookings/my-bookings" 
+    : "/api/bookings/ride-bookings";
 
   // Fetch bookings based on user role
-  const { data: bookings, isLoading, isError } = useQuery({
-    queryKey: [
-      user?.role === "customer" 
-        ? "/api/bookings/my-bookings" 
-        : "/api/bookings/ride-bookings"
-    ],
-    enabled: !!user
+  const { data: bookings, isLoading, isError, refetch: refetchBookings } = useQuery({
+    queryKey: [bookingsEndpoint, refreshFlag],
+    enabled: !!user,
+    staleTime: 60 * 1000, // 1 minute
   });
 
   // Fetch driver rides if user is a driver
-  const { data: rides } = useQuery({
-    queryKey: ["/api/rides/my-rides"],
+  const { data: rides, refetch: refetchRides } = useQuery({
+    queryKey: ["/api/rides/my-rides", refreshFlag],
     enabled: user?.role === "driver",
+    staleTime: 60 * 1000, // 1 minute
   });
+  
+  // Handle manual refresh
+  const handleForceRefresh = useCallback(async () => {
+    console.log("🔄 Force refreshing bookings and rides data...");
+    setRefreshing(true);
+    
+    try {
+      // Invalidate queries for both bookings and rides
+      await queryClient.invalidateQueries({ queryKey: [bookingsEndpoint] });
+      
+      // Also refresh rides data if user is a driver
+      if (user?.role === "driver") {
+        await queryClient.invalidateQueries({ queryKey: ["/api/rides/my-rides"] });
+        await refetchRides();
+      }
+      
+      // Refetch the bookings data
+      await refetchBookings();
+      
+      // Update refresh flag to trigger re-render
+      setRefreshFlag(prev => prev + 1);
+      
+      toast({
+        title: "Data refreshed",
+        description: "Your booking data has been updated from the server",
+      });
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      toast({
+        title: "Refresh failed",
+        description: "Could not refresh data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchBookings, refetchRides, queryClient, user?.role, bookingsEndpoint, toast]);
+  
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      console.log("🔄 Auto-refreshing bookings data...");
+      refetchBookings();
+      if (user?.role === "driver") {
+        refetchRides();
+      }
+    }, 30000); // every 30 seconds
+    
+    return () => clearInterval(intervalId);
+  }, [refetchBookings, refetchRides, user?.role]);
 
   const getBookingsList = () => {
     if (!bookings || !Array.isArray(bookings) || bookings.length === 0) {
@@ -88,17 +144,27 @@ export default function MyBookings() {
           </div>
 
           <div className="container mx-auto px-4 py-8">
-            {/* Driver-specific publish ride button */}
-            {user?.role === "driver" && (
-              <div className="flex justify-end mb-6">
+            {/* Action buttons */}
+            <div className="flex justify-between items-center mb-6">
+              <Button 
+                variant="outline" 
+                onClick={handleForceRefresh} 
+                disabled={refreshing || isLoading}
+                className="border-blue-300"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                {refreshing ? "Refreshing..." : "Refresh Data"}
+              </Button>
+              
+              {user?.role === "driver" && (
                 <Link href="/publish-ride">
                   <Button className="bg-primary hover:bg-primary/90">
                     <PlusCircle className="h-4 w-4 mr-2" />
                     Publish New Ride
                   </Button>
                 </Link>
-              </div>
-            )}
+              )}
+            </div>
             
             {/* KYC notice for customers */}
             {user?.role === "customer" && !user.isKycVerified && (
