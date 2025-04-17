@@ -263,13 +263,24 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
                   {viewAs === "customer" ? "Driver: " : "Customer: "}
                   {person?.fullName || "User"}
                 </div>
-                {/* Display driver contact info if booking is confirmed and viewing as customer */}
+                {/* Display contact info based on booking status and role */}
+                {/* Case 1: Customer viewing driver contact for confirmed/completed bookings */}
                 {viewAs === "customer" && 
                  (booking.status === "confirmed" || booking.status === "completed") && 
                  booking.driver?.mobile && (
                   <div className="text-sm">
                     <span className="text-muted-foreground">Contact: </span>
                     <span className="font-medium">{booking.driver.mobile}</span>
+                  </div>
+                )}
+                
+                {/* Case 2: Driver viewing customer contact for confirmed/completed bookings */}
+                {viewAs === "driver" && 
+                 (booking.status === "confirmed" || booking.status === "completed") && 
+                 booking.customer?.mobile && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Contact: </span>
+                    <span className="font-medium">{booking.customer.mobile}</span>
                   </div>
                 )}
               </div>

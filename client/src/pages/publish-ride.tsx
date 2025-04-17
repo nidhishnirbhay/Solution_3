@@ -89,11 +89,14 @@ export default function PublishRide() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/rides/my-rides"] });
+      // Also invalidate popular routes on the home page
+      queryClient.invalidateQueries({ queryKey: ["/api/rides/popular"] });
       toast({
         title: "Ride published",
         description: "Your ride has been published successfully",
       });
-      navigate("/my-bookings");
+      // Redirect to My Published Rides instead of My Bookings
+      navigate("/my-published-rides");
     },
     onError: (error: any) => {
       toast({
