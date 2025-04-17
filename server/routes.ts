@@ -518,66 +518,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // NEW endpoint for marking a ride as completed (POST method - new)
+  // NEW endpoint for marking a ride as completed (POST method - using direct DB access)
   rideRouter.post('/:id/mark-completed', authorize(['driver']), async (req, res) => {
     try {
       const { id } = req.params;
       const user = req.user as any;
       
-      console.log("Ride completion requested via POST for ride ID:", id, "by user:", user.id);
+      console.log("======== RIDE COMPLETION FLOW START ========");
+      console.log("Ride completion requested for ID:", id, "by user:", user.id);
       
-      // Verify the ride exists
-      const ride = await storage.getRide(Number(id));
-      if (!ride) {
-        console.log("Ride not found:", id);
+      // Directly query the database to check if ride exists
+      const [rideData] = await db.select().from(rides).where(eq(rides.id, Number(id)));
+      
+      if (!rideData) {
+        console.log("Ride not found in database:", id);
         return res.status(404).json({ error: "Ride not found" });
       }
       
-      console.log("Ride found:", ride);
+      console.log("Ride found in database:", rideData);
       
-      // Ensure only the driver of the ride can mark it as completed
-      if (ride.driverId !== user.id) {
-        console.log("Authorization error: ride driver ID", ride.driverId, "doesn't match user ID", user.id);
+      // Check authorization
+      if (rideData.driverId !== user.id) {
+        console.log("Authorization error: ride driver ID", rideData.driverId, "doesn't match user ID", user.id);
         return res.status(403).json({ error: "You can only mark your own rides as completed" });
       }
       
-      // Get bookings related to this ride to update their status
-      const bookings = await storage.getBookingsByRideId(Number(id));
-      console.log("Found", bookings.length, "bookings for this ride");
+      // Get related bookings
+      const relatedBookings = await db.select().from(bookings).where(eq(bookings.rideId, Number(id)));
+      console.log("Found", relatedBookings.length, "bookings for this ride");
       
-      // Update ride status in database
-      console.log("Updating ride status to completed");
-      const updatedRide = await storage.updateRide(Number(id), {
-        status: "completed"
-      });
+      // Update ride status using direct DB update
+      console.log("Directly updating ride status in database to 'completed'");
+      const updatedRides = await db
+        .update(rides)
+        .set({ status: "completed" })
+        .where(eq(rides.id, Number(id)))
+        .returning();
       
-      console.log("Ride update successful:", updatedRide);
+      console.log("Ride update result:", updatedRides);
       
-      // Update all related bookings to completed
-      if (bookings.length > 0) {
-        console.log("Updating bookings for this ride to completed");
-        for (const booking of bookings) {
+      // Update all confirmed bookings for this ride to completed
+      if (relatedBookings.length > 0) {
+        console.log("Updating confirmed bookings to completed status");
+        for (const booking of relatedBookings) {
           if (booking.status === 'confirmed') {
-            // Only update confirmed bookings to completed
-            console.log("Updating booking:", booking.id);
-            await storage.updateBooking(booking.id, {
-              status: "completed"
-            });
+            console.log("Updating booking ID:", booking.id, "from confirmed to completed");
+            await db
+              .update(bookings)
+              .set({ status: "completed" })
+              .where(eq(bookings.id, booking.id));
           }
         }
       }
       
-      // Return success response
+      // Verify the update was successful by querying the database again
+      const [verifyRide] = await db.select().from(rides).where(eq(rides.id, Number(id)));
+      console.log("Verification - ride status after update:", verifyRide?.status);
+      
+      // Return detailed response
+      console.log("======== RIDE COMPLETION FLOW END ========");
       return res.json({ 
         success: true, 
         message: "Ride marked as completed successfully",
-        rideId: Number(id)
+        rideId: Number(id),
+        currentStatus: verifyRide?.status || 'unknown'
       });
     } catch (error: any) {
-      console.error("Error in mark-completed endpoint:", error);
+      console.error("ERROR in mark-completed endpoint:", error);
       return res.status(500).json({ 
         error: "Failed to mark ride as completed", 
-        details: error.message 
+        details: error.message || 'Unknown error'
       });
     }
   });

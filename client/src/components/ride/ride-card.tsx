@@ -145,7 +145,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
     }
   });
   
-  // Mutation for marking a ride as completed
+  // Mutation for marking a ride as completed (unused - keeping for reference)
   const completeRideMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await apiRequest("PATCH", `/api/rides/${id}/complete`, {});
