@@ -209,20 +209,59 @@ export function RideCard({ ride }: { ride: RideProps }) {
   };
   
   // Handle mark ride as completed
-  const handleCompleteRide = () => {
+  const handleCompleteRide = async () => {
     console.log("Marking ride as completed, ride ID:", ride.id);
-    // Check for necessary conditions
-    if (!ride.id) {
-      console.error("No ride ID available");
+    
+    try {
+      // Check for necessary conditions
+      if (!ride.id) {
+        console.error("No ride ID available");
+        toast({
+          title: "Error",
+          description: "Could not complete ride: invalid ride ID",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Show confirmation message
       toast({
-        title: "Error",
-        description: "Could not complete ride: invalid ride ID",
+        title: "Marking ride as completed",
+        description: "Please wait...",
+      });
+      
+      // Use a different approach - direct fetch instead of react-query mutation
+      const response = await fetch(`/api/rides/${ride.id}/mark-completed`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      const result = await response.json();
+      console.log("Ride completion API response:", result);
+      
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to mark ride as completed");
+      }
+      
+      // Success - refresh the ride list
+      queryClient.invalidateQueries({ queryKey: ["/api/rides/my-rides"] });
+      
+      toast({
+        title: "Success!",
+        description: "Your ride has been marked as completed",
+      });
+      
+    } catch (error: any) {
+      console.error("Error in handleCompleteRide:", error);
+      toast({
+        title: "Action failed",
+        description: error.message || "There was an error marking the ride as completed",
         variant: "destructive",
       });
-      return;
     }
-    
-    completeRideMutation.mutate(ride.id);
   };
 
   // If the driver info isn't available but we're in the driver's view, use current user

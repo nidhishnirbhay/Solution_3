@@ -456,13 +456,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Endpoint for marking a ride as completed
+  // Endpoint for marking a ride as completed (PATCH method - old)
   rideRouter.patch('/:id/complete', authorize(['driver']), async (req, res) => {
     try {
       const { id } = req.params;
       const user = req.user as any;
       
-      console.log("Ride completion requested for ride ID:", id, "by user:", user.id);
+      console.log("Ride completion requested via PATCH for ride ID:", id, "by user:", user.id);
       
       // Verify the ride exists
       const ride = await storage.getRide(Number(id));
@@ -483,15 +483,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bookings = await storage.getBookingsByRideId(Number(id));
       console.log("Found", bookings.length, "bookings for this ride");
       
-      // Debug: log column names from schema
-      console.log("Column names from the schema (rides):", 
-        Object.keys(rides).filter(key => typeof key === 'string' && !key.startsWith('_')));
-      
       try {
-        // Fix: Import bookings table from schema to avoid TypeScript errors
+        // Use storage interface to update status
         console.log("Attempting to update ride with ID:", id);
         
-        // Use stored procedure to update status instead of direct DB update
         const updatedRide = await storage.updateRide(Number(id), {
           status: "completed"
         });
@@ -520,6 +515,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error completing ride:", error);
       res.status(500).json({ error: "Failed to mark ride as completed" });
+    }
+  });
+  
+  // NEW endpoint for marking a ride as completed (POST method - new)
+  rideRouter.post('/:id/mark-completed', authorize(['driver']), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = req.user as any;
+      
+      console.log("Ride completion requested via POST for ride ID:", id, "by user:", user.id);
+      
+      // Verify the ride exists
+      const ride = await storage.getRide(Number(id));
+      if (!ride) {
+        console.log("Ride not found:", id);
+        return res.status(404).json({ error: "Ride not found" });
+      }
+      
+      console.log("Ride found:", ride);
+      
+      // Ensure only the driver of the ride can mark it as completed
+      if (ride.driverId !== user.id) {
+        console.log("Authorization error: ride driver ID", ride.driverId, "doesn't match user ID", user.id);
+        return res.status(403).json({ error: "You can only mark your own rides as completed" });
+      }
+      
+      // Get bookings related to this ride to update their status
+      const bookings = await storage.getBookingsByRideId(Number(id));
+      console.log("Found", bookings.length, "bookings for this ride");
+      
+      // Update ride status in database
+      console.log("Updating ride status to completed");
+      const updatedRide = await storage.updateRide(Number(id), {
+        status: "completed"
+      });
+      
+      console.log("Ride update successful:", updatedRide);
+      
+      // Update all related bookings to completed
+      if (bookings.length > 0) {
+        console.log("Updating bookings for this ride to completed");
+        for (const booking of bookings) {
+          if (booking.status === 'confirmed') {
+            // Only update confirmed bookings to completed
+            console.log("Updating booking:", booking.id);
+            await storage.updateBooking(booking.id, {
+              status: "completed"
+            });
+          }
+        }
+      }
+      
+      // Return success response
+      return res.json({ 
+        success: true, 
+        message: "Ride marked as completed successfully",
+        rideId: Number(id)
+      });
+    } catch (error: any) {
+      console.error("Error in mark-completed endpoint:", error);
+      return res.status(500).json({ 
+        error: "Failed to mark ride as completed", 
+        details: error.message 
+      });
     }
   });
   
