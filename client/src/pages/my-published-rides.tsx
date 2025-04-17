@@ -156,8 +156,18 @@ export default function MyPublishedRides() {
           </div>
 
           <div className="container mx-auto px-4 py-8">
-            {/* Publish new ride button */}
-            <div className="flex justify-end mb-6">
+            {/* Action buttons */}
+            <div className="flex justify-between items-center mb-6">
+              <Button 
+                variant="outline" 
+                onClick={handleForceRefresh} 
+                disabled={refreshing || isLoading}
+                className="border-blue-300"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                {refreshing ? "Refreshing..." : "Refresh Data"}
+              </Button>
+              
               <Link href="/publish-ride">
                 <Button className="bg-primary hover:bg-primary/90">
                   <PlusCircle className="h-4 w-4 mr-2" />
