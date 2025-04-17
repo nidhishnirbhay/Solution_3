@@ -40,30 +40,18 @@ export default function MyPublishedRides() {
     
     return rides.reduce<{ active: RideProps[], completed: RideProps[] }>(
       (acc, ride) => {
-        console.log("Processing ride:", ride.id, ride.fromLocation, "to", ride.toLocation, "status:", ride.status);
+        const rideDate = new Date(ride.departureDate);
+        console.log("Ride", ride.id, `(${ride.fromLocation} to ${ride.toLocation}):`, {
+          status: ride.status,
+          departureDate: format(rideDate, 'dd/MM/yyyy, HH:mm:ss'),
+          isPastRide: rideDate < now,
+          currentTime: format(now, 'dd/MM/yyyy, HH:mm:ss')
+        });
         
-        // First check for explicit status flags
-        if (ride.status === "completed") {
-          // If ride is explicitly marked as completed, always put in completed section
-          console.log("Ride is marked completed, adding to completed list");
+        if (ride.status === "completed" || rideDate < now) {
           acc.completed.push(ride);
-        } else if (ride.status === "cancelled") {
-          // Cancelled rides don't show in either section
-          console.log("Ride is cancelled, not displaying");
-        } else {
-          // For non-cancelled, non-completed rides:
-          const rideDate = new Date(ride.departureDate);
-          
-          if (rideDate < now) {
-            // Past rides that aren't explicitly completed should show in completed section
-            // but with a "Mark as Completed" button
-            console.log("Ride date is in the past, adding to completed list");
-            acc.completed.push(ride);
-          } else {
-            // Future rides go in active section
-            console.log("Ride date is in the future, adding to active list");
-            acc.active.push(ride);
-          }
+        } else if (ride.status !== "cancelled") {
+          acc.active.push(ride);
         }
         
         return acc;
