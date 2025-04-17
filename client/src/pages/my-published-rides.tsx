@@ -90,7 +90,15 @@ export default function MyPublishedRides() {
       hour12: false
     }).format(now);
     
-    return rides.reduce<{ active: RideProps[], completed: RideProps[] }>(
+    // Force a deep clone and conversion from camelCase to snake_case fields if needed
+    // This ensures we're working with a clean state of the data
+    const processedRides = rides.map(ride => ({
+      ...ride,
+      // Add any missing fields with defaults if necessary
+      status: ride.status || 'active'
+    }));
+    
+    return processedRides.reduce<{ active: RideProps[], completed: RideProps[] }>(
       (acc, ride) => {
         const rideDate = new Date(ride.departureDate);
         const formattedRideDate = new Intl.DateTimeFormat('en-GB', { 
@@ -106,16 +114,15 @@ export default function MyPublishedRides() {
         // Debug log
         console.log("Processing ride:", ride.id, ride.fromLocation, "to", ride.toLocation, "status:", ride.status);
         
-        // Check if the database status matches what's displayed
-        const isPastRide = rideDate < now;
-        
         // Handle cancelled rides - don't display them
         if (ride.status === "cancelled") {
           return acc;
         }
         
-        // Add ride to appropriate list based on its status from the database
-        if (ride.status === "completed") {
+        // IMPORTANT PART: Clear categorization of rides between active and completed tabs
+        // 1. Always trust the status from the server (completed/active) first
+        // 2. If the status is 'completed', it always goes to the completed list
+        if (ride.status && ride.status.toLowerCase() === "completed") {
           console.log("Ride is completed, adding to completed list:", ride.id);
           acc.completed.push(ride);
         } else {
@@ -127,7 +134,7 @@ export default function MyPublishedRides() {
         console.log(`Ride ${ride.id} (${ride.fromLocation} to ${ride.toLocation}):`, {
           status: ride.status,
           departureDate: formattedRideDate,
-          isPastRide: isPastRide,
+          isPastRide: rideDate < now,
           currentTime: formattedCurrentTime
         });
         

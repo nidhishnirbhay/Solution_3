@@ -401,41 +401,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🚨 EMERGENCY MY-RIDES ENDPOINT FIX");
       console.log("Fetching rides for driver ID:", user.id);
       
-      // Using direct SQL query for consistency
+      // IMPORTANT FIX: Add EXPLICIT LOWER() comparison to ensure consistent case matching
+      // This helps ensure status values like "Completed" or "COMPLETED" match correctly
       const result = await pool.query(
-        'SELECT * FROM rides WHERE driver_id = $1 ORDER BY departure_date DESC',
+        `SELECT * FROM rides 
+         WHERE driver_id = $1 
+         ORDER BY 
+           CASE WHEN LOWER(status) = 'completed' THEN 2 ELSE 1 END,
+           departure_date DESC`,
         [user.id]
       );
       
       console.log("Found", result.rows.length, "total rides");
       
       // Map database columns to camelCase for response
-      const mappedRides = result.rows.map(row => ({
-        id: row.id,
-        driverId: row.driver_id,
-        fromLocation: row.from_location,
-        toLocation: row.to_location,
-        departureDate: row.departure_date,
-        estimatedArrivalDate: row.estimated_arrival_date,
-        rideType: row.ride_type,
-        price: row.price,
-        totalSeats: row.total_seats,
-        availableSeats: row.available_seats,
-        vehicleType: row.vehicle_type,
-        vehicleNumber: row.vehicle_number,
-        description: row.description,
-        status: row.status,
-        cancellationReason: row.cancellation_reason,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-        // Add driver information
-        driver: {
-          id: user.id,
-          fullName: user.fullName,
-          averageRating: user.averageRating || 0,
-          isKycVerified: user.isKycVerified
-        }
-      }));
+      const mappedRides = result.rows.map(row => {
+        // Ensure status is consistently lowercase for frontend comparison
+        const normalizedStatus = row.status ? row.status.toLowerCase() : 'active';
+        
+        return {
+          id: row.id,
+          driverId: row.driver_id,
+          fromLocation: row.from_location,
+          toLocation: row.to_location,
+          departureDate: row.departure_date,
+          estimatedArrivalDate: row.estimated_arrival_date,
+          rideType: row.ride_type,
+          price: row.price,
+          totalSeats: row.total_seats,
+          availableSeats: row.available_seats,
+          vehicleType: row.vehicle_type,
+          vehicleNumber: row.vehicle_number,
+          description: row.description,
+          status: normalizedStatus, // Use normalized status
+          cancellationReason: row.cancellation_reason,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          // Add driver information
+          driver: {
+            id: user.id,
+            fullName: user.fullName,
+            averageRating: user.averageRating || 0,
+            isKycVerified: user.isKycVerified
+          }
+        };
+      });
       
       // Filter out cancelled rides
       const activeRides = mappedRides.filter(ride => ride.status !== 'cancelled');
