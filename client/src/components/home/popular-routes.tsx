@@ -108,62 +108,59 @@ export function PopularRoutes() {
   const rides = Array.isArray(popularRides) && popularRides.length > 0 
     ? popularRides 
     : [];
-    
-  // If no rides found, use mock data for display
-  const displayRides = rides.length > 0 
-    ? rides 
-    : popularRoutes.map((route, idx) => ({
-        id: idx,
-        fromLocation: route.from,
-        toLocation: route.to,
-        price: route.price,
-        totalSeats: 4,
-        availableSeats: 4,
-        departureDate: new Date().toISOString()
-      }));
 
   return (
     <section className="py-12 bg-neutral-50">
       <div className="container mx-auto px-4">
         <h2 className="text-2xl font-bold text-center mb-8">Latest Published Rides</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayRides.slice(0, 6).map((ride, index) => (
-            <Card 
-              key={ride.id || index} 
-              className="overflow-hidden hover:shadow-md transition-shadow"
-            >
-              <CardContent className="p-0">
-                <div className="p-4 border-b">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-medium">{ride.fromLocation}</div>
-                      <div className="text-sm text-neutral-500">to</div>
-                      <div className="font-medium">{ride.toLocation}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-semibold text-primary">₹{ride.price}</div>
-                      <div className="text-sm text-neutral-500">
-                        {formatDate(ride.departureDate)}
+        {rides.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {rides.slice(0, 6).map((ride, index) => (
+              <Card 
+                key={ride.id || index} 
+                className="overflow-hidden hover:shadow-md transition-shadow"
+              >
+                <CardContent className="p-0">
+                  <div className="p-4 border-b">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="font-medium">{ride.fromLocation}</div>
+                        <div className="text-sm text-neutral-500">to</div>
+                        <div className="font-medium">{ride.toLocation}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-semibold text-primary">₹{ride.price}</div>
+                        <div className="text-sm text-neutral-500">
+                          {formatDate(ride.departureDate)}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-                <div className="p-4">
-                  <div className="flex justify-between text-sm">
-                    <span>Full booking ({ride.totalSeats} seats)</span>
-                    <span 
-                      onClick={() => navigate(`/find-rides?from=${ride.fromLocation}&to=${ride.toLocation}`)}
-                      className="text-blue-500 font-medium cursor-pointer"
-                    >
-                      Book Now
-                    </span>
+                  <div className="p-4">
+                    <div className="flex justify-between text-sm">
+                      <span>Full booking ({ride.totalSeats} seats)</span>
+                      <span 
+                        onClick={() => navigate(`/find-rides?from=${ride.fromLocation}&to=${ride.toLocation}`)}
+                        className="text-blue-500 font-medium cursor-pointer"
+                      >
+                        Book Now
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="text-3xl font-bold text-gray-300 mb-4">
+              <span className="inline-block animate-pulse">🚗</span>
+            </div>
+            <p className="text-lg font-medium text-gray-500 mb-2">Currently No Active Rides</p>
+            <p className="text-sm text-gray-400">Check back later for new ride listings or publish your own ride</p>
+          </div>
+        )}
       </div>
     </section>
   );
