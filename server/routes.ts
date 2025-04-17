@@ -824,11 +824,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Get booking fee settings
+      let bookingFee = 0;
+      try {
+        const bookingFeeSetting = await storage.getSetting('booking_fee');
+        if (bookingFeeSetting && bookingFeeSetting.value) {
+          // Parse the value as it's stored as JSON in the database
+          const settings = typeof bookingFeeSetting.value === 'string' 
+            ? JSON.parse(bookingFeeSetting.value) 
+            : bookingFeeSetting.value;
+          
+          // Only apply booking fee if enabled in settings
+          if (settings && typeof settings === 'object') {
+            if (settings.enabled) {
+              bookingFee = settings.amount || 0;
+              console.log("📊 Booking fee applied:", bookingFee);
+            } else {
+              console.log("📊 Booking fee is disabled");
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching booking fee settings:", error);
+        // Default to 0 if there's an error
+        bookingFee = 0;
+      }
+      
       // For full vehicle booking, we always book the total seats
       const bookingData = { 
         ...req.body, 
         customerId: user.id,
-        bookingFee: 200,
+        bookingFee: bookingFee,
         status: 'pending',
         numberOfSeats: ride.totalSeats // Always book the total seats for full vehicle booking
       };
@@ -847,7 +873,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
            VALUES 
             ($1, $2, $3, $4, $5, $6, NOW(), NOW()) 
            RETURNING *`,
-          [user.id, req.body.rideId, ride.totalSeats, 'pending', 200, false]
+          [user.id, req.body.rideId, ride.totalSeats, 'pending', bookingFee, false]
         );
         
         const newBooking = bookingResult.rows[0];
