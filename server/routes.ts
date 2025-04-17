@@ -397,14 +397,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   rideRouter.get('/my-rides', authorize(['driver']), async (req, res) => {
     try {
       const user = req.user as any;
-      const rides = await storage.getRidesByDriverId(user.id);
       
-      // Filter out cancelled rides
-      const activeRides = rides.filter(ride => ride.status !== 'cancelled');
+      console.log("🚨 EMERGENCY MY-RIDES ENDPOINT FIX");
+      console.log("Fetching rides for driver ID:", user.id);
       
-      // Add driver information to each active ride
-      const ridesWithDriver = activeRides.map(ride => ({
-        ...ride,
+      // Using direct SQL query for consistency
+      const result = await pool.query(
+        'SELECT * FROM rides WHERE driver_id = $1 ORDER BY departure_date DESC',
+        [user.id]
+      );
+      
+      console.log("Found", result.rows.length, "total rides");
+      
+      // Map database columns to camelCase for response
+      const mappedRides = result.rows.map(row => ({
+        id: row.id,
+        driverId: row.driver_id,
+        fromLocation: row.from_location,
+        toLocation: row.to_location,
+        departureDate: row.departure_date,
+        estimatedArrivalDate: row.estimated_arrival_date,
+        rideType: row.ride_type,
+        price: row.price,
+        totalSeats: row.total_seats,
+        availableSeats: row.available_seats,
+        vehicleType: row.vehicle_type,
+        vehicleNumber: row.vehicle_number,
+        description: row.description,
+        status: row.status,
+        cancellationReason: row.cancellation_reason,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        // Add driver information
         driver: {
           id: user.id,
           fullName: user.fullName,
@@ -413,8 +437,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }));
       
-      res.json(ridesWithDriver);
+      // Filter out cancelled rides
+      const activeRides = mappedRides.filter(ride => ride.status !== 'cancelled');
+      console.log("After filtering cancelled rides:", activeRides.length, "rides");
+      
+      // Log each ride with its status for debugging
+      activeRides.forEach(ride => {
+        console.log(`Ride ${ride.id} from ${ride.fromLocation} to ${ride.toLocation} has status: ${ride.status}`);
+      });
+      
+      res.json(activeRides);
     } catch (error) {
+      console.error("ERROR in my-rides endpoint:", error);
       res.status(500).json({ error: "Failed to retrieve rides" });
     }
   });
