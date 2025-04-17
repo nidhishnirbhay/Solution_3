@@ -41,29 +41,19 @@ export default function MyPublishedRides() {
     return rides.reduce<{ active: RideProps[], completed: RideProps[] }>(
       (acc, ride) => {
         const rideDate = new Date(ride.departureDate);
-        console.log("Ride", ride.id, `(${ride.fromLocation} to ${ride.toLocation}):`, {
-          status: ride.status,
-          departureDate: format(rideDate, 'dd/MM/yyyy, HH:mm:ss'),
-          isPastRide: rideDate < now,
-          currentTime: format(now, 'dd/MM/yyyy, HH:mm:ss')
-        });
+        console.log("Processing ride:", ride.id, ride.fromLocation, "to", ride.toLocation, "status:", ride.status);
         
-        // First check if ride is cancelled
+        // Handle cancelled rides
         if (ride.status === "cancelled") {
-          // Don't show cancelled rides
           return acc;
         }
         
-        // Then check if ride is completed
+        // Handle completed rides
         if (ride.status === "completed") {
-          acc.completed.push(ride);
-          return acc;
-        }
-        
-        // Finally check date for active vs past rides
-        if (rideDate < now) {
+          console.log("Ride is completed, adding to completed list:", ride.id);
           acc.completed.push(ride);
         } else {
+          console.log("Ride is active, adding to active list:", ride.id);
           acc.active.push(ride);
         }
         
