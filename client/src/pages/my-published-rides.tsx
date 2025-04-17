@@ -58,15 +58,29 @@ export default function MyPublishedRides() {
     }
   }, [refetch, queryClient, toast]);
   
-  // Automatic refresh every 30 seconds
+  // Automatic refresh every 10 seconds for more responsive updates
   useEffect(() => {
     const intervalId = setInterval(() => {
       console.log("🔄 Auto-refreshing rides data...");
       refetch();
-    }, 30000);
+    }, 10000); // every 10 seconds
+    
+    // Initial refresh when component mounts
+    refetch();
     
     return () => clearInterval(intervalId);
   }, [refetch]);
+  
+  // Listen for tab focus changes and refresh when tab becomes active
+  useEffect(() => {
+    const onFocus = () => {
+      console.log("🔍 Browser tab focused - refreshing ride data");
+      handleForceRefresh();
+    };
+    
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [handleForceRefresh]);
 
   if (isError) {
     toast({

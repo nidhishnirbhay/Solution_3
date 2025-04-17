@@ -78,7 +78,7 @@ export default function MyBookings() {
     }
   }, [refetchBookings, refetchRides, queryClient, user?.role, bookingsEndpoint, toast]);
   
-  // Auto-refresh every 30 seconds
+  // Auto-refresh every 10 seconds for more responsive updates
   useEffect(() => {
     const intervalId = setInterval(() => {
       console.log("🔄 Auto-refreshing bookings data...");
@@ -86,10 +86,27 @@ export default function MyBookings() {
       if (user?.role === "driver") {
         refetchRides();
       }
-    }, 30000); // every 30 seconds
+    }, 10000); // every 10 seconds for more responsive updates
+    
+    // Initial auto-refresh when component mounts
+    refetchBookings();
+    if (user?.role === "driver") {
+      refetchRides();
+    }
     
     return () => clearInterval(intervalId);
   }, [refetchBookings, refetchRides, user?.role]);
+  
+  // Listen for tab focus changes and refresh when the tab becomes active
+  useEffect(() => {
+    const onFocus = () => {
+      console.log("🔍 Browser tab focused - refreshing data");
+      handleForceRefresh();
+    };
+    
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [handleForceRefresh]);
 
   const getBookingsList = () => {
     if (!bookings || !Array.isArray(bookings) || bookings.length === 0) {

@@ -754,8 +754,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
         numberOfSeats: ride.totalSeats // Always book the total seats for full vehicle booking
       };
       
-      const booking = await storage.createBooking(bookingData);
-      res.status(201).json(booking);
+      console.log("📝 Creating new booking:", bookingData);
+      
+      // Use a direct SQL query for immediate consistency
+      try {
+        // Start a transaction
+        await pool.query('BEGIN');
+        
+        // 1. Insert the booking directly with SQL
+        const bookingResult = await pool.query(
+          `INSERT INTO bookings 
+            (customer_id, ride_id, number_of_seats, status, booking_fee, is_paid, created_at, updated_at) 
+           VALUES 
+            ($1, $2, $3, $4, $5, $6, NOW(), NOW()) 
+           RETURNING *`,
+          [user.id, req.body.rideId, ride.totalSeats, 'pending', 200, false]
+        );
+        
+        const newBooking = bookingResult.rows[0];
+        console.log("🎉 New booking created:", newBooking);
+        
+        // 2. Update the available seats in the ride
+        await pool.query(
+          `UPDATE rides 
+           SET available_seats = available_seats - $1, updated_at = NOW() 
+           WHERE id = $2`,
+          [ride.totalSeats, req.body.rideId]
+        );
+        
+        // Commit the transaction
+        await pool.query('COMMIT');
+        
+        // Add customer data to the response
+        const bookingWithCustomer = {
+          id: newBooking.id,
+          customerId: newBooking.customer_id,
+          rideId: newBooking.ride_id,
+          numberOfSeats: newBooking.number_of_seats,
+          status: newBooking.status,
+          bookingFee: newBooking.booking_fee,
+          isPaid: newBooking.is_paid,
+          createdAt: newBooking.created_at,
+          updatedAt: newBooking.updated_at,
+          customer: {
+            id: user.id,
+            fullName: user.fullName,
+            role: user.role,
+            averageRating: user.averageRating || 0
+          },
+          ride: {
+            id: ride.id,
+            fromLocation: ride.fromLocation,
+            toLocation: ride.toLocation,
+            departureDate: ride.departureDate,
+            price: ride.price,
+            rideType: ride.rideType,
+            vehicleType: ride.vehicleType,
+            vehicleNumber: ride.vehicleNumber
+          }
+        };
+        
+        console.log("Responding with booking:", bookingWithCustomer);
+        res.status(201).json(bookingWithCustomer);
+      } catch (dbError) {
+        console.error("Database error during booking creation:", dbError);
+        await pool.query('ROLLBACK');
+        throw new Error(`Booking creation failed: ${dbError.message}`);
+      }
     } catch (error) {
       res.status(500).json({ error: "Booking failed" });
     }
@@ -799,31 +864,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
   bookingRouter.get('/ride-bookings', authorize(['driver']), async (req, res) => {
     try {
       const user = req.user as any;
-      const rides = await storage.getRidesByDriverId(user.id);
+      console.log("🔍 Fetching ride bookings for driver ID:", user.id);
       
-      const allBookings = [];
-      for (const ride of rides) {
-        const bookings = await storage.getBookingsByRideId(ride.id);
-        
-        // Get customer details for each booking
-        const bookingsWithCustomers = await Promise.all(
-          bookings.map(async (booking) => {
-            const customer = await storage.getUser(booking.customerId);
-            const rating = await storage.getRatingByBookingId(booking.id);
-            return { 
-              ...booking, 
-              ride, 
-              customer,
-              hasRated: !!rating 
-            };
-          })
-        );
-        
-        allBookings.push(...bookingsWithCustomers);
-      }
+      // Use direct SQL for better performance and real-time data
+      const query = `
+        SELECT 
+          b.*,
+          r.id as ride_id, r.from_location, r.to_location, r.departure_date, 
+          r.price, r.ride_type, r.vehicle_type, r.vehicle_number, r.status as ride_status,
+          c.id as customer_id, c.full_name as customer_name, c.role as customer_role, 
+          c.average_rating as customer_rating, c.mobile as customer_mobile
+        FROM 
+          bookings b
+        JOIN 
+          rides r ON b.ride_id = r.id 
+        JOIN 
+          users c ON b.customer_id = c.id
+        WHERE 
+          r.driver_id = $1
+        ORDER BY 
+          b.created_at DESC
+      `;
       
-      res.json(allBookings);
+      const result = await pool.query(query, [user.id]);
+      console.log(`Found ${result.rows.length} bookings for driver ${user.id}`);
+      
+      // Map the results to match the expected format
+      const mappedBookings = await Promise.all(
+        result.rows.map(async (row) => {
+          // Check if booking has a rating
+          const rating = await storage.getRatingByBookingId(row.id);
+          
+          return {
+            id: row.id,
+            customerId: row.customer_id,
+            rideId: row.ride_id,
+            numberOfSeats: row.number_of_seats,
+            status: row.status,
+            bookingFee: row.booking_fee,
+            isPaid: row.is_paid,
+            cancellationReason: row.cancellation_reason,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+            hasRated: !!rating,
+            ride: {
+              id: row.ride_id,
+              fromLocation: row.from_location,
+              toLocation: row.to_location,
+              departureDate: row.departure_date,
+              price: row.price,
+              rideType: row.ride_type,
+              vehicleType: row.vehicle_type,
+              vehicleNumber: row.vehicle_number,
+              status: row.ride_status
+            },
+            customer: {
+              id: row.customer_id,
+              fullName: row.customer_name,
+              role: row.customer_role,
+              averageRating: row.customer_rating,
+              mobile: row.customer_mobile
+            }
+          };
+        })
+      );
+      
+      res.json(mappedBookings);
     } catch (error) {
+      console.error("Error fetching ride bookings:", error);
       res.status(500).json({ error: "Failed to retrieve bookings" });
     }
   });
