@@ -1509,6 +1509,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  adminRouter.patch('/users/:id', authorize(['admin']), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      
+      const userData = req.body;
+      const updatedUser = await storage.updateUser(userId, userData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+  
   adminRouter.get('/rides', authorize(['admin']), async (req, res) => {
     try {
       const rides = await storage.getAllRides();

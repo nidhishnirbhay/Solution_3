@@ -360,8 +360,23 @@ export default function AdminKyc() {
               </Table>
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No KYC verifications found matching the selected filter.
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="bg-gray-50 rounded-full p-4 mb-4">
+                <FileCheck className="h-10 w-10 text-gray-300" />
+              </div>
+              <h3 className="text-lg font-medium">No KYC Verifications</h3>
+              <p className="text-sm text-gray-500 mt-1 text-center max-w-md">
+                There are no KYC verification requests at the moment. When users submit KYC verification documents, they will appear here.
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => refetch()}
+                className="mt-4 flex items-center gap-1"
+              >
+                <RefreshCw className="h-4 w-4" />
+                <span>Refresh</span>
+              </Button>
             </div>
           )}
         </CardContent>
