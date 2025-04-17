@@ -49,12 +49,57 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUser(id: number, data: Partial<User>): Promise<User | undefined> {
-    const [updatedUser] = await db
-      .update(users)
-      .set(data)
-      .where(eq(users.id, id))
-      .returning();
-    return updatedUser;
+    try {
+      // Convert data to a SQL-friendly format
+      const setClause = Object.entries(data)
+        .map(([key, value]) => {
+          // Convert camelCase to snake_case for SQL
+          const sqlKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+          
+          // Handle different types of values
+          if (value === null) return `${sqlKey} = NULL`;
+          if (typeof value === 'boolean') return `${sqlKey} = ${value}`;
+          if (typeof value === 'number') return `${sqlKey} = ${value}`;
+          if (value instanceof Date) return `${sqlKey} = '${value.toISOString()}'`;
+          return `${sqlKey} = '${value}'`;
+        })
+        .join(', ');
+      
+      // Execute direct SQL update
+      const query = `
+        UPDATE users 
+        SET ${setClause}, updated_at = NOW() 
+        WHERE id = $1 
+        RETURNING *
+      `;
+      
+      console.log("SQL Update User Query:", query);
+      
+      const result = await pool.query(query, [id]);
+      
+      if (result.rows.length === 0) {
+        return undefined;
+      }
+      
+      // Convert back from snake_case to camelCase
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        username: row.username,
+        password: row.password,
+        fullName: row.full_name,
+        role: row.role,
+        mobile: row.mobile,
+        isKycVerified: row.is_kyc_verified,
+        isSuspended: row.is_suspended,
+        averageRating: row.average_rating,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      };
+    } catch (error) {
+      console.error("SQL Error in updateUser:", error);
+      throw error;
+    }
   }
 
   async getAllUsers(): Promise<User[]> {
