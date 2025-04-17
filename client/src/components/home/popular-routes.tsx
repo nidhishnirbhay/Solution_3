@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -50,6 +50,7 @@ const popularRoutes = [
 ];
 
 export function PopularRoutes() {
+  const [_, navigate] = useLocation();
   const { data: popularRides, isLoading, isError } = useQuery({
     queryKey: ['/api/rides/popular'],
     staleTime: 60 * 1000, // 1 minute
@@ -151,9 +152,12 @@ export function PopularRoutes() {
                 <div className="p-4">
                   <div className="flex justify-between text-sm">
                     <span>Full booking ({ride.totalSeats} seats)</span>
-                    <Link href={`/find-rides?from=${ride.fromLocation}&to=${ride.toLocation}`}>
-                      <a className="text-blue-500 font-medium">Book Now</a>
-                    </Link>
+                    <span 
+                      onClick={() => navigate(`/find-rides?from=${ride.fromLocation}&to=${ride.toLocation}`)}
+                      className="text-blue-500 font-medium cursor-pointer"
+                    >
+                      Book Now
+                    </span>
                   </div>
                 </div>
               </CardContent>
