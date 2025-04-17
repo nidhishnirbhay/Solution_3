@@ -11,7 +11,8 @@ import {
   insertBookingSchema,
   insertRatingSchema,
   rides,
-  bookings
+  bookings,
+  kycVerifications
 } from "@shared/schema";
 import session from "express-session";
 import passport from "passport";
@@ -1342,11 +1343,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin KYC management
   adminRouter.get('/kyc', authorize(['admin']), async (req, res) => {
     try {
-      const kycVerifications = await storage.getPendingKycVerifications();
+      // Get all KYC verifications instead of only pending ones
+      const kycs = await db.select().from(kycVerifications);
+
+      if (!kycs || kycs.length === 0) {
+        return res.json([]);
+      }
       
       // Get user details for each KYC verification
       const detailedKyc = await Promise.all(
-        kycVerifications.map(async (kyc) => {
+        kycs.map(async (kyc) => {
           const user = await storage.getUser(kyc.userId);
           return { ...kyc, user };
         })
@@ -1409,7 +1415,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   adminRouter.get('/kyc/stats', authorize(['admin']), async (req, res) => {
     try {
-      const allKyc = await storage.getPendingKycVerifications();
+      const allKyc = await db.select().from(kycVerifications);
+      
+      if (!allKyc || allKyc.length === 0) {
+        return res.json({
+          total: 0,
+          pending: 0,
+          approved: 0,
+          rejected: 0,
+          recent: []
+        });
+      }
+      
       const pending = allKyc.filter(kyc => kyc.status === 'pending').length;
       const approved = allKyc.filter(kyc => kyc.status === 'approved').length;
       const rejected = allKyc.filter(kyc => kyc.status === 'rejected').length;

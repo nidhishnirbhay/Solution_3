@@ -74,8 +74,18 @@ export default function AdminUsers() {
   // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      const res = await apiRequest("PATCH", `/api/admin/users/${id}`, data);
-      return res.json();
+      try {
+        const res = await apiRequest("PATCH", `/api/admin/users/${id}`, data);
+        if (!res.ok) {
+          const errorData = await res.text();
+          console.error("Error response:", errorData);
+          throw new Error(errorData || "Failed to update user");
+        }
+        return await res.json();
+      } catch (error) {
+        console.error("Update user error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
