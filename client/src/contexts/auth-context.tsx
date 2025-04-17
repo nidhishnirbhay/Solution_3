@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { SuspendedAccountModal } from "@/components/ui/suspended-account-modal";
 
 interface User {
   id: number;
@@ -11,6 +12,7 @@ interface User {
   isKycVerified: boolean;
   mobile?: string;
   averageRating?: number;
+  isSuspended?: boolean;
 }
 
 interface AuthContextType {
@@ -18,6 +20,8 @@ interface AuthContextType {
   login: (userData: User) => void;
   logout: () => void;
   loading: boolean;
+  isSuspendedModalOpen: boolean;
+  closeSuspendedModal: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,8 +29,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSuspendedModalOpen, setIsSuspendedModalOpen] = useState(false);
   const { toast } = useToast();
   const [, navigate] = useLocation();
+
+  const closeSuspendedModal = () => {
+    setIsSuspendedModalOpen(false);
+  };
 
   useEffect(() => {
     // Check for existing session on mount
@@ -40,6 +49,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (response.ok) {
           const userData = await response.json();
           setUser(userData);
+        } else {
+          // Check if the account is suspended
+          const data = await response.json();
+          if (response.status === 403 && data.error === "Account suspended") {
+            setIsSuspendedModalOpen(true);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch current user:", error);
@@ -52,6 +67,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = (userData: User) => {
+    // Check if user is suspended
+    if (userData.isSuspended) {
+      setIsSuspendedModalOpen(true);
+      return;
+    }
+    
     setUser(userData);
     
     // Navigate based on user role
@@ -80,7 +101,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      logout, 
+      loading, 
+      isSuspendedModalOpen,
+      closeSuspendedModal
+    }}>
+      <SuspendedAccountModal 
+        isOpen={isSuspendedModalOpen} 
+        onClose={closeSuspendedModal} 
+      />
       {children}
     </AuthContext.Provider>
   );

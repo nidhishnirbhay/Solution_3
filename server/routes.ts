@@ -177,6 +177,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (err) return next(err);
       if (!user) return res.status(401).json({ message: info.message });
       
+      // Check if the user is suspended
+      if (user.isSuspended) {
+        return res.status(403).json({ 
+          error: "Account suspended", 
+          message: "Your account has been suspended by the administrator. Please contact support for more information." 
+        });
+      }
+      
       req.logIn(user, (err) => {
         if (err) return next(err);
         return res.json({
@@ -184,7 +192,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           username: user.username,
           fullName: user.fullName,
           role: user.role,
-          isKycVerified: user.isKycVerified
+          isKycVerified: user.isKycVerified,
+          isSuspended: user.isSuspended
         });
       });
     })(req, res, next);
@@ -234,6 +243,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ error: "Not authenticated" });
     }
     const user = req.user as any;
+    
+    // Check if user is suspended
+    if (user.isSuspended) {
+      req.logout(() => {
+        return res.status(403).json({ 
+          error: "Account suspended", 
+          message: "Your account has been suspended by the administrator. Please contact support for more information."
+        });
+      });
+      return;
+    }
+    
     res.json({
       id: user.id,
       username: user.username,
@@ -241,7 +262,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       role: user.role,
       isKycVerified: user.isKycVerified,
       mobile: user.mobile,
-      averageRating: user.averageRating
+      averageRating: user.averageRating,
+      isSuspended: user.isSuspended
     });
   });
   
@@ -1541,23 +1563,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userData = req.body;
       console.log(`Updating user ${userId} with data:`, userData);
       
-      // Use database directly for better reliability
-      const result = await db
-        .update(users)
-        .set(userData)
-        .where(eq(users.id, userId))
-        .returning();
+      // Use storage method instead of direct DB access to avoid import issues
+      const updatedUser = await storage.updateUser(userId, userData);
       
-      if (!result || result.length === 0) {
+      if (!updatedUser) {
         console.error("User update failed - no user returned");
         return res.status(404).json({ error: "User not found" });
       }
       
-      console.log("User updated successfully:", result[0]);
+      console.log("User updated successfully:", updatedUser);
       
       // Ensure Content-Type is set to application/json 
       res.setHeader("Content-Type", "application/json");
-      return res.json(result[0]);
+      return res.json(updatedUser);
     } catch (error) {
       console.error("Error updating user:", error);
       // Ensure Content-Type is set to application/json even in error cases
