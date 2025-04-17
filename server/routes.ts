@@ -10,6 +10,7 @@ import {
   insertRideSchema,
   insertBookingSchema,
   insertRatingSchema,
+  users,
   rides,
   bookings,
   kycVerifications
