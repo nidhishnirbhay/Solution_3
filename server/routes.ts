@@ -1363,6 +1363,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes
   const adminRouter = express.Router();
   
+  // Admin Settings Management
+  adminRouter.get('/settings/booking-fee', authorize(['admin']), async (req, res) => {
+    try {
+      const setting = await storage.getSetting('booking_fee');
+      if (!setting) {
+        // Return default if not found
+        return res.json({ enabled: true, amount: 200 });
+      }
+      res.json(setting.value);
+    } catch (error) {
+      console.error('Error fetching booking fee setting:', error);
+      res.status(500).json({ error: 'Failed to fetch booking fee setting' });
+    }
+  });
+
+  adminRouter.patch('/settings/booking-fee', authorize(['admin']), async (req, res) => {
+    try {
+      const { enabled, amount } = req.body;
+      
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: 'Enabled must be a boolean' });
+      }
+      
+      if (amount !== undefined && (typeof amount !== 'number' || amount < 0)) {
+        return res.status(400).json({ error: 'Amount must be a positive number' });
+      }
+      
+      const value = { enabled, amount: amount || 0 };
+      const setting = await storage.updateSetting('booking_fee', value);
+      
+      res.json(setting?.value || value);
+    } catch (error) {
+      console.error('Error updating booking fee setting:', error);
+      res.status(500).json({ error: 'Failed to update booking fee setting' });
+    }
+  });
+  
+  // Public settings endpoint
+  app.get('/api/settings/booking-fee', async (req, res) => {
+    try {
+      const setting = await storage.getSetting('booking_fee');
+      if (!setting) {
+        // Return default if not found
+        return res.json({ enabled: true, amount: 200 });
+      }
+      res.json(setting.value);
+    } catch (error) {
+      console.error('Error fetching booking fee setting:', error);
+      res.status(500).json({ error: 'Failed to fetch booking fee setting' });
+    }
+  });
+  
   // Admin KYC management
   adminRouter.get('/kyc', authorize(['admin']), async (req, res) => {
     try {
