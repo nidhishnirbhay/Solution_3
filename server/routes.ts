@@ -967,24 +967,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Cancellation reason is required" });
       }
       
-      // Use storage interface for all booking updates for consistency
+      // Use direct SQL for all booking updates to ensure consistency and real-time updates
       if (status === 'cancelled' && reason) {
-        console.log("Cancelling booking:", id, "with reason:", reason);
-        const updated = await storage.updateBooking(Number(id), {
-          status: "cancelled",
-          cancellationReason: reason
-        });
+        console.log("🚫 Cancelling booking:", id, "with reason:", reason);
         
-        console.log("Booking cancelled:", updated);
-        res.json(updated);
+        try {
+          // Start transaction
+          await pool.query('BEGIN');
+          
+          // 1. Update booking
+          const updateBookingQuery = `
+            UPDATE bookings 
+            SET status = $1, cancellation_reason = $2, updated_at = NOW() 
+            WHERE id = $3 
+            RETURNING *
+          `;
+          const bookingResult = await pool.query(updateBookingQuery, ['cancelled', reason, id]);
+          const updatedBooking = bookingResult.rows[0];
+          
+          // 2. If we have a booking, update ride available_seats if needed
+          if (updatedBooking) {
+            const ride = await storage.getRide(updatedBooking.ride_id);
+            if (ride) {
+              const seatsToReturn = updatedBooking.number_of_seats || 1;
+              const updateRideQuery = `
+                UPDATE rides 
+                SET available_seats = available_seats + $1, updated_at = NOW() 
+                WHERE id = $2
+              `;
+              await pool.query(updateRideQuery, [seatsToReturn, ride.id]);
+            }
+          }
+          
+          await pool.query('COMMIT');
+          
+          // Format the response to match the expected schema
+          const formattedBooking = {
+            id: updatedBooking.id,
+            customerId: updatedBooking.customer_id,
+            rideId: updatedBooking.ride_id,
+            numberOfSeats: updatedBooking.number_of_seats,
+            status: updatedBooking.status,
+            bookingFee: updatedBooking.booking_fee,
+            isPaid: updatedBooking.is_paid,
+            cancellationReason: updatedBooking.cancellation_reason,
+            createdAt: updatedBooking.created_at,
+            updatedAt: updatedBooking.updated_at
+          };
+          
+          console.log("✅ Booking cancelled:", formattedBooking);
+          res.json(formattedBooking);
+        } catch (dbError: any) {
+          console.error("Database error during booking cancellation:", dbError);
+          await pool.query('ROLLBACK');
+          return res.status(500).json({ error: "Database error during cancellation", details: dbError.message });
+        }
+      } else if (status === 'confirmed') {
+        console.log("✅ CONFIRMING BOOKING:", id);
+        
+        try {
+          // Start transaction
+          await pool.query('BEGIN');
+          
+          // 1. Update booking status to confirmed
+          const updateBookingQuery = `
+            UPDATE bookings 
+            SET status = $1, updated_at = NOW() 
+            WHERE id = $2 
+            RETURNING *
+          `;
+          const bookingResult = await pool.query(updateBookingQuery, ['confirmed', id]);
+          const updatedBooking = bookingResult.rows[0];
+          
+          // Log the booking details for debugging
+          console.log("📘 Booking confirmed with details:", {
+            id: updatedBooking.id,
+            rideId: updatedBooking.ride_id,
+            status: updatedBooking.status
+          });
+          
+          // Commit transaction
+          await pool.query('COMMIT');
+          
+          // Get customer and ride details for the response
+          const customer = await storage.getUser(updatedBooking.customer_id);
+          const ride = await storage.getRide(updatedBooking.ride_id);
+          
+          // Format the response with complete data
+          const formattedResponse = {
+            id: updatedBooking.id,
+            customerId: updatedBooking.customer_id,
+            rideId: updatedBooking.ride_id,
+            numberOfSeats: updatedBooking.number_of_seats,
+            status: updatedBooking.status,
+            bookingFee: updatedBooking.booking_fee,
+            isPaid: updatedBooking.is_paid,
+            createdAt: updatedBooking.created_at,
+            updatedAt: updatedBooking.updated_at,
+            customer: customer ? {
+              id: customer.id,
+              fullName: customer.fullName,
+              role: customer.role,
+              averageRating: customer.averageRating
+            } : null,
+            ride: ride ? {
+              id: ride.id,
+              fromLocation: ride.fromLocation,
+              toLocation: ride.toLocation,
+              departureDate: ride.departureDate,
+              price: ride.price,
+              rideType: ride.rideType,
+              vehicleType: ride.vehicleType,
+              vehicleNumber: ride.vehicleNumber
+            } : null
+          };
+          
+          console.log("✅ Responding with complete booking data:", JSON.stringify(formattedResponse).slice(0, 200) + "...");
+          res.json(formattedResponse);
+        } catch (dbError: any) {
+          console.error("Database error during booking confirmation:", dbError);
+          await pool.query('ROLLBACK');
+          return res.status(500).json({ error: "Database error during confirmation", details: dbError.message });
+        }
       } else if (status === 'completed') {
         // Special handling for completion to ensure both booking and ride are marked as completed
         console.log("🔄 IMPORTANT: Marking booking as completed:", id);
         
         try {
+          // Start transaction
+          await pool.query('BEGIN');
+          
           // First get the ride
           const ride = await storage.getRide(booking.rideId);
           if (!ride) {
+            await pool.query('ROLLBACK');
             return res.status(404).json({ error: "Associated ride not found" });
           }
           
@@ -992,40 +1108,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // 1. Update the booking status first
           console.log("Step 1: Updating booking to completed");
-          const updatedBooking = await storage.updateBooking(Number(id), { status: "completed" });
+          const bookingResult = await pool.query(
+            'UPDATE bookings SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+            ['completed', id]
+          );
+          const updatedBooking = bookingResult.rows[0];
           
           // 2. Update the ride status using direct SQL for reliability
           console.log("Step 2: Ensuring ride is marked as completed using direct SQL");
-          const result = await pool.query(
+          const rideResult = await pool.query(
             'UPDATE rides SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
             ['completed', ride.id]
           );
           
-          console.log("Ride update SQL result:", result.rows[0]?.status || "No rows updated");
+          console.log("Ride update SQL result:", rideResult.rows[0]?.status || "No rows updated");
           
           // 3. Verify the update success
           const verifyResult = await pool.query('SELECT id, status FROM rides WHERE id = $1', [ride.id]);
           console.log("Verification query result:", verifyResult.rows[0]);
           
-          // Return the updated booking with additional information
-          res.json({
-            ...updatedBooking,
+          // Commit the transaction
+          await pool.query('COMMIT');
+          
+          // Format the updated booking response
+          const formattedBooking = {
+            id: updatedBooking.id,
+            customerId: updatedBooking.customer_id,
+            rideId: updatedBooking.ride_id,
+            numberOfSeats: updatedBooking.number_of_seats,
+            status: updatedBooking.status,
+            bookingFee: updatedBooking.booking_fee,
+            isPaid: updatedBooking.is_paid,
+            cancellationReason: updatedBooking.cancellation_reason,
+            createdAt: updatedBooking.created_at,
+            updatedAt: updatedBooking.updated_at,
             rideStatusUpdated: verifyResult.rows[0]?.status === 'completed',
             rideStatus: verifyResult.rows[0]?.status || ride.status
-          });
+          };
+          
+          // Return the updated booking with additional information
+          res.json(formattedBooking);
         } catch (dbError: any) {
           console.error("Database error during booking/ride completion:", dbError);
+          await pool.query('ROLLBACK');
           return res.status(500).json({ error: "Database error updating statuses", details: dbError.message });
         }
       } else {
         // For other status changes
         console.log("Updating booking status:", id, "to:", status);
-        const updateData: any = { status };
-        const updated = await storage.updateBooking(Number(id), updateData);
-        console.log("Booking updated:", updated);
-        res.json(updated);
+        try {
+          const updateQuery = `
+            UPDATE bookings 
+            SET status = $1, updated_at = NOW() 
+            WHERE id = $2 
+            RETURNING *
+          `;
+          const result = await pool.query(updateQuery, [status, id]);
+          const updatedBooking = result.rows[0];
+          
+          // Format the response
+          const formattedBooking = {
+            id: updatedBooking.id,
+            customerId: updatedBooking.customer_id,
+            rideId: updatedBooking.ride_id,
+            numberOfSeats: updatedBooking.number_of_seats,
+            status: updatedBooking.status,
+            bookingFee: updatedBooking.booking_fee,
+            isPaid: updatedBooking.is_paid,
+            cancellationReason: updatedBooking.cancellation_reason,
+            createdAt: updatedBooking.created_at,
+            updatedAt: updatedBooking.updated_at
+          };
+          
+          console.log("Booking updated:", formattedBooking);
+          res.json(formattedBooking);
+        } catch (dbError: any) {
+          console.error("Database error during booking update:", dbError);
+          return res.status(500).json({ error: "Database error updating booking", details: dbError.message });
+        }
       }
     } catch (error) {
+      console.error("Error in booking status update:", error);
       res.status(500).json({ error: "Failed to update booking status" });
     }
   });

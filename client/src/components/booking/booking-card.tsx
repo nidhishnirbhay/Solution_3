@@ -70,19 +70,42 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
   
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status, reason }: { id: number; status: string; reason?: string }) => {
+      console.log(`🔧 Updating booking ${id} status to ${status}${reason ? ' with reason: ' + reason : ''}`);
       const res = await apiRequest("PUT", `/api/bookings/${id}/status`, { status, reason });
-      return res.json();
+      const data = await res.json();
+      console.log(`✅ Booking status updated response:`, data);
+      return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ 
-        queryKey: [viewAs === "customer" ? "/api/bookings/my-bookings" : "/api/bookings/ride-bookings"]
-      });
+    onSuccess: (data) => {
+      // Aggressively invalidate all related queries to ensure real-time updates
+      console.log("🔄 Invalidating queries after status update", data);
+      
+      // Invalidate both customer and driver booking endpoints regardless of viewer
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings/my-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings/ride-bookings"] });
+      
+      // Also invalidate rides - especially important when confirming or completing
+      queryClient.invalidateQueries({ queryKey: ["/api/rides/my-rides"] });
+      
+      // If confirming a booking, also invalidate search results to reflect updated seat availability
+      if (data.status === "confirmed") {
+        queryClient.invalidateQueries({ queryKey: ["/api/rides/search"] });
+      }
+      
       toast({
         title: "Status updated",
         description: "The booking status has been updated successfully",
       });
+      
+      // Force a second invalidation after a delay to ensure UI is updated
+      setTimeout(() => {
+        console.log("📌 Performing additional query invalidation for instant refresh");
+        queryClient.invalidateQueries({ queryKey: ["/api/bookings/my-bookings"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/bookings/ride-bookings"] });
+      }, 500);
     },
     onError: (error: any) => {
+      console.error("Error updating booking status:", error);
       toast({
         title: "Update failed",
         description: error.message || "There was an error updating the booking status",
