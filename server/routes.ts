@@ -488,16 +488,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         Object.keys(rides).filter(key => typeof key === 'string' && !key.startsWith('_')));
       
       try {
-        // Use direct database update with snake_case column names
-        const updated = await db
-          .update(rides)
-          .set({
-            status: "completed"
-          })
-          .where(eq(rides.id, Number(id)))
-          .returning();
+        // Fix: Import bookings table from schema to avoid TypeScript errors
+        console.log("Attempting to update ride with ID:", id);
         
-        console.log("Ride update result:", updated);
+        // Use stored procedure to update status instead of direct DB update
+        const updatedRide = await storage.updateRide(Number(id), {
+          status: "completed"
+        });
+        
+        console.log("Ride update result:", updatedRide);
         
         // Update all related bookings to completed
         if (bookings.length > 0) {
@@ -505,20 +504,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (booking.status === 'confirmed') {
               // Only update confirmed bookings to completed
               console.log("Updating booking:", booking.id, "from status:", booking.status, "to completed");
-              const updatedBooking = await db
-                .update(bookings)
-                .set({
-                  status: "completed"
-                })
-                .where(eq(bookings.id, booking.id))
-                .returning();
+              const updatedBooking = await storage.updateBooking(booking.id, {
+                status: "completed"
+              });
               console.log("Booking update result:", updatedBooking);
             }
           }
         }
         
-        res.json(updated[0]);
-      } catch (dbError) {
+        res.json(updatedRide);
+      } catch (dbError: any) {
         console.error("Database error during ride completion:", dbError);
         return res.status(500).json({ error: "Database error updating ride status", details: dbError.message });
       }
@@ -554,27 +549,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Column names from the schema:", 
         Object.keys(rides).filter(key => typeof key === 'string' && !key.startsWith('_')));
       
-      // Use direct database update with snake_case column names
-      const updated = await db
-        .update(rides)
-        .set({
-          status: "cancelled",
-          cancellation_reason: cancellationReason || "Cancelled by driver"
-        } as any) // Use type assertion to bypass TypeScript checking
-        .where(eq(rides.id, Number(id)))
-        .returning();
+      // Use storage interface instead of direct database access
+      const updated = await storage.updateRide(Number(id), {
+        status: "cancelled",
+        cancellationReason: cancellationReason || "Cancelled by driver"
+      });
+      
+      console.log("Ride cancelled successfully:", updated);
       
       // Update all related bookings to cancelled
       if (bookings.length > 0) {
+        console.log("Updating", bookings.length, "bookings to cancelled");
         for (const booking of bookings) {
-          // Use direct DB update for consistent column naming
-          await db
-            .update(bookings)
-            .set({
-              status: "cancelled",
-              cancellation_reason: "Ride cancelled by driver: " + (cancellationReason || "No reason provided")
-            } as any) // Type assertion for snake_case columns
-            .where(eq(bookings.id, booking.id));
+          // Use storage interface methods
+          await storage.updateBooking(booking.id, {
+            status: "cancelled",
+            cancellationReason: "Ride cancelled by driver: " + (cancellationReason || "No reason provided")
+          });
             
           // Restore the seats in the ride
           if (booking.numberOfSeats > 0) {
@@ -750,23 +741,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Cancellation reason is required" });
       }
       
-      // For booking cancellation, use direct database update with snake_case column names
+      // Use storage interface for all booking updates for consistency
       if (status === 'cancelled' && reason) {
-        // Use direct DB update to bypass TypeScript and Drizzle ORM mapping issues
-        const [updated] = await db
-          .update(bookings)
-          .set({
-            status: "cancelled",
-            cancellation_reason: reason
-          } as any) // Use type assertion to bypass TypeScript checking
-          .where(eq(bookings.id, Number(id)))
-          .returning();
+        console.log("Cancelling booking:", id, "with reason:", reason);
+        const updated = await storage.updateBooking(Number(id), {
+          status: "cancelled",
+          cancellationReason: reason
+        });
         
+        console.log("Booking cancelled:", updated);
         res.json(updated);
       } else {
-        // For other status changes, use the storage interface
+        // For other status changes
+        console.log("Updating booking status:", id, "to:", status);
         const updateData: any = { status };
         const updated = await storage.updateBooking(Number(id), updateData);
+        console.log("Booking updated:", updated);
         res.json(updated);
       }
     } catch (error) {

@@ -210,6 +210,18 @@ export function RideCard({ ride }: { ride: RideProps }) {
   
   // Handle mark ride as completed
   const handleCompleteRide = () => {
+    console.log("Marking ride as completed, ride ID:", ride.id);
+    // Check for necessary conditions
+    if (!ride.id) {
+      console.error("No ride ID available");
+      toast({
+        title: "Error",
+        description: "Could not complete ride: invalid ride ID",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     completeRideMutation.mutate(ride.id);
   };
 
