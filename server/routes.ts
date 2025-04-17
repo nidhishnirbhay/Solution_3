@@ -462,46 +462,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const user = req.user as any;
       
+      console.log("Ride completion requested for ride ID:", id, "by user:", user.id);
+      
       // Verify the ride exists
       const ride = await storage.getRide(Number(id));
       if (!ride) {
+        console.log("Ride not found:", id);
         return res.status(404).json({ error: "Ride not found" });
       }
       
+      console.log("Ride found:", ride);
+      
       // Ensure only the driver of the ride can mark it as completed
       if (ride.driverId !== user.id) {
+        console.log("Authorization error: ride driver ID", ride.driverId, "doesn't match user ID", user.id);
         return res.status(403).json({ error: "You can only mark your own rides as completed" });
       }
       
       // Get bookings related to this ride to update their status
       const bookings = await storage.getBookingsByRideId(Number(id));
+      console.log("Found", bookings.length, "bookings for this ride");
       
-      // Use direct database update with snake_case column names
-      const updated = await db
-        .update(rides)
-        .set({
-          status: "completed"
-        } as any) // Use type assertion to bypass TypeScript checking
-        .where(eq(rides.id, Number(id)))
-        .returning();
+      // Debug: log column names from schema
+      console.log("Column names from the schema (rides):", 
+        Object.keys(rides).filter(key => typeof key === 'string' && !key.startsWith('_')));
       
-      // Update all related bookings to completed
-      if (bookings.length > 0) {
-        for (const booking of bookings) {
-          if (booking.status === 'confirmed') {
-            // Only update confirmed bookings to completed
-            await db
-              .update(bookings)
-              .set({
-                status: "completed"
-              } as any)
-              .where(eq(bookings.id, booking.id))
-              .returning();
+      try {
+        // Use direct database update with snake_case column names
+        const updated = await db
+          .update(rides)
+          .set({
+            status: "completed"
+          })
+          .where(eq(rides.id, Number(id)))
+          .returning();
+        
+        console.log("Ride update result:", updated);
+        
+        // Update all related bookings to completed
+        if (bookings.length > 0) {
+          for (const booking of bookings) {
+            if (booking.status === 'confirmed') {
+              // Only update confirmed bookings to completed
+              console.log("Updating booking:", booking.id, "from status:", booking.status, "to completed");
+              const updatedBooking = await db
+                .update(bookings)
+                .set({
+                  status: "completed"
+                })
+                .where(eq(bookings.id, booking.id))
+                .returning();
+              console.log("Booking update result:", updatedBooking);
+            }
           }
         }
+        
+        res.json(updated[0]);
+      } catch (dbError) {
+        console.error("Database error during ride completion:", dbError);
+        return res.status(500).json({ error: "Database error updating ride status", details: dbError.message });
       }
-      
-      res.json(updated[0]);
     } catch (error) {
       console.error("Error completing ride:", error);
       res.status(500).json({ error: "Failed to mark ride as completed" });
