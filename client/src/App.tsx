@@ -15,6 +15,7 @@ import MyPublishedRides from "@/pages/my-published-rides";
 import KycVerification from "@/pages/kyc-verification";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminKYC from "@/pages/admin/kyc";
+import AdminUsers from "@/pages/admin/users";
 import AdminLogin from "@/pages/admin/login";
 import NotFound from "@/pages/not-found";
 
@@ -58,7 +59,7 @@ function Router() {
         <Route path="/admin/login" component={AdminLogin} />
         <Route path="/admin/dashboard" component={AdminDashboard} />
         <Route path="/admin/kyc" component={AdminKYC} />
-        <Route path="/admin/users" component={() => <AdminDashboard title="Users" />} />
+        <Route path="/admin/users" component={AdminUsers} />
         <Route path="/admin/rides" component={() => <AdminDashboard title="Rides" />} />
         <Route path="/admin/bookings" component={() => <AdminDashboard title="Bookings" />} />
         

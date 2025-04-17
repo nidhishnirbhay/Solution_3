@@ -4,7 +4,6 @@ import { AdminLayout } from "@/components/layout/admin-layout";
 import { RequireAuth } from "@/components/layout/require-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { format } from "date-fns";
 
 import {
   Table,
@@ -17,7 +16,6 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -61,91 +59,69 @@ import {
   Filter, 
   ChevronDown, 
   MoreHorizontal, 
-  Star, 
   Eye, 
-  TrashIcon,
-  User
+  AlertCircle,
+  CheckCircle,
+  User,
+  RefreshCw,
 } from "lucide-react";
 
 export default function AdminRides() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [selectedRide, setSelectedRide] = useState<any>(null);
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const { toast } = useToast();
 
-  // Fetch rides data
-  const { data: rides, isLoading } = useQuery({
+  // Fetch rides data with auto-refresh
+  const { data: rides, isLoading, refetch } = useQuery({
     queryKey: ["/api/admin/rides"],
+    staleTime: 30 * 1000, // 30 seconds
   });
 
-  // Fetch bookings data for each ride
-  const { data: allBookings } = useQuery({
-    queryKey: ["/api/admin/bookings"],
-  });
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleString("en-US", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
+    });
+  };
 
-  // Delete ride mutation
-  const deleteRideMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/admin/rides/${id}`, undefined);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/rides"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
-      toast({
-        title: "Ride deleted",
-        description: "The ride has been deleted successfully",
-      });
-      setConfirmDeleteOpen(false);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Delete failed",
-        description: error.message || "There was an error deleting the ride",
-        variant: "destructive",
-      });
-    },
-  });
+  // Get appropriate badge color for ride status
+  const getStatusBadge = (status: string) => {
+    const statusLower = status.toLowerCase();
+    if (statusLower === "active") return "bg-green-100 text-green-800";
+    if (statusLower === "completed") return "bg-blue-100 text-blue-800";
+    if (statusLower === "cancelled") return "bg-red-100 text-red-800";
+    return "bg-gray-100 text-gray-800";
+  };
 
   // Filter rides based on search query and active tab
   const filteredRides = rides
     ? rides.filter((ride: any) => {
-        // Search filter
-        const searchMatch =
+        // Search filter - search in from/to locations and vehicle number
+        const matchesSearch =
           searchQuery === "" ||
           ride.fromLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
           ride.toLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          ride.driver.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          ride.vehicleNumber.toLowerCase().includes(searchQuery.toLowerCase());
+          ride.vehicleNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (ride.driver?.fullName && ride.driver.fullName.toLowerCase().includes(searchQuery.toLowerCase()));
 
         // Tab filter
-        if (activeTab === "all") return searchMatch;
-        if (activeTab === "one-way") return ride.rideType === "one-way" && searchMatch;
-        if (activeTab === "sharing") return ride.rideType === "sharing" && searchMatch;
-        if (activeTab === "full") return ride.availableSeats === 0 && searchMatch;
-        if (activeTab === "available") return ride.availableSeats > 0 && searchMatch;
-
-        return searchMatch;
+        if (activeTab === "all") return matchesSearch;
+        if (activeTab === "active") return matchesSearch && ride.status.toLowerCase() === "active";
+        if (activeTab === "completed") return matchesSearch && ride.status.toLowerCase() === "completed";
+        if (activeTab === "cancelled") return matchesSearch && ride.status.toLowerCase() === "cancelled";
+        
+        return matchesSearch;
       })
     : [];
-
-  // Get bookings for a specific ride
-  const getRideBookings = (rideId: number) => {
-    if (!allBookings) return [];
-    return allBookings.filter((booking: any) => booking.rideId === rideId);
-  };
-
-  const handleDeleteRide = (ride: any) => {
-    setSelectedRide(ride);
-    setConfirmDeleteOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (selectedRide) {
-      deleteRideMutation.mutate(selectedRide.id);
-    }
-  };
 
   return (
     <RequireAuth allowedRoles={["admin"]}>
@@ -161,8 +137,18 @@ export default function AdminRides() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          
+
           <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => refetch()}
+              className="flex items-center gap-1"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span>Refresh</span>
+            </Button>
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="flex items-center gap-1">
@@ -175,80 +161,82 @@ export default function AdminRides() {
                 <DropdownMenuItem onClick={() => setActiveTab("all")}>
                   All Rides
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActiveTab("one-way")}>
-                  One-Way Rides
+                <DropdownMenuItem onClick={() => setActiveTab("active")}>
+                  Active Rides
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActiveTab("sharing")}>
-                  Sharing Rides
+                <DropdownMenuItem onClick={() => setActiveTab("completed")}>
+                  Completed Rides
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActiveTab("full")}>
-                  Fully Booked
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActiveTab("available")}>
-                  Available Seats
+                <DropdownMenuItem onClick={() => setActiveTab("cancelled")}>
+                  Cancelled Rides
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
 
+        {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
           <TabsList>
             <TabsTrigger value="all">All Rides</TabsTrigger>
-            <TabsTrigger value="one-way">One-Way</TabsTrigger>
-            <TabsTrigger value="sharing">Sharing</TabsTrigger>
-            <TabsTrigger value="full">Fully Booked</TabsTrigger>
-            <TabsTrigger value="available">Available</TabsTrigger>
+            <TabsTrigger value="active">Active</TabsTrigger>
+            <TabsTrigger value="completed">Completed</TabsTrigger>
+            <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
           </TabsList>
         </Tabs>
 
-        {/* Rides table */}
+        {/* Rides listing */}
         <Card>
           <CardHeader>
             <CardTitle>
-              Rides {filteredRides?.length > 0 && `(${filteredRides.length})`}
+              {activeTab === "all" 
+                ? "All Rides" 
+                : activeTab === "active" 
+                  ? "Active Rides" 
+                  : activeTab === "completed" 
+                    ? "Completed Rides" 
+                    : "Cancelled Rides"}
+              {filteredRides.length > 0 && (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  ({filteredRides.length})
+                </span>
+              )}
             </CardTitle>
-            <CardDescription>
-              Manage all rides published on the OyeGaadi platform
-            </CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
+              // Loading state
               <div className="space-y-4">
                 {Array(5).fill(0).map((_, i) => (
-                  <div key={i} className="flex justify-between p-4 border rounded-md">
-                    <div className="space-y-2">
-                      <Skeleton className="h-5 w-40" />
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-4 w-24" />
-                    </div>
-                    <div className="space-y-2">
-                      <Skeleton className="h-5 w-20" />
-                      <Skeleton className="h-4 w-16" />
-                    </div>
+                  <div key={i} className="flex flex-col space-y-3">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-10 w-full" />
                   </div>
                 ))}
               </div>
-            ) : filteredRides?.length === 0 ? (
-              <div className="text-center py-10">
-                <Car className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+            ) : filteredRides.length === 0 ? (
+              // Empty state
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Car className="h-12 w-12 text-gray-300 mb-4" />
                 <h3 className="text-lg font-medium">No rides found</h3>
-                <p className="text-muted-foreground">
-                  {searchQuery
-                    ? "Try a different search term"
-                    : "No rides match the selected filters"}
+                <p className="text-sm text-muted-foreground mt-1">
+                  {searchQuery 
+                    ? "Try adjusting your search to find what you're looking for." 
+                    : "There are no rides matching the selected filter."}
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              // Data table
+              <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Route</TableHead>
+                      <TableHead>ID</TableHead>
+                      <TableHead>From → To</TableHead>
                       <TableHead>Driver</TableHead>
                       <TableHead>Departure</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Seats</TableHead>
+                      <TableHead>Vehicle</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>Price</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -256,84 +244,63 @@ export default function AdminRides() {
                   <TableBody>
                     {filteredRides.map((ride: any) => (
                       <TableRow key={ride.id}>
+                        <TableCell className="font-medium">#{ride.id}</TableCell>
                         <TableCell>
-                          <div>
-                            <div className="flex items-center text-sm">
-                              <MapPin className="h-3.5 w-3.5 text-primary mr-1" />
-                              <span className="font-medium">{ride.fromLocation}</span>
-                            </div>
-                            <div className="flex items-center text-sm mt-1">
-                              <MapPin className="h-3.5 w-3.5 text-primary mr-1" />
-                              <span className="font-medium">{ride.toLocation}</span>
-                            </div>
+                          <div className="flex flex-col">
+                            <span className="font-semibold">{ride.fromLocation}</span>
+                            <span className="text-xs text-muted-foreground">to</span>
+                            <span className="font-semibold">{ride.toLocation}</span>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <User className="h-3.5 w-3.5" />
-                            <span>{ride.driver.fullName}</span>
-                          </div>
-                          <div className="flex items-center text-xs text-muted-foreground mt-1">
-                            <Star className="h-3 w-3 text-yellow-400 fill-yellow-400 mr-1" />
-                            <span>{ride.driver.averageRating ? ride.driver.averageRating.toFixed(1) : "N/A"}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="whitespace-nowrap">
-                            {format(new Date(ride.departureDate), "MMM dd, yyyy")}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {format(new Date(ride.departureDate), "h:mm a")}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {ride.rideType === "one-way" ? (
-                            <Badge className="bg-orange-100 text-orange-800 border-orange-200">
-                              One-Way
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-blue-100 text-blue-800 border-blue-200">
-                              Sharing
-                            </Badge>
-                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center">
-                            <Users className="h-3.5 w-3.5 mr-1" />
-                            <span>
-                              {ride.availableSeats}/{ride.totalSeats}
+                            <User className="h-4 w-4 mr-1 text-muted-foreground" />
+                            <span>{ride.driver?.fullName || "Unknown"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="text-xs text-muted-foreground">
+                              {formatDate(ride.departureDate)}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="font-medium text-primary">₹{ride.price}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {ride.rideType === "sharing" ? "per seat" : "full ride"}
+                          <div className="flex flex-col">
+                            <span>{ride.vehicleType}</span>
+                            <span className="text-xs text-muted-foreground">{ride.vehicleNumber}</span>
                           </div>
                         </TableCell>
+                        <TableCell>
+                          <Badge 
+                            className={getStatusBadge(ride.status)}
+                            variant="outline"
+                          >
+                            {ride.status}
+                          </Badge>
+                          {ride.status.toLowerCase() === "cancelled" && ride.cancellationReason && (
+                            <span 
+                              className="block text-xs text-red-500 mt-1 cursor-help" 
+                              title={ride.cancellationReason}
+                            >
+                              View reason
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-semibold">₹{ride.price}</span>
+                        </TableCell>
                         <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DialogTrigger asChild>
-                                <DropdownMenuItem onSelect={() => setSelectedRide(ride)}>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  <span>View Details</span>
-                                </DropdownMenuItem>
-                              </DialogTrigger>
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onSelect={() => handleDeleteRide(ride)}
-                              >
-                                <TrashIcon className="h-4 w-4 mr-2" />
-                                <span>Delete Ride</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedRide(ride);
+                              setIsDetailsOpen(true);
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -344,267 +311,181 @@ export default function AdminRides() {
           </CardContent>
         </Card>
 
-        {/* Ride Details Dialog */}
-        <Dialog open={!!selectedRide && !confirmDeleteOpen} onOpenChange={(open) => !open && setSelectedRide(null)}>
-          <DialogContent className="max-w-3xl">
+        {/* Ride detail dialog */}
+        <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Ride Details</DialogTitle>
               <DialogDescription>
-                Detailed information about the selected ride
+                Comprehensive details about the selected ride
               </DialogDescription>
             </DialogHeader>
-            
-            {selectedRide && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-medium mb-3">Route Information</h3>
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-sm text-muted-foreground">From:</div>
-                        <div className="col-span-2 font-medium">{selectedRide.fromLocation}</div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-sm text-muted-foreground">To:</div>
-                        <div className="col-span-2 font-medium">{selectedRide.toLocation}</div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-sm text-muted-foreground">Departure:</div>
-                        <div className="col-span-2 font-medium">
-                          {format(new Date(selectedRide.departureDate), "MMM dd, yyyy 'at' h:mm a")}
-                        </div>
-                      </div>
-                      {selectedRide.estimatedArrivalDate && (
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="text-sm text-muted-foreground">Est. Arrival:</div>
-                          <div className="col-span-2 font-medium">
-                            {format(new Date(selectedRide.estimatedArrivalDate), "MMM dd, yyyy 'at' h:mm a")}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-medium mb-3">Ride Details</h3>
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-sm text-muted-foreground">Type:</div>
-                        <div className="col-span-2 font-medium">
-                          {selectedRide.rideType === "one-way" 
-                            ? "One-Way Full Booking" 
-                            : "Sharing / Pooling"}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-sm text-muted-foreground">Price:</div>
-                        <div className="col-span-2 font-medium">
-                          ₹{selectedRide.price} {selectedRide.rideType === "sharing" && "(per seat)"}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-sm text-muted-foreground">Total Seats:</div>
-                        <div className="col-span-2 font-medium">{selectedRide.totalSeats}</div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-sm text-muted-foreground">Available Seats:</div>
-                        <div className="col-span-2 font-medium">{selectedRide.availableSeats}</div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-sm text-muted-foreground">Vehicle:</div>
-                        <div className="col-span-2 font-medium">
-                          {selectedRide.vehicleType} ({selectedRide.vehicleNumber})
-                        </div>
-                      </div>
-                      {selectedRide.description && (
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="text-sm text-muted-foreground">Description:</div>
-                          <div className="col-span-2 font-medium">{selectedRide.description}</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-medium mb-3">Driver Information</h3>
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-sm text-muted-foreground">Name:</div>
-                        <div className="col-span-2 font-medium">{selectedRide.driver.fullName}</div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-sm text-muted-foreground">Rating:</div>
-                        <div className="col-span-2 font-medium flex items-center">
-                          <Star className="h-4 w-4 text-yellow-400 fill-yellow-400 mr-1" />
-                          <span>
-                            {selectedRide.driver.averageRating 
-                              ? selectedRide.driver.averageRating.toFixed(1) 
-                              : "N/A"}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-sm text-muted-foreground">KYC Status:</div>
-                        <div className="col-span-2 font-medium">
-                          {selectedRide.driver.isKycVerified 
-                            ? "Verified" 
-                            : "Not Verified"}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-medium mb-3">Bookings</h3>
-                    <div>
-                      {allBookings ? (
-                        (() => {
-                          const rideBookings = getRideBookings(selectedRide.id);
-                          
-                          return rideBookings.length > 0 ? (
-                            <Accordion type="single" collapsible className="w-full">
-                              {rideBookings.map((booking: any) => (
-                                <AccordionItem key={booking.id} value={`booking-${booking.id}`}>
-                                  <AccordionTrigger className="flex justify-between">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-sm">Booking #{booking.id}</span>
-                                      <Badge
-                                        className={`${
-                                          booking.status === "completed"
-                                            ? "bg-green-100 text-green-800"
-                                            : booking.status === "cancelled"
-                                            ? "bg-red-100 text-red-800"
-                                            : booking.status === "confirmed"
-                                            ? "bg-blue-100 text-blue-800"
-                                            : "bg-yellow-100 text-yellow-800"
-                                        }`}
-                                      >
-                                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                                      </Badge>
-                                    </div>
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <div className="px-4 py-2 space-y-2">
-                                      <div className="grid grid-cols-3 gap-2">
-                                        <div className="text-sm text-muted-foreground">Customer:</div>
-                                        <div className="col-span-2">{booking.customer.fullName}</div>
-                                      </div>
-                                      <div className="grid grid-cols-3 gap-2">
-                                        <div className="text-sm text-muted-foreground">Mobile:</div>
-                                        <div className="col-span-2">{booking.customer.mobile}</div>
-                                      </div>
-                                      <div className="grid grid-cols-3 gap-2">
-                                        <div className="text-sm text-muted-foreground">Seats:</div>
-                                        <div className="col-span-2">{booking.numberOfSeats}</div>
-                                      </div>
-                                      <div className="grid grid-cols-3 gap-2">
-                                        <div className="text-sm text-muted-foreground">Booking Date:</div>
-                                        <div className="col-span-2">
-                                          {format(new Date(booking.createdAt), "MMM dd, yyyy")}
-                                        </div>
-                                      </div>
-                                      <div className="grid grid-cols-3 gap-2">
-                                        <div className="text-sm text-muted-foreground">Amount:</div>
-                                        <div className="col-span-2 font-medium">
-                                          ₹{(selectedRide.price * booking.numberOfSeats) + booking.bookingFee}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              ))}
-                            </Accordion>
-                          ) : (
-                            <div className="text-center py-4 bg-gray-50 rounded-md">
-                              <p className="text-muted-foreground">No bookings for this ride yet</p>
-                            </div>
-                          );
-                        })()
-                      ) : (
-                        <div className="flex justify-center py-4">
-                          <Skeleton className="h-24 w-full" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setSelectedRide(null)}
-              >
-                Close
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  if (selectedRide) {
-                    handleDeleteRide(selectedRide);
-                  }
-                }}
-              >
-                Delete Ride
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
-        {/* Delete Confirmation Dialog */}
-        <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete Ride</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete this ride? This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            
             {selectedRide && (
-              <div className="py-4">
-                <div className="mb-4">
-                  <div className="flex items-center text-sm mb-1">
-                    <MapPin className="h-4 w-4 text-primary mr-1" />
-                    <span className="font-medium">{selectedRide.fromLocation}</span>
+              <div className="space-y-6">
+                {/* Status and basic info */}
+                <div className="flex flex-col md:flex-row justify-between gap-4">
+                  <div>
+                    <Badge 
+                      className={getStatusBadge(selectedRide.status)} 
+                      variant="outline"
+                    >
+                      {selectedRide.status}
+                    </Badge>
+                    <h3 className="text-xl font-bold mt-2">{selectedRide.fromLocation} to {selectedRide.toLocation}</h3>
+                    <p className="text-sm text-muted-foreground">Ride ID: {selectedRide.id}</p>
                   </div>
-                  <div className="flex items-center text-sm">
-                    <MapPin className="h-4 w-4 text-primary mr-1" />
-                    <span className="font-medium">{selectedRide.toLocation}</span>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-primary">₹{selectedRide.price}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Posted on {formatDate(selectedRide.createdAt)}
+                    </p>
                   </div>
+                </div>
+
+                {/* Cancellation reason if applicable */}
+                {selectedRide.status.toLowerCase() === "cancelled" && selectedRide.cancellationReason && (
+                  <div className="bg-red-50 p-4 rounded-md border border-red-200">
+                    <div className="flex items-center">
+                      <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+                      <h4 className="font-semibold text-red-800">Cancellation Reason</h4>
+                    </div>
+                    <p className="mt-1 text-red-700">{selectedRide.cancellationReason}</p>
+                  </div>
+                )}
+
+                {/* Driver details and ride info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Driver info */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center">
+                        <User className="h-4 w-4 mr-2" />
+                        Driver Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <dl className="space-y-2">
+                        <div className="flex justify-between">
+                          <dt className="text-sm font-medium text-gray-500">Name</dt>
+                          <dd className="text-sm text-gray-900">{selectedRide.driver?.fullName || "Unknown"}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-sm font-medium text-gray-500">KYC Status</dt>
+                          <dd className="text-sm">
+                            {selectedRide.driver?.isKycVerified ? (
+                              <span className="inline-flex items-center text-green-600">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Verified
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center text-red-600">
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                Not Verified
+                              </span>
+                            )}
+                          </dd>
+                        </div>
+                      </dl>
+                    </CardContent>
+                  </Card>
+
+                  {/* Vehicle info */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center">
+                        <Car className="h-4 w-4 mr-2" />
+                        Vehicle Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <dl className="space-y-2">
+                        <div className="flex justify-between">
+                          <dt className="text-sm font-medium text-gray-500">Vehicle Type</dt>
+                          <dd className="text-sm text-gray-900">{selectedRide.vehicleType}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-sm font-medium text-gray-500">Registration Number</dt>
+                          <dd className="text-sm text-gray-900">{selectedRide.vehicleNumber}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-sm font-medium text-gray-500">Seating Capacity</dt>
+                          <dd className="text-sm text-gray-900">{selectedRide.totalSeats} seats</dd>
+                        </div>
+                      </dl>
+                    </CardContent>
+                  </Card>
                 </div>
                 
-                <div className="flex items-center text-sm mb-1">
-                  <Calendar className="h-4 w-4 mr-1" />
-                  <span>
-                    {format(new Date(selectedRide.departureDate), "MMM dd, yyyy 'at' h:mm a")}
-                  </span>
-                </div>
-                
-                <div className="flex items-center text-sm">
-                  <User className="h-4 w-4 mr-1" />
-                  <span>Driver: {selectedRide.driver.fullName}</span>
-                </div>
+                {/* Journey details */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <MapPin className="h-4 w-4 mr-2" />
+                      Journey Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <dl className="space-y-2">
+                        <div className="flex justify-between">
+                          <dt className="text-sm font-medium text-gray-500">From</dt>
+                          <dd className="text-sm text-gray-900">{selectedRide.fromLocation}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-sm font-medium text-gray-500">To</dt>
+                          <dd className="text-sm text-gray-900">{selectedRide.toLocation}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-sm font-medium text-gray-500">Departure Date</dt>
+                          <dd className="text-sm text-gray-900">{formatDate(selectedRide.departureDate)}</dd>
+                        </div>
+                      </dl>
+                      <dl className="space-y-2">
+                        <div className="flex justify-between">
+                          <dt className="text-sm font-medium text-gray-500">Ride Type</dt>
+                          <dd className="text-sm text-gray-900">
+                            Full Vehicle Booking
+                          </dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-sm font-medium text-gray-500">Total Seats</dt>
+                          <dd className="text-sm text-gray-900">{selectedRide.totalSeats}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-sm font-medium text-gray-500">Available Seats</dt>
+                          <dd className="text-sm text-gray-900">{selectedRide.availableSeats}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                    {selectedRide.description && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-gray-500 mb-1">Additional Information</h4>
+                        <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded">{selectedRide.description}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Associated bookings in accordion */}
+                {/* This would be implemented with actual booking data */}
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="bookings">
+                    <AccordionTrigger className="text-base font-medium">
+                      Associated Bookings
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4">
+                      <p className="text-center text-muted-foreground text-sm">
+                        Booking data would be fetched and displayed here
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </div>
             )}
             
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setConfirmDeleteOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={confirmDelete}
-                disabled={deleteRideMutation.isPending}
-              >
-                {deleteRideMutation.isPending ? "Deleting..." : "Delete Ride"}
-              </Button>
+              <Button onClick={() => setIsDetailsOpen(false)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
