@@ -56,6 +56,11 @@ export function RideCard({ ride }: { ride: RideProps }) {
   const { toast } = useToast();
   const { user } = useAuth();
   
+  // Fetch booking fee settings
+  const { data: bookingFeeSetting } = useQuery({
+    queryKey: ["/api/settings/booking-fee"],
+  });
+  
   // Check if this is a past ride (based on departure date)
   const isPastRide = useMemo(() => {
     const rideDate = new Date(ride.departureDate);
@@ -528,7 +533,14 @@ export function RideCard({ ride }: { ride: RideProps }) {
                     
                     <div className="flex justify-between items-center font-medium text-lg mt-4">
                       <span>Total amount</span>
-                      <span className="text-primary">₹{ride.price + 200}</span>
+                      <span className="text-primary">
+                        ₹{ride.price + (bookingFeeSetting?.enabled ? (bookingFeeSetting?.amount || 0) : 0)}
+                        {bookingFeeSetting?.enabled && (
+                          <span className="text-xs ml-1 text-muted-foreground">
+                            (includes ₹{bookingFeeSetting?.amount || 0} booking fee)
+                          </span>
+                        )}
+                      </span>
                     </div>
                   </div>
                   
