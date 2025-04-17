@@ -182,46 +182,58 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchRides(fromLocation: string, toLocation: string, date?: string, rideType?: string): Promise<Ride[]> {
-    // Base query with conditions - explicitly exclude cancelled rides
-    let baseQuery = db
-      .select()
-      .from(rides)
-      .where(
-        and(
-          sql`LOWER(${rides.fromLocation}) LIKE LOWER(${'%' + fromLocation + '%'})`,
-          sql`LOWER(${rides.toLocation}) LIKE LOWER(${'%' + toLocation + '%'})`,
-          sql`${rides.availableSeats} > 0`,
-          sql`${rides.status} != 'cancelled'` // Explicitly exclude cancelled rides
+    try {
+      // Trim input values to handle extra spaces
+      const trimmedFrom = fromLocation.trim();
+      const trimmedTo = toLocation.trim();
+      
+      console.log(`Searching rides with criteria: from=${trimmedFrom}, to=${trimmedTo}, date=${date || 'any'}`);
+      
+      // Use more flexible pattern matching with % at both ends
+      let baseQuery = db
+        .select()
+        .from(rides)
+        .where(
+          and(
+            sql`LOWER(${rides.fromLocation}) LIKE LOWER(${'%' + trimmedFrom + '%'})`,
+            sql`LOWER(${rides.toLocation}) LIKE LOWER(${'%' + trimmedTo + '%'})`,
+            sql`${rides.availableSeats} > 0`,
+            sql`${rides.status} = 'active'` // Only show active rides in search
+          )
         )
-      );
-    
-    // Need to execute the base query before applying more filters
-    let results = await baseQuery;
-    
-    // Filter by date if provided
-    if (date) {
-      results = results.filter(ride => {
-        const rideDate = new Date(ride.departureDate);
-        const searchDate = new Date(date);
-        return rideDate.toDateString() === searchDate.toDateString();
-      });
+        .orderBy(desc(rides.createdAt)); // Show newest rides first
+      
+      // Need to execute the base query before applying more filters
+      let results = await baseQuery;
+      
+      // Filter by date if provided
+      if (date) {
+        results = results.filter(ride => {
+          const rideDate = new Date(ride.departureDate);
+          const searchDate = new Date(date);
+          return rideDate.toDateString() === searchDate.toDateString();
+        });
+      }
+      
+      // Filter by ride type if provided
+      if (rideType && rideType !== "all") {
+        results = results.filter(ride => {
+          // Handle ride type as array or string
+          if (Array.isArray(ride.rideType)) {
+            return ride.rideType.includes(rideType);
+          } else {
+            return ride.rideType === rideType;
+          }
+        });
+      }
+      
+      console.log(`Search results: ${results.length} rides found matching from=${trimmedFrom}, to=${trimmedTo}`);
+      
+      return results;
+    } catch (error) {
+      console.error("Error in searchRides:", error);
+      return []; // Return empty array on error
     }
-    
-    // Filter by ride type if provided
-    if (rideType && rideType !== "all") {
-      results = results.filter(ride => {
-        // Handle ride type as array or string
-        if (Array.isArray(ride.rideType)) {
-          return ride.rideType.includes(rideType);
-        } else {
-          return ride.rideType === rideType;
-        }
-      });
-    }
-    
-    console.log(`Search results: ${results.length} rides found matching from=${fromLocation}, to=${toLocation}`);
-    
-    return results;
   }
 
   async updateRide(id: number, data: Partial<Ride>): Promise<Ride | undefined> {

@@ -960,7 +960,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
       
-      res.json(bookingsWithRides);
+      // Sort bookings by creation date (newest first)
+      const sortedBookings = bookingsWithRides.sort((a, b) => {
+        const dateA = new Date(a.createdAt);
+        const dateB = new Date(b.createdAt);
+        return dateB.getTime() - dateA.getTime(); // Descending order (newest first)
+      });
+      
+      res.json(sortedBookings);
     } catch (error) {
       res.status(500).json({ error: "Failed to retrieve bookings" });
     }
