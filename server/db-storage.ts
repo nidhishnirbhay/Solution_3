@@ -6,6 +6,7 @@ import {
   rides, 
   bookings, 
   ratings,
+  appSettings,
   type User, 
   type InsertUser, 
   type KycVerification, 
@@ -15,7 +16,9 @@ import {
   type Booking,
   type InsertBooking,
   type Rating,
-  type InsertRating
+  type InsertRating,
+  type AppSetting,
+  type InsertAppSetting
 } from "@shared/schema";
 import { IStorage } from "./storage";
 
@@ -350,5 +353,58 @@ export class DatabaseStorage implements IStorage {
 
   async getAllRatings(): Promise<Rating[]> {
     return db.select().from(ratings);
+  }
+  
+  // App Settings methods
+  async getSetting(key: string): Promise<AppSetting | undefined> {
+    try {
+      const [setting] = await db.select().from(appSettings).where(eq(appSettings.key, key));
+      return setting;
+    } catch (error) {
+      console.error(`Error getting setting ${key}:`, error);
+      throw error;
+    }
+  }
+  
+  async updateSetting(key: string, value: any): Promise<AppSetting | undefined> {
+    try {
+      // First check if the setting exists
+      const existingSetting = await this.getSetting(key);
+      
+      if (existingSetting) {
+        // Update existing setting
+        const [updatedSetting] = await db
+          .update(appSettings)
+          .set({
+            value,
+            updatedAt: new Date()
+          })
+          .where(eq(appSettings.key, key))
+          .returning();
+        return updatedSetting;
+      } else {
+        // Create new setting if it doesn't exist
+        const [newSetting] = await db
+          .insert(appSettings)
+          .values({
+            key,
+            value
+          })
+          .returning();
+        return newSetting;
+      }
+    } catch (error) {
+      console.error(`Error updating setting ${key}:`, error);
+      throw error;
+    }
+  }
+  
+  async getAllSettings(): Promise<AppSetting[]> {
+    try {
+      return await db.select().from(appSettings);
+    } catch (error) {
+      console.error('Error getting all settings:', error);
+      throw error;
+    }
   }
 }

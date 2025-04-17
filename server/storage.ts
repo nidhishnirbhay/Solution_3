@@ -3,7 +3,8 @@ import {
   kycVerifications, type KycVerification, type InsertKycVerification,
   rides, type Ride, type InsertRide,
   bookings, type Booking, type InsertBooking,
-  ratings, type Rating, type InsertRating 
+  ratings, type Rating, type InsertRating,
+  appSettings, type AppSetting, type InsertAppSetting
 } from "@shared/schema";
 
 export interface IStorage {
@@ -46,6 +47,11 @@ export interface IStorage {
   getRatingsByToUserId(toUserId: number): Promise<Rating[]>;
   getRatingByBookingId(bookingId: number): Promise<Rating | undefined>;
   getAllRatings(): Promise<Rating[]>;
+  
+  // App Settings methods
+  getSetting(key: string): Promise<AppSetting | undefined>;
+  updateSetting(key: string, value: any): Promise<AppSetting | undefined>;
+  getAllSettings(): Promise<AppSetting[]>;
 }
 
 export class MemStorage implements IStorage {
