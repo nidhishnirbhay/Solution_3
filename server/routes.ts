@@ -424,16 +424,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("📊 Fetching popular routes (latest published rides)");
       
       // Use direct SQL for better performance and sorting
-      // Include all rides that aren't cancelled, regardless of status
+      // Only show active rides with available seats
       const query = `
         SELECT * FROM rides 
-        WHERE LOWER(status) != 'cancelled'
+        WHERE status = 'active' AND available_seats > 0
         ORDER BY created_at DESC 
         LIMIT 6
       `;
       
       const result = await pool.query(query);
-      console.log(`Found ${result.rowCount} popular/latest rides`);
+      console.log(`Found ${result.rowCount || 0} active rides`);
+      
+      if (!result.rows || result.rows.length === 0) {
+        // Return empty array if no active rides found
+        return res.json([]);
+      }
       
       // Transform the result to match the expected camelCase format and add driver info
       const rides = await Promise.all(result.rows.map(async (row) => {
