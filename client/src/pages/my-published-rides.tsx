@@ -48,9 +48,22 @@ export default function MyPublishedRides() {
           currentTime: format(now, 'dd/MM/yyyy, HH:mm:ss')
         });
         
-        if (ride.status === "completed" || rideDate < now) {
+        // First check if ride is cancelled
+        if (ride.status === "cancelled") {
+          // Don't show cancelled rides
+          return acc;
+        }
+        
+        // Then check if ride is completed
+        if (ride.status === "completed") {
           acc.completed.push(ride);
-        } else if (ride.status !== "cancelled") {
+          return acc;
+        }
+        
+        // Finally check date for active vs past rides
+        if (rideDate < now) {
+          acc.completed.push(ride);
+        } else {
           acc.active.push(ride);
         }
         
