@@ -394,6 +394,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get popular routes (latest published rides)
+  rideRouter.get('/popular', async (req, res) => {
+    try {
+      console.log("📊 Fetching popular routes (latest published rides)");
+      
+      // Use direct SQL for better performance and sorting
+      // Include all rides that aren't cancelled, regardless of status
+      const query = `
+        SELECT * FROM rides 
+        WHERE LOWER(status) != 'cancelled'
+        ORDER BY created_at DESC 
+        LIMIT 6
+      `;
+      
+      const result = await pool.query(query);
+      console.log(`Found ${result.rowCount} popular/latest rides`);
+      
+      // Transform the result to match the expected camelCase format and add driver info
+      const rides = await Promise.all(result.rows.map(async (row) => {
+        // Get driver details for each ride
+        const driver = await storage.getUser(row.driver_id);
+        
+        return {
+          id: row.id,
+          driverId: row.driver_id,
+          fromLocation: row.from_location,
+          toLocation: row.to_location,
+          departureDate: row.departure_date,
+          estimatedArrivalDate: row.estimated_arrival_date,
+          price: row.price,
+          rideType: row.ride_type,
+          totalSeats: row.total_seats,
+          availableSeats: row.available_seats,
+          vehicleType: row.vehicle_type,
+          vehicleNumber: row.vehicle_number,
+          description: row.description,
+          status: row.status,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          driver: driver ? {
+            id: driver.id,
+            fullName: driver.fullName,
+            averageRating: driver.averageRating || 0,
+            isKycVerified: driver.isKycVerified
+          } : undefined
+        };
+      }));
+      
+      res.json(rides);
+    } catch (error) {
+      console.error("Error fetching popular routes:", error);
+      res.status(500).json({ error: "Failed to fetch popular routes" });
+    }
+  });
+  
   rideRouter.get('/my-rides', authorize(['driver']), async (req, res) => {
     try {
       const user = req.user as any;

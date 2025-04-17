@@ -50,10 +50,9 @@ const popularRoutes = [
 ];
 
 export function PopularRoutes() {
-  const { isLoading } = useQuery({
-    queryKey: ['/api/popular-routes'],
-    // No queryFn needed as we're using mock data for now
-    enabled: false,
+  const { data: popularRides, isLoading, isError } = useQuery({
+    queryKey: ['/api/rides/popular'],
+    staleTime: 60 * 1000, // 1 minute
   });
 
   if (isLoading) {
@@ -93,36 +92,67 @@ export function PopularRoutes() {
     );
   }
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
+    }).format(date);
+  };
+  
+  // Safely handle the data with proper type checking
+  const rides = Array.isArray(popularRides) && popularRides.length > 0 
+    ? popularRides 
+    : [];
+    
+  // If no rides found, use mock data for display
+  const displayRides = rides.length > 0 
+    ? rides 
+    : popularRoutes.map((route, idx) => ({
+        id: idx,
+        fromLocation: route.from,
+        toLocation: route.to,
+        price: route.price,
+        totalSeats: 4,
+        availableSeats: 4,
+        departureDate: new Date().toISOString()
+      }));
+
   return (
     <section className="py-12 bg-neutral-50">
       <div className="container mx-auto px-4">
-        <h2 className="text-2xl font-bold text-center mb-8">Popular Routes</h2>
+        <h2 className="text-2xl font-bold text-center mb-8">Latest Published Rides</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {popularRoutes.map((route, index) => (
+          {displayRides.slice(0, 6).map((ride, index) => (
             <Card 
-              key={index} 
+              key={ride.id || index} 
               className="overflow-hidden hover:shadow-md transition-shadow"
             >
               <CardContent className="p-0">
                 <div className="p-4 border-b">
                   <div className="flex justify-between items-center">
                     <div>
-                      <div className="font-medium">{route.from}</div>
+                      <div className="font-medium">{ride.fromLocation}</div>
                       <div className="text-sm text-neutral-500">to</div>
-                      <div className="font-medium">{route.to}</div>
+                      <div className="font-medium">{ride.toLocation}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-semibold text-primary">₹{route.price}</div>
-                      <div className="text-sm text-neutral-500">{route.distance}</div>
+                      <div className="text-lg font-semibold text-primary">₹{ride.price}</div>
+                      <div className="text-sm text-neutral-500">
+                        {formatDate(ride.departureDate)}
+                      </div>
                     </div>
                   </div>
                 </div>
                 <div className="p-4">
                   <div className="flex justify-between text-sm">
-                    <span>{route.rides}+ rides available</span>
-                    <Link href={`/find-rides?from=${route.from}&to=${route.to}`}>
-                      <a className="text-blue-500 font-medium">View All</a>
+                    <span>Full booking ({ride.totalSeats} seats)</span>
+                    <Link href={`/find-rides?from=${ride.fromLocation}&to=${ride.toLocation}`}>
+                      <a className="text-blue-500 font-medium">Book Now</a>
                     </Link>
                   </div>
                 </div>
