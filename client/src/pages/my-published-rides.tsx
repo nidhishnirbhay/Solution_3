@@ -75,20 +75,23 @@ export default function MyPublishedRides() {
   useEffect(() => {
     const onFocus = () => {
       console.log("🔍 Browser tab focused - refreshing ride data");
-      handleForceRefresh();
+      refetch(); // Use refetch instead of handleForceRefresh to avoid infinite loop
     };
     
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
-  }, [handleForceRefresh]);
+  }, [refetch]);
 
-  if (isError) {
-    toast({
-      title: "Error fetching rides",
-      description: "Could not load your published rides. Please try again later.",
-      variant: "destructive",
-    });
-  }
+  // Use useEffect to display toast only once when error occurs
+  useEffect(() => {
+    if (isError) {
+      toast({
+        title: "Error fetching rides",
+        description: "Could not load your published rides. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  }, [isError, toast]);
 
   const getRidesList = () => {
     if (!rides || !Array.isArray(rides)) return { active: [], completed: [] };

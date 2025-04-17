@@ -52,6 +52,7 @@ interface BookingProps {
     id: number;
     fullName: string;
     averageRating: number;
+    mobile?: string;
   };
   viewAs: "customer" | "driver";
 }

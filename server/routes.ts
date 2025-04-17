@@ -401,14 +401,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🚨 EMERGENCY MY-RIDES ENDPOINT FIX");
       console.log("Fetching rides for driver ID:", user.id);
       
-      // IMPORTANT FIX: Add EXPLICIT LOWER() comparison to ensure consistent case matching
-      // This helps ensure status values like "Completed" or "COMPLETED" match correctly
+      // IMPROVED SORTING: Sort active rides by most recently created first
+      // Completed rides will be grouped after active rides
       const result = await pool.query(
         `SELECT * FROM rides 
-         WHERE driver_id = $1 
+         WHERE driver_id = $1 AND LOWER(status) != 'cancelled'
          ORDER BY 
            CASE WHEN LOWER(status) = 'completed' THEN 2 ELSE 1 END,
-           departure_date DESC`,
+           CASE WHEN LOWER(status) != 'completed' THEN created_at ELSE departure_date END DESC`,
         [user.id]
       );
       
