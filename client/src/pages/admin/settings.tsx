@@ -25,21 +25,15 @@ export default function AdminSettings() {
   const { data: bookingFeeSettings, isLoading: isLoadingSettings } = useQuery({
     queryKey: ['/api/admin/settings/booking-fee'],
     queryFn: async () => {
-      const response = await apiRequest('/api/admin/settings/booking-fee');
-      return response as BookingFeeSettings;
+      const response = await apiRequest("GET", '/api/admin/settings/booking-fee');
+      return await response.json();
     }
   });
 
   const updateBookingFeeMutation = useMutation({
     mutationFn: async (data: BookingFeeSettings) => {
-      const response = await apiRequest('/api/admin/settings/booking-fee', {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      return response as BookingFeeSettings;
+      const response = await apiRequest("PATCH", '/api/admin/settings/booking-fee', data);
+      return await response.json();
     },
     onSuccess: () => {
       toast({
