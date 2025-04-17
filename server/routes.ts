@@ -2,7 +2,7 @@ import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq } from "drizzle-orm";
 import {
   insertUserSchema,
@@ -518,16 +518,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // NEW endpoint for marking a ride as completed (POST method - using direct DB access)
+  // Emergency fix with direct SQL for updating ride status
   rideRouter.post('/:id/mark-completed', authorize(['driver']), async (req, res) => {
     try {
       const { id } = req.params;
       const user = req.user as any;
       
-      console.log("======== RIDE COMPLETION FLOW START ========");
+      console.log("======== 🔴 EMERGENCY RIDE COMPLETION FIX ========");
       console.log("Ride completion requested for ID:", id, "by user:", user.id);
       
-      // Directly query the database to check if ride exists
+      // First verify ride exists and belongs to this driver
       const [rideData] = await db.select().from(rides).where(eq(rides.id, Number(id)));
       
       if (!rideData) {
@@ -537,56 +537,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Ride found in database:", rideData);
       
-      // Check authorization
       if (rideData.driverId !== user.id) {
         console.log("Authorization error: ride driver ID", rideData.driverId, "doesn't match user ID", user.id);
         return res.status(403).json({ error: "You can only mark your own rides as completed" });
       }
       
-      // Get related bookings
-      const relatedBookings = await db.select().from(bookings).where(eq(bookings.rideId, Number(id)));
-      console.log("Found", relatedBookings.length, "bookings for this ride");
-      
-      // Update ride status using direct DB update
-      console.log("Directly updating ride status in database to 'completed'");
-      const updatedRides = await db
-        .update(rides)
-        .set({ status: "completed" })
-        .where(eq(rides.id, Number(id)))
-        .returning();
-      
-      console.log("Ride update result:", updatedRides);
-      
-      // Update all confirmed bookings for this ride to completed
-      if (relatedBookings.length > 0) {
-        console.log("Updating confirmed bookings to completed status");
-        for (const booking of relatedBookings) {
-          if (booking.status === 'confirmed') {
-            console.log("Updating booking ID:", booking.id, "from confirmed to completed");
-            await db
-              .update(bookings)
-              .set({ status: "completed" })
-              .where(eq(bookings.id, booking.id));
-          }
+      // Run direct SQL query to update the ride status
+      console.log("Executing direct SQL UPDATE for ride status");
+      try {
+        const result = await pool.query(
+          'UPDATE rides SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+          ['completed', Number(id)]
+        );
+        
+        console.log("SQL UPDATE RESULT:", result.rows[0]);
+        
+        if (result.rowCount === 0) {
+          throw new Error(`No rows updated for ride ${id}`);
         }
+        
+        // Verify the update
+        const verifyResult = await pool.query('SELECT id, status FROM rides WHERE id = $1', [Number(id)]);
+        console.log("VERIFICATION QUERY RESULT:", verifyResult.rows[0]);
+        
+        // Find and update related bookings
+        const bookingsResult = await pool.query(
+          'SELECT id FROM bookings WHERE ride_id = $1 AND status = $2',
+          [Number(id), 'confirmed']
+        );
+        
+        console.log(`Found ${bookingsResult.rowCount} confirmed bookings to update`);
+        
+        // Update each booking
+        for (const booking of bookingsResult.rows) {
+          console.log(`Updating booking ID ${booking.id} to completed`);
+          await pool.query(
+            'UPDATE bookings SET status = $1, updated_at = NOW() WHERE id = $2',
+            ['completed', booking.id]
+          );
+        }
+        
+        return res.json({ 
+          success: true, 
+          message: "Ride marked as completed successfully using emergency fix",
+          rideId: Number(id),
+          currentStatus: verifyResult.rows[0]?.status || 'unknown',
+          updated: result.rowCount > 0
+        });
+      } catch (sqlError: any) {
+        console.error("SQL UPDATE ERROR:", sqlError);
+        throw new Error(`SQL update failed: ${sqlError.message}`);
       }
-      
-      // Verify the update was successful by querying the database again
-      const [verifyRide] = await db.select().from(rides).where(eq(rides.id, Number(id)));
-      console.log("Verification - ride status after update:", verifyRide?.status);
-      
-      // Return detailed response
-      console.log("======== RIDE COMPLETION FLOW END ========");
-      return res.json({ 
-        success: true, 
-        message: "Ride marked as completed successfully",
-        rideId: Number(id),
-        currentStatus: verifyRide?.status || 'unknown'
-      });
     } catch (error: any) {
-      console.error("ERROR in mark-completed endpoint:", error);
+      console.error("🔴 EMERGENCY FIX FAILED:", error);
       return res.status(500).json({ 
-        error: "Failed to mark ride as completed", 
+        error: "Emergency ride completion fix failed", 
         details: error.message || 'Unknown error'
       });
     }

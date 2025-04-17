@@ -219,7 +219,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
   
   // Handle mark ride as completed
   const handleCompleteRide = async () => {
-    console.log("Marking ride as completed, ride ID:", ride.id);
+    console.log("🔴 EMERGENCY FIX: Marking ride as completed, ride ID:", ride.id);
     
     try {
       // Check for necessary conditions
@@ -236,35 +236,69 @@ export function RideCard({ ride }: { ride: RideProps }) {
       // Show confirmation message
       toast({
         title: "Marking ride as completed",
-        description: "Please wait...",
+        description: "Using emergency fix with direct SQL...",
       });
       
-      // Use a different approach - direct fetch instead of react-query mutation
-      const response = await fetch(`/api/rides/${ride.id}/mark-completed`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
+      // Make 3 attempts to mark the ride as completed
+      let success = false;
+      let lastError = null;
+      let lastResponse = null;
       
-      const result = await response.json();
-      console.log("Ride completion API response:", result);
-      
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to mark ride as completed");
+      for (let attempt = 1; attempt <= 3 && !success; attempt++) {
+        try {
+          console.log(`Attempt ${attempt} to mark ride ${ride.id} as completed`);
+          
+          // Use direct fetch with emergency fixed endpoint
+          const response = await fetch(`/api/rides/${ride.id}/mark-completed`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+          });
+          
+          lastResponse = await response.json();
+          console.log(`Attempt ${attempt} response:`, lastResponse);
+          
+          if (!response.ok) {
+            throw new Error(lastResponse.error || `Failed on attempt ${attempt}`);
+          }
+          
+          // Check if the status was actually updated
+          if (lastResponse.currentStatus === 'completed') {
+            success = true;
+            console.log("Ride completion successful on attempt", attempt);
+          } else {
+            console.error(`Attempt ${attempt}: Status not updated - reported as '${lastResponse.currentStatus}'`);
+            if (attempt < 3) await new Promise(r => setTimeout(r, 500)); // Wait 500ms between attempts
+          }
+        } catch (attemptError: any) {
+          lastError = attemptError;
+          console.error(`Error in attempt ${attempt}:`, attemptError);
+          if (attempt < 3) await new Promise(r => setTimeout(r, 500)); // Wait 500ms between attempts
+        }
       }
       
-      // Success - refresh the ride list
-      queryClient.invalidateQueries({ queryKey: ["/api/rides/my-rides"] });
+      if (!success) {
+        throw new Error(lastError?.message || "Failed after multiple attempts to mark ride as completed");
+      }
+      
+      // Force refresh of the rides list
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/rides/my-rides"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/bookings/ride-bookings"] })
+      ]);
+      
+      // Force refetch the current page data
+      window.location.reload();
       
       toast({
         title: "Success!",
-        description: "Your ride has been marked as completed",
+        description: "Your ride has been marked as completed. Page will refresh.",
       });
       
     } catch (error: any) {
-      console.error("Error in handleCompleteRide:", error);
+      console.error("🔴 Emergency fix failed:", error);
       toast({
         title: "Action failed",
         description: error.message || "There was an error marking the ride as completed",
