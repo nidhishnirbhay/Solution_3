@@ -1415,39 +1415,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   adminRouter.get('/kyc/stats', authorize(['admin']), async (req, res) => {
     try {
-      const allKyc = await db.select().from(kycVerifications);
+      // Use the same exact query used in the general KYC endpoint
+      const kycs = await db.select().from(kycVerifications);
       
-      if (!allKyc || allKyc.length === 0) {
-        return res.json({
-          total: 0,
-          pending: 0,
-          approved: 0,
-          rejected: 0,
-          recent: []
-        });
+      // Set default values
+      let stats = {
+        total: 0,
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        recent: []
+      };
+      
+      if (!kycs || kycs.length === 0) {
+        return res.json(stats);
       }
       
-      const pending = allKyc.filter(kyc => kyc.status === 'pending').length;
-      const approved = allKyc.filter(kyc => kyc.status === 'approved').length;
-      const rejected = allKyc.filter(kyc => kyc.status === 'rejected').length;
+      const pending = kycs.filter(kyc => kyc.status === 'pending').length;
+      const approved = kycs.filter(kyc => kyc.status === 'approved').length;
+      const rejected = kycs.filter(kyc => kyc.status === 'rejected').length;
       
       // Get 5 most recent KYC submissions for the dashboard
+      const sortedKycs = [...kycs].sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      });
+      
       const recentKyc = await Promise.all(
-        allKyc
-          .sort((a, b) => {
-            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return dateB - dateA;
-          })
-          .slice(0, 5)
-          .map(async (kyc) => {
-            const user = await storage.getUser(kyc.userId);
-            return { ...kyc, user };
-          })
+        sortedKycs.slice(0, 5).map(async (kyc) => {
+          const user = await storage.getUser(kyc.userId);
+          return { ...kyc, user };
+        })
       );
       
-      res.json({
-        total: allKyc.length,
+      // Ensure Content-Type is set to application/json
+      res.setHeader("Content-Type", "application/json");
+      return res.json({
+        total: kycs.length,
         pending,
         approved,
         rejected,
@@ -1534,16 +1539,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const userData = req.body;
-      const updatedUser = await storage.updateUser(userId, userData);
+      console.log(`Updating user ${userId} with data:`, userData);
       
-      if (!updatedUser) {
+      // Use database directly for better reliability
+      const result = await db
+        .update(users)
+        .set(userData)
+        .where(eq(users.id, userId))
+        .returning();
+      
+      if (!result || result.length === 0) {
+        console.error("User update failed - no user returned");
         return res.status(404).json({ error: "User not found" });
       }
       
-      res.json(updatedUser);
+      console.log("User updated successfully:", result[0]);
+      
+      // Ensure Content-Type is set to application/json 
+      res.setHeader("Content-Type", "application/json");
+      return res.json(result[0]);
     } catch (error) {
       console.error("Error updating user:", error);
-      res.status(500).json({ error: "Failed to update user" });
+      // Ensure Content-Type is set to application/json even in error cases
+      res.setHeader("Content-Type", "application/json");
+      return res.status(500).json({ error: "Failed to update user" });
     }
   });
   
