@@ -60,8 +60,17 @@ export function RideCard({ ride }: { ride: RideProps }) {
   const isPastRide = useMemo(() => {
     const rideDate = new Date(ride.departureDate);
     const now = new Date();
-    return rideDate < now;
-  }, [ride.departureDate]);
+    const isPast = rideDate < now;
+    
+    console.log(`Ride ${ride.id} (${ride.fromLocation} to ${ride.toLocation}):`, {
+      status: ride.status,
+      departureDate: rideDate.toLocaleString(),
+      isPastRide: isPast,
+      currentTime: now.toLocaleString()
+    });
+    
+    return isPast;
+  }, [ride.departureDate, ride.id, ride.fromLocation, ride.toLocation, ride.status]);
   
   // Check if the current user has already booked this ride
   const { data: myBookings } = useQuery({
