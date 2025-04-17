@@ -18,6 +18,7 @@ import AdminKYC from "@/pages/admin/kyc";
 import AdminUsers from "@/pages/admin/users";
 import AdminRides from "@/pages/admin/rides";
 import AdminBookings from "@/pages/admin/bookings";
+import AdminSettings from "@/pages/admin/settings";
 import AdminLogin from "@/pages/admin/login";
 import NotFound from "@/pages/not-found";
 
@@ -64,6 +65,7 @@ function Router() {
         <Route path="/admin/users" component={AdminUsers} />
         <Route path="/admin/rides" component={AdminRides} />
         <Route path="/admin/bookings" component={AdminBookings} />
+        <Route path="/admin/settings" component={AdminSettings} />
         
         {/* Fallback to 404 */}
         <Route component={NotFound} />

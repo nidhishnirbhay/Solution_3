@@ -60,6 +60,7 @@ export class MemStorage implements IStorage {
   private rides: Map<number, Ride>;
   private bookings: Map<number, Booking>;
   private ratings: Map<number, Rating>;
+  private appSettings: Map<string, AppSetting>;
   
   private userIdCounter: number;
   private kycIdCounter: number;
@@ -73,6 +74,7 @@ export class MemStorage implements IStorage {
     this.rides = new Map();
     this.bookings = new Map();
     this.ratings = new Map();
+    this.appSettings = new Map();
     
     this.userIdCounter = 1;
     this.kycIdCounter = 1;
@@ -372,6 +374,29 @@ export class MemStorage implements IStorage {
 
   async getAllRatings(): Promise<Rating[]> {
     return Array.from(this.ratings.values());
+  }
+
+  // App Settings methods
+  async getSetting(key: string): Promise<AppSetting | undefined> {
+    return this.appSettings.get(key);
+  }
+
+  async updateSetting(key: string, value: any): Promise<AppSetting | undefined> {
+    const now = new Date();
+    const setting: AppSetting = {
+      key,
+      value,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    // If setting exists, update it, otherwise create a new one
+    this.appSettings.set(key, setting);
+    return setting;
+  }
+
+  async getAllSettings(): Promise<AppSetting[]> {
+    return Array.from(this.appSettings.values());
   }
 }
 
