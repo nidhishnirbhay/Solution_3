@@ -513,15 +513,17 @@ export function RideCard({ ride }: { ride: RideProps }) {
                     
                     <Separator className="my-2" />
                     
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className={`${bookingFeeSetting?.enabled ? "grid grid-cols-2" : "grid grid-cols-1"} gap-4 mb-4`}>
                       <div>
                         <p className="text-sm text-muted-foreground">Full vehicle booking</p>
                         <p className="font-medium">₹{ride.price}</p>
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Booking fee</p>
-                        <p className="font-medium">₹200</p>
-                      </div>
+                      {bookingFeeSetting?.enabled && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Booking fee</p>
+                          <p className="font-medium">₹{bookingFeeSetting?.amount || 0}</p>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="bg-orange-50 rounded-lg p-3 text-sm mb-4">
