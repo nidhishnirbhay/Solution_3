@@ -11,9 +11,11 @@ export const users = pgTable("users", {
   fullName: text("full_name").notNull(),
   role: text("role").notNull().default('customer'),
   isKycVerified: boolean("is_kyc_verified").default(false),
+  isSuspended: boolean("is_suspended").default(false),
   emergencyContact: text("emergency_contact"),
   averageRating: doublePrecision("average_rating").default(0),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
