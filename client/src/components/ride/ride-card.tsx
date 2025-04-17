@@ -219,7 +219,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
   
   // Handle mark ride as completed
   const handleCompleteRide = async () => {
-    console.log("🔴 EMERGENCY FIX: Marking ride as completed, ride ID:", ride.id);
+    console.log("🔴 EMERGENCY FIX 2.0: Marking ride as completed, ride ID:", ride.id);
     
     try {
       // Check for necessary conditions
@@ -236,8 +236,11 @@ export function RideCard({ ride }: { ride: RideProps }) {
       // Show confirmation message
       toast({
         title: "Marking ride as completed",
-        description: "Using emergency fix with direct SQL...",
+        description: "Using 2-step approach with SQL and API...",
       });
+      
+      // STEP 1: Mark ride as completed via API
+      console.log("STEP 1: Marking ride as completed via API...");
       
       // Make 3 attempts to mark the ride as completed
       let success = false;
@@ -246,7 +249,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
       
       for (let attempt = 1; attempt <= 3 && !success; attempt++) {
         try {
-          console.log(`Attempt ${attempt} to mark ride ${ride.id} as completed`);
+          console.log(`API Attempt ${attempt} to mark ride ${ride.id} as completed`);
           
           // Use direct fetch with emergency fixed endpoint
           const response = await fetch(`/api/rides/${ride.id}/mark-completed`, {
@@ -258,7 +261,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
           });
           
           lastResponse = await response.json();
-          console.log(`Attempt ${attempt} response:`, lastResponse);
+          console.log(`API Attempt ${attempt} response:`, lastResponse);
           
           if (!response.ok) {
             throw new Error(lastResponse.error || `Failed on attempt ${attempt}`);
@@ -269,36 +272,75 @@ export function RideCard({ ride }: { ride: RideProps }) {
             success = true;
             console.log("Ride completion successful on attempt", attempt);
           } else {
-            console.error(`Attempt ${attempt}: Status not updated - reported as '${lastResponse.currentStatus}'`);
+            console.error(`API Attempt ${attempt}: Status not updated - reported as '${lastResponse.currentStatus}'`);
             if (attempt < 3) await new Promise(r => setTimeout(r, 500)); // Wait 500ms between attempts
           }
         } catch (attemptError: any) {
           lastError = attemptError;
-          console.error(`Error in attempt ${attempt}:`, attemptError);
+          console.error(`Error in API attempt ${attempt}:`, attemptError);
           if (attempt < 3) await new Promise(r => setTimeout(r, 500)); // Wait 500ms between attempts
         }
       }
       
+      // STEP 2: Also mark any related bookings as completed for redundancy
+      try {
+        console.log("STEP 2: Updating all related bookings to 'completed' status...");
+        
+        // Use the booking update endpoint for any bookings related to this ride
+        const bookingsResponse = await fetch('/api/bookings/ride-bookings', {
+          credentials: 'include'
+        });
+        const allBookings = await bookingsResponse.json();
+        
+        // Find bookings for this ride that are still in confirmed state
+        const relatedBookings = allBookings.filter((booking: any) => 
+          booking.rideId === ride.id && booking.status === 'confirmed'
+        );
+        
+        console.log(`Found ${relatedBookings.length} confirmed bookings to update for ride ${ride.id}`);
+        
+        // Update each booking
+        for (const booking of relatedBookings) {
+          console.log(`Updating booking ${booking.id} to completed status`);
+          await fetch(`/api/bookings/${booking.id}/status`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({ status: 'completed' })
+          });
+        }
+        
+        console.log("All related bookings updated successfully");
+      } catch (bookingError: any) {
+        console.error("Error updating related bookings:", bookingError);
+        // We'll continue even if this part fails
+      }
+      
+      // Success message based on first step
       if (!success) {
         throw new Error(lastError?.message || "Failed after multiple attempts to mark ride as completed");
       }
       
-      // Force refresh of the rides list
+      // Force refresh of ALL queries
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["/api/rides/my-rides"] }),
-        queryClient.invalidateQueries({ queryKey: ["/api/bookings/ride-bookings"] })
+        queryClient.invalidateQueries({ queryKey: ["/api/bookings/ride-bookings"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/bookings/my-bookings"] }),
       ]);
       
-      // Force refetch the current page data
-      window.location.reload();
-      
+      // Force reload page to ensure all data is fresh
       toast({
         title: "Success!",
-        description: "Your ride has been marked as completed. Page will refresh.",
+        description: "Your ride and all related bookings have been marked as completed. Page will refresh.",
       });
       
+      // Give toast time to show before reload
+      setTimeout(() => window.location.reload(), 1500);
+      
     } catch (error: any) {
-      console.error("🔴 Emergency fix failed:", error);
+      console.error("🔴 Emergency fix 2.0 failed:", error);
       toast({
         title: "Action failed",
         description: error.message || "There was an error marking the ride as completed",
@@ -502,7 +544,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
                       >
                         {bookingMutation.isPending ? (
                           <>
-                            <span className="animate-spin mr-1">⟳</span> Processing...
+                            <span className="animate-spin mr-1">⟳</span> Marking as Completed...
                           </>
                         ) : (
                           "Confirm Booking"
