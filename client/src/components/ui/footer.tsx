@@ -19,7 +19,8 @@ export function Footer() {
     async function fetchSettings() {
       try {
         setLoading(true);
-        const response = await apiRequest('GET', '/api/admin/settings');
+        // Now using the public endpoint that doesn't require authentication
+        const response = await apiRequest('GET', '/api/settings/public');
         
         if (response && Array.isArray(response)) {
           const settingsObj: Record<string, any> = {};

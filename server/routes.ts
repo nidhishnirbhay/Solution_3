@@ -1884,6 +1884,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Public API endpoint for settings
+  app.get('/api/settings/public', async (req, res) => {
+    try {
+      const allSettings = await storage.getAllSettings();
+      // Filter to only include public settings (contact and social)
+      const publicSettings = allSettings.filter(setting => 
+        setting.key.startsWith('contact_') || 
+        setting.key.startsWith('social_')
+      );
+      res.json(publicSettings);
+    } catch (error) {
+      console.error("Error fetching public settings:", error);
+      res.status(500).json({ error: "Failed to retrieve public settings" });
+    }
+  });
+
   adminRouter.put('/settings', authorize(['admin']), async (req, res) => {
     try {
       const { key, value } = req.body;
