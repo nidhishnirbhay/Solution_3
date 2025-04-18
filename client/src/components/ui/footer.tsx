@@ -51,27 +51,38 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="font-medium mb-4">Quick Links</h4>
+            <h4 className="font-medium mb-4">Contact Us</h4>
             <ul className="space-y-2">
-              <li>
-                <Link href="/">
-                  <a className="text-neutral-400 hover:text-white">How It Works</a>
-                </Link>
+              <li className="flex items-center text-neutral-400">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="h-4 w-4 mr-2 fill-current" 
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                </svg>
+                +91 9876543210
               </li>
-              <li>
-                <Link href="/find-rides">
-                  <a className="text-neutral-400 hover:text-white">Find Rides</a>
-                </Link>
+              <li className="flex items-center text-neutral-400">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="h-4 w-4 mr-2 fill-current" 
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M1.5 8.67v8.58a3 3 0 003 3h15a3 3 0 003-3V8.67l-8.928 5.493a3 3 0 01-3.144 0L1.5 8.67z" />
+                  <path d="M22.5 6.908V6.75a3 3 0 00-3-3h-15a3 3 0 00-3 3v.158l9.714 5.978a1.5 1.5 0 001.572 0L22.5 6.908z" />
+                </svg>
+                info@oyegaadi.com
               </li>
-              <li>
-                <Link href="/publish-ride">
-                  <a className="text-neutral-400 hover:text-white">Publish Rides</a>
-                </Link>
-              </li>
-              <li>
-                <Link href="/kyc-verification">
-                  <a className="text-neutral-400 hover:text-white">KYC Verification</a>
-                </Link>
+              <li className="flex items-start text-neutral-400">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="h-4 w-4 mr-2 mt-1 flex-shrink-0 fill-current" 
+                  viewBox="0 0 24 24"
+                >
+                  <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                </svg>
+                <span>123 OyeGaadi Tower, Cyber City,<br/> Gurugram, Haryana 122002</span>
               </li>
             </ul>
           </div>
