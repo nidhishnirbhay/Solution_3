@@ -93,8 +93,11 @@ export function Header() {
           <div className="flex items-center">
             <Link href="/">
               <a className="flex items-center">
-                <span className="text-2xl font-bold text-primary">
+                <span className="text-2xl font-bold text-primary relative">
                   Oye<span className="text-blue-500">Gaadi</span>
+                  <span className="absolute -top-3 -right-10 bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-md font-semibold">
+                    BETA
+                  </span>
                 </span>
               </a>
             </Link>

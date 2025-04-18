@@ -2,6 +2,8 @@ import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 
+// This component is temporarily hidden as per client request
+// The code is kept for future use when footer needs to be displayed again
 export function Footer() {
   const [settings, setSettings] = useState<Record<string, any>>({
     contact_phone: "+91 9876543210",
@@ -38,9 +40,14 @@ export function Footer() {
       }
     }
     
-    fetchSettings();
+    // Commenting out to prevent unnecessary API calls while footer is hidden
+    // fetchSettings();
   }, []);
   
+  // Return null instead of the footer to hide it from the website
+  return null;
+  
+  /* Original footer code preserved for future use
   return (
     <footer className="bg-neutral-800 text-white py-12">
       <div className="container mx-auto px-4">
@@ -194,4 +201,5 @@ export function Footer() {
       </div>
     </footer>
   );
+  */
 }
