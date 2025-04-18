@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -76,7 +76,7 @@ type ContactSettingsFormValues = z.infer<typeof contactSettingsSchema>;
 export default function BusinessSetup() {
   const { toast } = useToast();
   const [showPageDialog, setShowPageDialog] = useState(false);
-  const [editingPage, setEditingPage] = useState<any>(null);
+  const [editingPage, setEditingPage] = useState<PageContent | null>(null);
   
   interface PageContent {
     id: number;
@@ -117,7 +117,7 @@ export default function BusinessSetup() {
   
   // Get contact settings
   const getSettingValue = (key: string) => {
-    const setting = appSettings.find((s: any) => s.key === key);
+    const setting = appSettings.find((s: AppSetting) => s.key === key);
     return setting ? setting.value : '';
   };
   
@@ -214,8 +214,13 @@ export default function BusinessSetup() {
   });
   
   // Update app settings
+  type SettingUpdate = {
+    key: string;
+    value: string;
+  };
+  
   const updateSettingMutation = useMutation({
-    mutationFn: (data: { key: string; value: any }) => {
+    mutationFn: (data: SettingUpdate) => {
       return apiRequest('/api/admin/settings', 'PUT', data);
     },
     onSuccess: () => {
@@ -268,7 +273,7 @@ export default function BusinessSetup() {
   };
   
   // Edit page
-  const handleEditPage = (page: any) => {
+  const handleEditPage = (page: PageContent) => {
     setEditingPage(page);
     pageForm.reset({
       slug: page.slug,
@@ -301,7 +306,7 @@ export default function BusinessSetup() {
   };
   
   // Group pages by category
-  const pagesByCategory = pages.reduce((acc: any, page: any) => {
+  const pagesByCategory = pages.reduce<Record<string, PageContent[]>>((acc, page) => {
     if (!acc[page.category]) {
       acc[page.category] = [];
     }
@@ -524,14 +529,14 @@ export default function BusinessSetup() {
                     </div>
                   ) : (
                     <div className="space-y-8">
-                      {Object.entries(pagesByCategory).map(([category, categoryPages]: [string, any]) => (
+                      {Object.entries(pagesByCategory).map(([category, categoryPages]: [string, PageContent[]]) => (
                         <div key={category}>
                           <h3 className="text-lg font-semibold mb-3 flex items-center">
                             <Badge variant="outline" className="mr-2 capitalize">{category}</Badge>
                             <span>Pages</span>
                           </h3>
                           <div className="grid gap-4">
-                            {categoryPages.map((page: any) => (
+                            {categoryPages.map((page: PageContent) => (
                               <div key={page.id} className="border rounded-md p-4 group">
                                 <div className="flex items-start justify-between">
                                   <div>
