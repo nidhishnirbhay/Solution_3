@@ -7,6 +7,7 @@ import {
   bookings, 
   ratings,
   appSettings,
+  pageContents,
   type User, 
   type InsertUser, 
   type KycVerification, 
@@ -18,6 +19,8 @@ import {
   type Rating,
   type InsertRating,
   type AppSetting,
+  type PageContent,
+  type InsertPageContent,
   type InsertAppSetting
 } from "@shared/schema";
 import { IStorage } from "./storage";
@@ -416,6 +419,90 @@ export class DatabaseStorage implements IStorage {
       return await db.select().from(appSettings);
     } catch (error) {
       console.error('Error getting all settings:', error);
+      throw error;
+    }
+  }
+
+  // Page Content methods
+  async createPageContent(content: InsertPageContent): Promise<PageContent> {
+    try {
+      const [newContent] = await db
+        .insert(pageContents)
+        .values({
+          ...content,
+          isPublished: content.isPublished || true
+        })
+        .returning();
+      return newContent;
+    } catch (error) {
+      console.error('Error creating page content:', error);
+      throw error;
+    }
+  }
+
+  async getPageContent(id: number): Promise<PageContent | undefined> {
+    try {
+      const [content] = await db.select().from(pageContents).where(eq(pageContents.id, id));
+      return content;
+    } catch (error) {
+      console.error(`Error getting page content with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async getPageContentBySlug(slug: string): Promise<PageContent | undefined> {
+    try {
+      const [content] = await db.select().from(pageContents).where(eq(pageContents.slug, slug));
+      return content;
+    } catch (error) {
+      console.error(`Error getting page content with slug ${slug}:`, error);
+      throw error;
+    }
+  }
+
+  async getPageContentsByCategory(category: string): Promise<PageContent[]> {
+    try {
+      return await db.select().from(pageContents).where(eq(pageContents.category, category));
+    } catch (error) {
+      console.error(`Error getting page contents for category ${category}:`, error);
+      throw error;
+    }
+  }
+
+  async updatePageContent(id: number, data: Partial<PageContent>): Promise<PageContent | undefined> {
+    try {
+      const [updatedContent] = await db
+        .update(pageContents)
+        .set({
+          ...data,
+          updatedAt: new Date()
+        })
+        .where(eq(pageContents.id, id))
+        .returning();
+      return updatedContent;
+    } catch (error) {
+      console.error(`Error updating page content with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async deletePageContent(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(pageContents)
+        .where(eq(pageContents.id, id));
+      return true;
+    } catch (error) {
+      console.error(`Error deleting page content with ID ${id}:`, error);
+      return false;
+    }
+  }
+
+  async getAllPageContents(): Promise<PageContent[]> {
+    try {
+      return await db.select().from(pageContents);
+    } catch (error) {
+      console.error('Error getting all page contents:', error);
       throw error;
     }
   }

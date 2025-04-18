@@ -19,6 +19,7 @@ import AdminUsers from "@/pages/admin/users";
 import AdminRides from "@/pages/admin/rides";
 import AdminBookings from "@/pages/admin/bookings";
 import AdminSettings from "@/pages/admin/settings";
+import AdminBusinessSetup from "@/pages/admin/business-setup";
 import AdminLogin from "@/pages/admin/login";
 import NotFound from "@/pages/not-found";
 
@@ -66,6 +67,7 @@ function Router() {
         <Route path="/admin/rides" component={AdminRides} />
         <Route path="/admin/bookings" component={AdminBookings} />
         <Route path="/admin/settings" component={AdminSettings} />
+        <Route path="/admin/business-setup" component={AdminBusinessSetup} />
         
         {/* Fallback to 404 */}
         <Route component={NotFound} />

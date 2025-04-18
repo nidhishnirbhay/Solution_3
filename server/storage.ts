@@ -4,7 +4,8 @@ import {
   rides, type Ride, type InsertRide,
   bookings, type Booking, type InsertBooking,
   ratings, type Rating, type InsertRating,
-  appSettings, type AppSetting, type InsertAppSetting
+  appSettings, type AppSetting, type InsertAppSetting,
+  pageContents, type PageContent, type InsertPageContent
 } from "@shared/schema";
 
 export interface IStorage {

@@ -10,10 +10,12 @@ import {
   insertRideSchema,
   insertBookingSchema,
   insertRatingSchema,
+  insertPageContentSchema,
   users,
   rides,
   bookings,
-  kycVerifications
+  kycVerifications,
+  pageContents
 } from "@shared/schema";
 import session from "express-session";
 import passport from "passport";
@@ -1743,12 +1745,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Page Content routes
+  const pageContentRouter = express.Router();
+  
+  // Get all page contents
+  pageContentRouter.get('/', async (req, res) => {
+    try {
+      const contents = await storage.getAllPageContents();
+      res.json(contents);
+    } catch (error) {
+      console.error('Error fetching page contents:', error);
+      res.status(500).json({ error: "Failed to retrieve page contents" });
+    }
+  });
+  
+  // Get page content by slug
+  pageContentRouter.get('/slug/:slug', async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const content = await storage.getPageContentBySlug(slug);
+      
+      if (!content) {
+        return res.status(404).json({ error: "Page content not found" });
+      }
+      
+      res.json(content);
+    } catch (error) {
+      console.error(`Error fetching page content with slug ${req.params.slug}:`, error);
+      res.status(500).json({ error: "Failed to retrieve page content" });
+    }
+  });
+  
+  // Get page contents by category
+  pageContentRouter.get('/category/:category', async (req, res) => {
+    try {
+      const { category } = req.params;
+      const contents = await storage.getPageContentsByCategory(category);
+      res.json(contents);
+    } catch (error) {
+      console.error(`Error fetching page contents for category ${req.params.category}:`, error);
+      res.status(500).json({ error: "Failed to retrieve page contents" });
+    }
+  });
+  
+  // Admin only routes for managing page content
+  adminRouter.get('/page-contents', authorize(['admin']), async (req, res) => {
+    try {
+      const contents = await storage.getAllPageContents();
+      res.json(contents);
+    } catch (error) {
+      console.error('Error fetching page contents:', error);
+      res.status(500).json({ error: "Failed to retrieve page contents" });
+    }
+  });
+  
+  adminRouter.get('/page-contents/:id', authorize(['admin']), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const content = await storage.getPageContent(Number(id));
+      
+      if (!content) {
+        return res.status(404).json({ error: "Page content not found" });
+      }
+      
+      res.json(content);
+    } catch (error) {
+      console.error(`Error fetching page content with ID ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to retrieve page content" });
+    }
+  });
+  
+  adminRouter.post('/page-contents', authorize(['admin']), validateBody(insertPageContentSchema), async (req, res) => {
+    try {
+      const content = await storage.createPageContent(req.body);
+      res.status(201).json(content);
+    } catch (error) {
+      console.error('Error creating page content:', error);
+      res.status(500).json({ error: "Failed to create page content" });
+    }
+  });
+  
+  adminRouter.patch('/page-contents/:id', authorize(['admin']), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const content = await storage.updatePageContent(Number(id), req.body);
+      
+      if (!content) {
+        return res.status(404).json({ error: "Page content not found" });
+      }
+      
+      res.json(content);
+    } catch (error) {
+      console.error(`Error updating page content with ID ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to update page content" });
+    }
+  });
+  
+  adminRouter.delete('/page-contents/:id', authorize(['admin']), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deletePageContent(Number(id));
+      
+      if (!success) {
+        return res.status(404).json({ error: "Page content not found" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error(`Error deleting page content with ID ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to delete page content" });
+    }
+  });
+  
   // Register all routes
   app.use('/api/auth', authRouter);
   app.use('/api/kyc', kycRouter);
   app.use('/api/rides', rideRouter);
   app.use('/api/bookings', bookingRouter);
   app.use('/api/ratings', ratingRouter);
+  app.use('/api/page-contents', pageContentRouter);
   app.use('/api/admin', adminRouter);
   
   const httpServer = createServer(app);
