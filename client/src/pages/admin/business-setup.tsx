@@ -78,24 +78,41 @@ export default function BusinessSetup() {
   const [showPageDialog, setShowPageDialog] = useState(false);
   const [editingPage, setEditingPage] = useState<any>(null);
   
+  interface PageContent {
+    id: number;
+    slug: string;
+    title: string;
+    content: string;
+    category: string;
+    isPublished: boolean;
+    createdAt: string;
+    updatedAt: string;
+  }
+  
+  interface AppSetting {
+    id: number;
+    key: string;
+    value: string;
+    createdAt: string;
+    updatedAt: string;
+  }
+
   // Fetch all page content
   const { 
-    data: pages = [], 
+    data: pages = [] as PageContent[], 
     isLoading: isPagesLoading,
     refetch: refetchPages
-  } = useQuery({
-    queryKey: ['/api/admin/page-contents'],
-    queryFn: () => apiRequest('/api/admin/page-contents')
+  } = useQuery<PageContent[]>({
+    queryKey: ['/api/admin/page-contents']
   });
   
   // Fetch contact settings from app settings
   const {
-    data: appSettings = [],
+    data: appSettings = [] as AppSetting[],
     isLoading: isSettingsLoading,
     refetch: refetchSettings
-  } = useQuery({
-    queryKey: ['/api/admin/settings'],
-    queryFn: () => apiRequest('/api/admin/settings')
+  } = useQuery<AppSetting[]>({
+    queryKey: ['/api/admin/settings']
   });
   
   // Get contact settings
@@ -119,8 +136,8 @@ export default function BusinessSetup() {
   });
   
   // Update form values when settings are loaded
-  useState(() => {
-    if (appSettings.length > 0) {
+  useEffect(() => {
+    if (appSettings && appSettings.length > 0) {
       contactForm.setValue('phone', getSettingValue('contact_phone') || '');
       contactForm.setValue('email', getSettingValue('contact_email') || '');
       contactForm.setValue('address', getSettingValue('contact_address') || '');
@@ -129,7 +146,7 @@ export default function BusinessSetup() {
       contactForm.setValue('instagramUrl', getSettingValue('social_instagram') || '');
       contactForm.setValue('linkedinUrl', getSettingValue('social_linkedin') || '');
     }
-  });
+  }, [appSettings]);
   
   // Page content form
   const pageForm = useForm<PageContentFormValues>({
@@ -147,15 +164,9 @@ export default function BusinessSetup() {
   const pageMutation = useMutation({
     mutationFn: async (data: PageContentFormValues) => {
       if (editingPage) {
-        return apiRequest(`/api/admin/page-contents/${editingPage.id}`, {
-          method: 'PATCH',
-          data
-        });
+        return apiRequest(`/api/admin/page-contents/${editingPage.id}`, 'PATCH', data);
       } else {
-        return apiRequest('/api/admin/page-contents', {
-          method: 'POST',
-          data
-        });
+        return apiRequest('/api/admin/page-contents', 'POST', data);
       }
     },
     onSuccess: () => {
@@ -183,9 +194,7 @@ export default function BusinessSetup() {
   // Delete page content
   const deleteMutation = useMutation({
     mutationFn: (id: number) => {
-      return apiRequest(`/api/admin/page-contents/${id}`, {
-        method: 'DELETE'
-      });
+      return apiRequest(`/api/admin/page-contents/${id}`, 'DELETE');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/page-contents'] });
@@ -207,10 +216,7 @@ export default function BusinessSetup() {
   // Update app settings
   const updateSettingMutation = useMutation({
     mutationFn: (data: { key: string; value: any }) => {
-      return apiRequest('/api/admin/settings', {
-        method: 'PUT',
-        data
-      });
+      return apiRequest('/api/admin/settings', 'PUT', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/settings'] });
@@ -308,7 +314,7 @@ export default function BusinessSetup() {
   const isUpdatingAny = pageMutation.isPending || deleteMutation.isPending || updateSettingMutation.isPending;
   
   return (
-    <AdminLayout>
+    <AdminLayout title="Business Setup">
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-8">Business Setup</h1>
         
