@@ -164,9 +164,9 @@ export default function BusinessSetup() {
   const pageMutation = useMutation({
     mutationFn: async (data: PageContentFormValues) => {
       if (editingPage) {
-        return apiRequest(`/api/admin/page-contents/${editingPage.id}`, 'PATCH', data);
+        return apiRequest('PATCH', `/api/admin/page-contents/${editingPage.id}`, data);
       } else {
-        return apiRequest('/api/admin/page-contents', 'POST', data);
+        return apiRequest('POST', '/api/admin/page-contents', data);
       }
     },
     onSuccess: () => {
@@ -194,7 +194,7 @@ export default function BusinessSetup() {
   // Delete page content
   const deleteMutation = useMutation({
     mutationFn: (id: number) => {
-      return apiRequest(`/api/admin/page-contents/${id}`, 'DELETE');
+      return apiRequest('DELETE', `/api/admin/page-contents/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/page-contents'] });
@@ -221,7 +221,7 @@ export default function BusinessSetup() {
   
   const updateSettingMutation = useMutation({
     mutationFn: (data: SettingUpdate) => {
-      return apiRequest('/api/admin/settings', 'PUT', data);
+      return apiRequest('PUT', '/api/admin/settings', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/settings'] });
