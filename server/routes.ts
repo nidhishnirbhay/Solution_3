@@ -1857,6 +1857,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // App Settings routes
+  adminRouter.get('/settings', authorize(['admin']), async (req, res) => {
+    try {
+      const settings = await storage.getAllSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error('Error fetching all settings:', error);
+      res.status(500).json({ error: "Failed to retrieve settings" });
+    }
+  });
+  
+  adminRouter.get('/settings/:key', authorize(['admin']), async (req, res) => {
+    try {
+      const { key } = req.params;
+      const setting = await storage.getSetting(key);
+      
+      if (!setting) {
+        return res.status(404).json({ error: "Setting not found" });
+      }
+      
+      res.json(setting);
+    } catch (error) {
+      console.error(`Error fetching setting with key ${req.params.key}:`, error);
+      res.status(500).json({ error: "Failed to retrieve setting" });
+    }
+  });
+  
+  adminRouter.put('/settings', authorize(['admin']), async (req, res) => {
+    try {
+      const { key, value } = req.body;
+      
+      if (!key) {
+        return res.status(400).json({ error: "Key is required" });
+      }
+      
+      const setting = await storage.updateSetting(key, value);
+      
+      if (!setting) {
+        return res.status(404).json({ error: "Setting not found" });
+      }
+      
+      res.json(setting);
+    } catch (error) {
+      console.error('Error updating setting:', error);
+      res.status(500).json({ error: "Failed to update setting" });
+    }
+  });
+  
   // Register all routes
   app.use('/api/auth', authRouter);
   app.use('/api/kyc', kycRouter);
