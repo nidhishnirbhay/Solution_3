@@ -52,6 +52,15 @@ export interface IStorage {
   getSetting(key: string): Promise<AppSetting | undefined>;
   updateSetting(key: string, value: any): Promise<AppSetting | undefined>;
   getAllSettings(): Promise<AppSetting[]>;
+  
+  // Page Content methods
+  createPageContent(content: InsertPageContent): Promise<PageContent>;
+  getPageContent(id: number): Promise<PageContent | undefined>;
+  getPageContentBySlug(slug: string): Promise<PageContent | undefined>;
+  getPageContentsByCategory(category: string): Promise<PageContent[]>;
+  updatePageContent(id: number, data: Partial<PageContent>): Promise<PageContent | undefined>;
+  deletePageContent(id: number): Promise<boolean>;
+  getAllPageContents(): Promise<PageContent[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -397,6 +406,65 @@ export class MemStorage implements IStorage {
 
   async getAllSettings(): Promise<AppSetting[]> {
     return Array.from(this.appSettings.values());
+  }
+  
+  // Page Content methods
+  private pageContents: Map<number, PageContent> = new Map();
+  private pageContentIdCounter: number = 1;
+  
+  async createPageContent(content: InsertPageContent): Promise<PageContent> {
+    const id = this.pageContentIdCounter++;
+    const timestamp = new Date();
+    const newPageContent: PageContent = {
+      ...content,
+      id,
+      createdAt: timestamp,
+      updatedAt: timestamp
+    };
+    this.pageContents.set(id, newPageContent);
+    return newPageContent;
+  }
+  
+  async getPageContent(id: number): Promise<PageContent | undefined> {
+    return this.pageContents.get(id);
+  }
+  
+  async getPageContentBySlug(slug: string): Promise<PageContent | undefined> {
+    return Array.from(this.pageContents.values()).find(
+      (content) => content.slug === slug
+    );
+  }
+  
+  async getPageContentsByCategory(category: string): Promise<PageContent[]> {
+    return Array.from(this.pageContents.values()).filter(
+      (content) => content.category === category
+    );
+  }
+  
+  async updatePageContent(id: number, data: Partial<PageContent>): Promise<PageContent | undefined> {
+    const content = await this.getPageContent(id);
+    if (!content) return undefined;
+    
+    const updatedContent: PageContent = {
+      ...content,
+      ...data,
+      updatedAt: new Date()
+    };
+    this.pageContents.set(id, updatedContent);
+    return updatedContent;
+  }
+  
+  async deletePageContent(id: number): Promise<boolean> {
+    const exists = this.pageContents.has(id);
+    if (exists) {
+      this.pageContents.delete(id);
+      return true;
+    }
+    return false;
+  }
+  
+  async getAllPageContents(): Promise<PageContent[]> {
+    return Array.from(this.pageContents.values());
   }
 }
 

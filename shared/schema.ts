@@ -174,3 +174,26 @@ export type InsertRating = z.infer<typeof insertRatingSchema>;
 
 export type AppSetting = typeof appSettings.$inferSelect;
 export type InsertAppSetting = z.infer<typeof insertAppSettingsSchema>;
+
+// Page content schema
+export const pageContents = pgTable("page_contents", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  category: text("category").notNull(), // e.g., 'support', 'legal', etc.
+  isPublished: boolean("is_published").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPageContentSchema = createInsertSchema(pageContents).pick({
+  slug: true,
+  title: true,
+  content: true,
+  category: true,
+  isPublished: true,
+});
+
+export type PageContent = typeof pageContents.$inferSelect;
+export type InsertPageContent = z.infer<typeof insertPageContentSchema>;
