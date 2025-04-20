@@ -94,9 +94,21 @@ export default function FindRides() {
       
       return fetch(`/api/rides/search?${searchParams.toString()}`, {
         credentials: "include",
-      }).then(res => {
-        if (!res.ok) throw new Error("Failed to fetch rides");
+      }).then(async res => {
+        if (!res.ok) {
+          // Try to get detailed error message from response
+          try {
+            const errorData = await res.json();
+            throw new Error(errorData.error || "Failed to fetch rides");
+          } catch (parseError) {
+            // If we can't parse the error JSON, use generic message with status
+            throw new Error(`Search failed with status ${res.status}`);
+          }
+        }
         return res.json();
+      }).catch(error => {
+        console.error("Ride search error:", error);
+        throw error; // Re-throw to be handled by React Query's error state
       });
     },
     enabled: !!submittedValues,
@@ -252,9 +264,9 @@ export default function FindRides() {
           {isError && (
             <Alert variant="destructive" className="mb-6">
               <Info className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
+              <AlertTitle>Search Error</AlertTitle>
               <AlertDescription>
-                Failed to fetch rides. Please try again later.
+                {rides instanceof Error ? rides.message : "Failed to fetch rides. Please try again later or adjust your search parameters."}
               </AlertDescription>
             </Alert>
           )}

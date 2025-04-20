@@ -85,7 +85,32 @@ export default function PublishRide() {
   const publishRideMutation = useMutation({
     mutationFn: async (data: any) => {
       try {
+        console.log("Publishing ride with data:", data);
+        
+        // Validate critical fields before sending to server
+        if (!data.fromLocation || !data.toLocation) {
+          throw new Error("Origin and destination locations are required");
+        }
+        
+        if (!data.departureDate) {
+          throw new Error("Departure date and time are required");
+        }
+        
+        if (!data.vehicleType || !data.vehicleNumber) {
+          throw new Error("Vehicle information is required");
+        }
+        
+        if (!data.totalSeats || data.totalSeats < 1) {
+          throw new Error("Total seats must be at least 1");
+        }
+        
         const res = await apiRequest("POST", "/api/rides", data);
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || "Failed to publish ride. Server error.");
+        }
+        
         return res.json();
       } catch (error) {
         console.error("Failed to publish ride:", error);
