@@ -127,7 +127,32 @@ export default function KycVerification() {
       console.log("Submitting KYC with data:", formattedData);
       
       try {
+        // Validate critical fields before sending
+        if (!formattedData.documentType) {
+          throw new Error("Document type is required");
+        }
+        
+        if (!formattedData.documentNumber) {
+          throw new Error("Document number is required");
+        }
+        
+        if (!formattedData.userId) {
+          throw new Error("User identification is missing. Please try logging out and back in.");
+        }
+        
         const res = await apiRequest("POST", "/api/kyc", formattedData);
+        
+        if (!res.ok) {
+          // Try to get a detailed error message from the response
+          try {
+            const errorData = await res.json();
+            throw new Error(errorData.error || "Server error during KYC submission");
+          } catch (parseError) {
+            // If we can't parse the error JSON, use a generic message with status
+            throw new Error(`KYC submission failed with status ${res.status}`);
+          }
+        }
+        
         return res.json();
       } catch (error) {
         console.error("KYC API request error:", error);
@@ -292,14 +317,38 @@ export default function KycVerification() {
                       </div>
                     </div>
 
-                    {latestKyc && latestKyc.status === "rejected" && (
-                      <Alert variant="destructive" className="mt-4">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Verification Failed</AlertTitle>
-                        <AlertDescription>
-                          {latestKyc.remarks || "Your KYC verification was rejected. Please submit again with correct information."}
-                        </AlertDescription>
-                      </Alert>
+                    {latestKyc && (
+                      <>
+                        {latestKyc.status === "rejected" && (
+                          <Alert variant="destructive" className="mt-4">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Verification Failed</AlertTitle>
+                            <AlertDescription>
+                              {latestKyc.remarks || "Your KYC verification was rejected. Please submit again with correct information."}
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                        
+                        {latestKyc.status === "pending" && (
+                          <Alert className="mt-4 border-yellow-500 text-yellow-700 bg-yellow-50">
+                            <Clock className="h-4 w-4" />
+                            <AlertTitle>Verification In Progress</AlertTitle>
+                            <AlertDescription>
+                              Your documents are being reviewed by our team. This typically takes 24-48 hours. You'll receive a notification when verification is complete.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                        
+                        {latestKyc.status === "approved" && (
+                          <Alert className="mt-4 border-green-500 text-green-700 bg-green-50">
+                            <Check className="h-4 w-4" />
+                            <AlertTitle>Verification Successful</AlertTitle>
+                            <AlertDescription>
+                              Your KYC verification is complete. You can now access all platform features including publishing rides and booking services.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                      </>
                     )}
                   </CardContent>
                 </Card>

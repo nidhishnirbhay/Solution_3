@@ -41,18 +41,48 @@ export default function AdminLogin() {
     },
   });
 
+  // Track login attempts with a counter
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [isLocked, setIsLocked] = useState(false);
+  
   async function onSubmit(data: LoginFormValues) {
+    // Check if account is temporarily locked due to too many failed attempts
+    if (isLocked) {
+      setError("Too many failed login attempts. Please try again later.");
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
 
     try {
       console.log("Attempting admin login with username:", data.username);
       
+      // Validate input before sending to server
+      if (!data.username.trim() || !data.password.trim()) {
+        throw new Error("Please enter both username and password");
+      }
+      
       const res = await apiRequest("POST", "/api/auth/login", data);
       
       // More detailed error logging
       if (!res.ok) {
         console.error("Admin login failed with status:", res.status);
+        
+        // Increment login attempt counter
+        const newAttemptCount = loginAttempts + 1;
+        setLoginAttempts(newAttemptCount);
+        
+        // If too many failed attempts, lock the account temporarily
+        if (newAttemptCount >= 5) {
+          setIsLocked(true);
+          // After 2 minutes, unlock the account
+          setTimeout(() => {
+            setIsLocked(false);
+            setLoginAttempts(0);
+          }, 2 * 60 * 1000); // 2 minutes lockout
+        }
+        
         let errorMessage = "Login failed";
         try {
           const errorData = await res.json();
@@ -62,6 +92,9 @@ export default function AdminLogin() {
         }
         throw new Error(errorMessage);
       }
+      
+      // Reset attempt counter on successful login
+      setLoginAttempts(0);
       
       let userData;
       try {
@@ -152,10 +185,16 @@ export default function AdminLogin() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isLoading}
+                  disabled={isLoading || isLocked}
                 >
-                  {isLoading ? "Signing in..." : "Sign In"}
+                  {isLoading ? "Signing in..." : isLocked ? "Account Temporarily Locked" : "Sign In"}
                 </Button>
+                
+                {/* Account help text */}
+                <div className="text-center mt-4 text-sm text-muted-foreground">
+                  <p>Forgot your password or having trouble logging in?</p>
+                  <p className="mt-1">Contact <a href="mailto:support@oyegaadi.com" className="text-primary hover:underline">support@oyegaadi.com</a> for assistance.</p>
+                </div>
               </form>
             </Form>
           </CardContent>
