@@ -99,7 +99,34 @@ export function RideCard({ ride }: { ride: RideProps }) {
     mutationFn: async (data: { rideId: number; numberOfSeats: number }) => {
       // customerId is added by the server from the session - we don't need to provide it
       try {
+        // Validate input before sending to server
+        if (!data.rideId) {
+          throw new Error("Invalid ride selection");
+        }
+        
+        if (!data.numberOfSeats || data.numberOfSeats < 1) {
+          throw new Error("Please select at least one seat");
+        }
+        
+        // Check authentication before making request
+        if (!user || !user.id) {
+          throw new Error("You need to be logged in to book a ride");
+        }
+        
+        console.log("Booking ride:", data);
         const res = await apiRequest("POST", "/api/bookings", data);
+        
+        if (!res.ok) {
+          // Try to get detailed error message from response
+          try {
+            const errorData = await res.json();
+            throw new Error(errorData.error || "Server error processing booking");
+          } catch (parseError) {
+            // If we can't parse the error JSON, use generic message with status
+            throw new Error(`Booking failed with status ${res.status}`);
+          }
+        }
+        
         return res.json();
       } catch (error) {
         console.error("Booking API request error:", error);
@@ -137,8 +164,36 @@ export function RideCard({ ride }: { ride: RideProps }) {
         id: data.id,
         cancellationReason: data.reason
       });
-      const res = await apiRequest("PATCH", `/api/rides/${data.id}/cancel`, { cancellationReason: data.reason });
-      return res.json();
+      
+      // Validate the request data
+      if (!data.id) {
+        throw new Error("Invalid ride selection");
+      }
+      
+      // Validate reason if required
+      if (!data.reason.trim()) {
+        throw new Error("Please provide a reason for cancellation");
+      }
+      
+      try {
+        const res = await apiRequest("PATCH", `/api/rides/${data.id}/cancel`, { cancellationReason: data.reason });
+        
+        if (!res.ok) {
+          // Try to get detailed error message from response
+          try {
+            const errorData = await res.json();
+            throw new Error(errorData.error || "Server error during cancellation");
+          } catch (parseError) {
+            // If we can't parse the error JSON, use generic message with status
+            throw new Error(`Cancellation failed with status ${res.status}`);
+          }
+        }
+        
+        return res.json();
+      } catch (error) {
+        console.error("Ride cancellation error:", error);
+        throw new Error(error instanceof Error ? error.message : "Failed to cancel ride. Please try again.");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/rides/my-rides"] });
@@ -157,11 +212,34 @@ export function RideCard({ ride }: { ride: RideProps }) {
     }
   });
   
-  // Mutation for marking a ride as completed (unused - keeping for reference)
+  // Mutation for marking a ride as completed
   const completeRideMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await apiRequest("PATCH", `/api/rides/${id}/complete`, {});
-      return res.json();
+      // Validate the ride ID
+      if (!id) {
+        throw new Error("Invalid ride ID");
+      }
+      
+      try {
+        console.log("Attempting to mark ride as completed:", id);
+        const res = await apiRequest("PATCH", `/api/rides/${id}/complete`, {});
+        
+        if (!res.ok) {
+          // Try to get detailed error message from response
+          try {
+            const errorData = await res.json();
+            throw new Error(errorData.error || "Server error while completing ride");
+          } catch (parseError) {
+            // If we can't parse the error JSON, use generic message with status
+            throw new Error(`Complete ride operation failed with status ${res.status}`);
+          }
+        }
+        
+        return res.json();
+      } catch (error) {
+        console.error("Complete ride error:", error);
+        throw new Error(error instanceof Error ? error.message : "Failed to complete ride. Please try again.");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/rides/my-rides"] });
