@@ -84,8 +84,13 @@ export default function PublishRide() {
 
   const publishRideMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/rides", data);
-      return res.json();
+      try {
+        const res = await apiRequest("POST", "/api/rides", data);
+        return res.json();
+      } catch (error) {
+        console.error("Failed to publish ride:", error);
+        throw new Error(error instanceof Error ? error.message : "Failed to publish ride. Please try again.");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/rides/my-rides"] });
