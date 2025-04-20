@@ -57,8 +57,10 @@ export function RideCard({ ride }: { ride: RideProps }) {
   const { user } = useAuth();
   
   // Fetch booking fee settings
-  const { data: bookingFeeSetting } = useQuery({
+  const { data: bookingFeeSetting } = useQuery<{enabled: boolean; amount: number}>({
     queryKey: ["/api/settings/booking-fee"],
+    // Default to fee enabled with 200 amount if not explicitly configured
+    placeholderData: { enabled: true, amount: 200 }
   });
   
   // Check if this is a past ride (based on departure date)

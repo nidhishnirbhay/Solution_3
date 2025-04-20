@@ -46,14 +46,31 @@ export default function AdminLogin() {
     setError(null);
 
     try {
+      console.log("Attempting admin login with username:", data.username);
+      
       const res = await apiRequest("POST", "/api/auth/login", data);
       
+      // More detailed error logging
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Login failed");
+        console.error("Admin login failed with status:", res.status);
+        let errorMessage = "Login failed";
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (parseError) {
+          console.error("Failed to parse error response:", parseError);
+        }
+        throw new Error(errorMessage);
       }
       
-      const userData = await res.json();
+      let userData;
+      try {
+        userData = await res.json();
+        console.log("Login successful, user role:", userData.role);
+      } catch (parseError) {
+        console.error("Failed to parse user data:", parseError);
+        throw new Error("Invalid response from server");
+      }
       
       // Check if user is an admin
       if (userData.role !== "admin") {
