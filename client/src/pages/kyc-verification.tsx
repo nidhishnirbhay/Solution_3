@@ -132,7 +132,7 @@ export default function KycVerification() {
           throw new Error("Document type is required");
         }
         
-        if (!formattedData.documentNumber) {
+        if (!formattedData.documentId) {
           throw new Error("Document number is required");
         }
         
