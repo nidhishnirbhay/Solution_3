@@ -273,11 +273,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // KYC routes
   const kycRouter = express.Router();
   
-  kycRouter.post('/', validateBody(insertKycSchema), async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    
+  kycRouter.post('/', validateBody(insertKycSchema), authorize(['customer', 'driver']), async (req, res) => {
     try {
       const user = req.user as any;
       const userId = Number(user.id);
