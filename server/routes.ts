@@ -300,11 +300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  kycRouter.get('/my-kyc', async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    
+  kycRouter.get('/my-kyc', authorize(['customer', 'driver']), async (req, res) => {
     try {
       const user = req.user as any;
       const kycDocuments = await storage.getKycVerificationsByUserId(user.id);

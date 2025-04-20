@@ -124,12 +124,15 @@ export default function KycVerification() {
         userId: user?.id // Ensure userId is included and is a number
       };
       
-      const res = await apiRequest("POST", "/api/kyc", formattedData);
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Submission failed");
+      console.log("Submitting KYC with data:", formattedData);
+      
+      try {
+        const res = await apiRequest("POST", "/api/kyc", formattedData);
+        return res.json();
+      } catch (error) {
+        console.error("KYC API request error:", error);
+        throw new Error(error instanceof Error ? error.message : "Failed to submit KYC. Please try again.");
       }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/kyc/my-kyc"] });
@@ -175,12 +178,12 @@ export default function KycVerification() {
 
   // Get the latest KYC status
   const getLatestKycStatus = () => {
-    if (!kycDocuments || kycDocuments.length === 0) {
+    if (!kycDocuments || !Array.isArray(kycDocuments) || kycDocuments.length === 0) {
       return null;
     }
     
     // Sort by creation date and get the latest
-    return kycDocuments.sort((a, b) => 
+    return [...kycDocuments].sort((a: any, b: any) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )[0];
   };
@@ -680,14 +683,14 @@ export default function KycVerification() {
                 )}
                 
                 {/* KYC History */}
-                {kycDocuments && kycDocuments.length > 0 && (
+                {kycDocuments && Array.isArray(kycDocuments) && kycDocuments.length > 0 && (
                   <Card className="mt-8">
                     <CardHeader>
                       <CardTitle>KYC History</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {kycDocuments.map((kyc, index) => (
+                        {kycDocuments.map((kyc: any, index: number) => (
                           <div key={index} className="border rounded-lg p-4">
                             <div className="flex justify-between mb-2">
                               <span className="font-medium">Submitted on {new Date(kyc.createdAt).toLocaleDateString()}</span>

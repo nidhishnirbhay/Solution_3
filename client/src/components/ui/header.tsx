@@ -92,14 +92,14 @@ export function Header() {
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <Link href="/">
-              <a className="flex items-center">
+              <div className="flex items-center cursor-pointer">
                 <span className="text-2xl font-bold text-primary relative">
                   Oye<span className="text-blue-500">Gaadi</span>
                   <span className="absolute -bottom-1 -right-9 text-amber-500 text-[10px] font-semibold">
                     BETA
                   </span>
                 </span>
-              </a>
+              </div>
             </Link>
           </div>
 
@@ -107,13 +107,13 @@ export function Header() {
           <nav className="hidden md:flex space-x-6">
             {navLinks.map((link) => (
               <Link key={link.path} href={link.path}>
-                <a
-                  className={`text-neutral-700 hover:text-primary font-medium text-sm py-2 ${
+                <div
+                  className={`text-neutral-700 hover:text-primary font-medium text-sm py-2 cursor-pointer ${
                     location === link.path ? "text-primary" : ""
                   }`}
                 >
                   {link.label}
-                </a>
+                </div>
               </Link>
             ))}
           </nav>
@@ -134,39 +134,39 @@ export function Header() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     {user.role === "admin" ? (
-                      <DropdownMenuItem>
-                        <Link href="/admin">
-                          <a className="w-full">Admin Dashboard</a>
-                        </Link>
-                      </DropdownMenuItem>
+                      <Link href="/admin">
+                        <DropdownMenuItem className="cursor-pointer">
+                          Admin Dashboard
+                        </DropdownMenuItem>
+                      </Link>
                     ) : (
                       <>
-                        <DropdownMenuItem>
-                          <Link href="/my-bookings">
-                            <a className="w-full">My Bookings</a>
-                          </Link>
-                        </DropdownMenuItem>
+                        <Link href="/my-bookings">
+                          <DropdownMenuItem className="cursor-pointer">
+                            My Bookings
+                          </DropdownMenuItem>
+                        </Link>
                         {user.role === "driver" && (
                           <>
-                            <DropdownMenuItem>
-                              <Link href="/publish-ride">
-                                <a className="w-full">Publish Ride</a>
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Link href="/my-published-rides">
-                                <a className="w-full">My Rides</a>
-                              </Link>
-                            </DropdownMenuItem>
+                            <Link href="/publish-ride">
+                              <DropdownMenuItem className="cursor-pointer">
+                                Publish Ride
+                              </DropdownMenuItem>
+                            </Link>
+                            <Link href="/my-published-rides">
+                              <DropdownMenuItem className="cursor-pointer">
+                                My Rides
+                              </DropdownMenuItem>
+                            </Link>
                           </>
                         )}
                       </>
                     )}
-                    <DropdownMenuItem>
-                      <Link href="/kyc-verification">
-                        <a className="w-full">KYC Verification</a>
-                      </Link>
-                    </DropdownMenuItem>
+                    <Link href="/kyc-verification">
+                      <DropdownMenuItem className="cursor-pointer">
+                        KYC Verification
+                      </DropdownMenuItem>
+                    </Link>
                     <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -200,14 +200,14 @@ export function Header() {
             <div className="space-y-2">
               {navLinks.map((link) => (
                 <Link key={link.path} href={link.path}>
-                  <a
-                    className={`block py-2 text-neutral-700 hover:text-primary ${
+                  <div
+                    className={`block py-2 text-neutral-700 hover:text-primary cursor-pointer ${
                       location === link.path ? "text-primary" : ""
                     }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {link.label}
-                  </a>
+                  </div>
                 </Link>
               ))}
               
@@ -216,12 +216,12 @@ export function Header() {
                   {/* Only show for customers and drivers */}
                   {user.role !== "admin" && (
                     <Link href="/my-bookings">
-                      <a
-                        className="block py-2 text-neutral-700 hover:text-primary"
+                      <div
+                        className="block py-2 text-neutral-700 hover:text-primary cursor-pointer"
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         My Bookings
-                      </a>
+                      </div>
                     </Link>
                   )}
                   
@@ -229,32 +229,32 @@ export function Header() {
                   {user.role === "driver" && (
                     <>
                       <Link href="/publish-ride">
-                        <a
-                          className="block py-2 text-neutral-700 hover:text-primary"
+                        <div
+                          className="block py-2 text-neutral-700 hover:text-primary cursor-pointer"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Publish Ride
-                        </a>
+                        </div>
                       </Link>
                       <Link href="/my-published-rides">
-                        <a
-                          className="block py-2 text-neutral-700 hover:text-primary"
+                        <div
+                          className="block py-2 text-neutral-700 hover:text-primary cursor-pointer"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           My Rides
-                        </a>
+                        </div>
                       </Link>
                     </>
                   )}
                   
                   {/* Show for all users */}
                   <Link href="/kyc-verification">
-                    <a
-                      className="block py-2 text-neutral-700 hover:text-primary"
+                    <div
+                      className="block py-2 text-neutral-700 hover:text-primary cursor-pointer"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       KYC Verification
-                    </a>
+                    </div>
                   </Link>
                   
                   <Button
