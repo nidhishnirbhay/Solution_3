@@ -113,13 +113,47 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormValues) => {
-      const res = await apiRequest("POST", "/api/auth/login", {
-        username: data.username,
-        password: data.password,
-      });
-      return res.json();
+      console.log("User login attempt for:", data.username);
+      
+      // Client-side validation
+      if (!data.username.trim()) {
+        throw new Error("Username is required");
+      }
+      
+      if (!data.password.trim()) {
+        throw new Error("Password is required");
+      }
+      
+      try {
+        const res = await apiRequest("POST", "/api/auth/login", {
+          username: data.username,
+          password: data.password,
+        });
+        
+        if (!res.ok) {
+          // Attempt to extract detailed error message
+          const errorData = await res.json();
+          
+          // Special handling for suspended accounts
+          if (res.status === 403 && errorData.error === "Account suspended") {
+            throw new Error("Your account has been suspended. Please contact support.");
+          }
+          
+          throw new Error(errorData.error || errorData.message || "Login failed. Please check your credentials.");
+        }
+        
+        return res.json();
+      } catch (error) {
+        console.error("Login request error:", error);
+        if (error instanceof Error) {
+          throw error;
+        } else {
+          throw new Error("Login failed. Please try again later.");
+        }
+      }
     },
     onSuccess: (data) => {
+      console.log("Login successful for user:", data.username);
       login(data);
       toast({
         title: "Login successful",
@@ -128,6 +162,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
       onClose();
     },
     onError: (error) => {
+      console.error("Login error in mutation:", error);
       toast({
         title: "Login failed",
         description: error instanceof Error ? error.message : "Invalid credentials",
@@ -139,11 +174,54 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
   // Register mutation
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormValues) => {
-      const { termsAgreement, ...userData } = data;
-      const res = await apiRequest("POST", "/api/auth/register", userData);
-      return res.json();
+      console.log("User registration attempt for:", data.username);
+      
+      // Client-side validation
+      if (!data.username.trim()) {
+        throw new Error("Username is required");
+      }
+      
+      if (!data.password.trim()) {
+        throw new Error("Password is required");
+      }
+      
+      if (!data.fullName.trim()) {
+        throw new Error("Full name is required");
+      }
+      
+      if (!data.mobile.trim()) {
+        throw new Error("Mobile number is required");
+      }
+      
+      if (!data.termsAgreement) {
+        throw new Error("You must agree to the terms and conditions");
+      }
+      
+      try {
+        // Remove terms agreement field as it's not needed in the API
+        const { termsAgreement, ...userData } = data;
+        
+        const res = await apiRequest("POST", "/api/auth/register", userData);
+        
+        if (!res.ok) {
+          // Attempt to extract detailed error message
+          const errorData = await res.json();
+          console.error("Registration error response:", errorData);
+          throw new Error(errorData.error || errorData.message || "Registration failed. Please try again.");
+        }
+        
+        return res.json();
+      } catch (error) {
+        console.error("Registration request error:", error);
+        if (error instanceof Error) {
+          throw error;
+        } else {
+          throw new Error("Registration failed. Please try again later.");
+        }
+      }
     },
     onSuccess: (data) => {
+      console.log("Registration successful for user:", data.username);
       login(data);
       toast({
         title: "Registration successful",
@@ -152,6 +230,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
       onClose();
     },
     onError: (error) => {
+      console.error("Registration error in mutation:", error);
       toast({
         title: "Registration failed",
         description: error instanceof Error ? error.message : "Could not create account",

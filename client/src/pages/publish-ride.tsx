@@ -160,6 +160,7 @@ export default function PublishRide() {
       // Directly send ISO date strings, server will parse them
       departureDate: combineDepartureDateTime,
       estimatedArrivalDate: estimatedArrivalDateTime || null,
+      // Fix mismatch - server expects 'rideType', not 'rideTypes'
       rideType: ["one-way"],  // Always use one-way ride type
       price: price,
       totalSeats: data.totalSeats,
