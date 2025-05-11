@@ -127,10 +127,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     resave: false,
     saveUninitialized: false,
     cookie: { 
-      secure: process.env.NODE_ENV === 'production', 
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      // Set secure to false for now to ensure cookies work in all environments
+      // In production with proper HTTPS, you can set this to true
+      secure: false, 
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days for longer sessions
       httpOnly: true,
-      sameSite: 'lax'
+      sameSite: 'lax',
+      path: '/' // Ensure cookies are available across the entire site
     },
     store: new MemorySessionStore({ 
       checkPeriod: 86400000, // 1 day cleanup period
@@ -202,9 +205,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })(req, res, next);
   });
   
-  authRouter.post('/register', validateBody(insertUserSchema), async (req, res) => {
+  authRouter.post('/register', async (req, res) => {
     try {
-      const { username, mobile } = req.body;
+      console.log("Registration request received:", req.body);
+      
+      // Validate required fields
+      const requiredFields = [
+        { field: 'username', message: 'Username is required' },
+        { field: 'password', message: 'Password is required' },
+        { field: 'mobile', message: 'Mobile number is required' },
+        { field: 'fullName', message: 'Full name is required' },
+        { field: 'role', message: 'Role is required' }
+      ];
+      
+      for (const { field, message } of requiredFields) {
+        if (!req.body[field]) {
+          return res.status(400).json({ error: message });
+        }
+      }
+      
+      const { username, mobile, role } = req.body;
+      
+      // Validate role
+      if (!['driver', 'customer'].includes(role)) {
+        return res.status(400).json({ error: "Invalid role. Must be 'driver' or 'customer'" });
+      }
       
       // Check if username or mobile already exists
       const existingUsername = await storage.getUserByUsername(username);
@@ -217,11 +242,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Mobile number already registered" });
       }
       
+      console.log("Creating new user with role:", role);
       const newUser = await storage.createUser(req.body);
+      console.log("User created successfully with ID:", newUser.id);
       
       // Auto-login after registration
       req.logIn(newUser, (err) => {
-        if (err) return res.status(500).json({ error: "Login after registration failed" });
+        if (err) {
+          console.error("Auto-login after registration failed:", err);
+          return res.status(500).json({ error: "Login after registration failed" });
+        }
+        
+        console.log("User auto-logged in after registration");
         return res.status(201).json({
           id: newUser.id,
           username: newUser.username,
@@ -231,7 +263,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       });
     } catch (error) {
-      res.status(500).json({ error: "Registration failed" });
+      console.error("Registration error:", error);
+      res.status(500).json({ error: "Registration failed", details: error instanceof Error ? error.message : undefined });
     }
   });
   
@@ -273,10 +306,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // KYC routes
   const kycRouter = express.Router();
   
-  kycRouter.post('/', validateBody(insertKycSchema), authorize(['customer', 'driver']), async (req, res) => {
+  kycRouter.post('/', authorize(['customer', 'driver']), async (req, res) => {
     try {
       const user = req.user as any;
       const userId = Number(user.id);
+      
+      console.log("KYC submission received:", req.body);
+      
+      // Ensure all required fields are present
+      if (!req.body.documentType) {
+        return res.status(400).json({ error: "Document type is required" });
+      }
+      
+      if (!req.body.documentId) {
+        return res.status(400).json({ error: "Document number is required" });
+      }
+      
+      if (!req.body.documentUrl) {
+        return res.status(400).json({ error: "Document image is required" });
+      }
       
       // Prepare the data ensuring userId is a number
       const kycData = { 
@@ -284,7 +332,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: userId
       };
       
+      console.log("Processed KYC data:", kycData);
+      
       const kyc = await storage.createKycVerification(kycData);
+      console.log("KYC verification created successfully:", kyc.id);
       res.status(201).json(kyc);
     } catch (error) {
       console.error("KYC submission error:", error);
@@ -352,13 +403,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Ride routes
   const rideRouter = express.Router();
   
-  rideRouter.post('/', authorize(['driver']), validateBody(insertRideSchema), async (req, res) => {
+  rideRouter.post('/', authorize(['driver']), async (req, res) => {
     try {
       const user = req.user as any;
+      
+      console.log("Ride publish request received:", req.body);
       
       // Check if driver is KYC verified
       if (!user.isKycVerified) {
         return res.status(403).json({ error: "KYC verification required to publish rides" });
+      }
+      
+      // Validate required fields with clear error messages
+      const requiredFields = [
+        { field: 'fromLocation', message: 'From location is required' },
+        { field: 'toLocation', message: 'To location is required' },
+        { field: 'departureDate', message: 'Departure date is required' },
+        { field: 'rideType', message: 'Ride type is required' },
+        { field: 'price', message: 'Price is required' },
+        { field: 'totalSeats', message: 'Total seats is required' },
+        { field: 'availableSeats', message: 'Available seats is required' },
+        { field: 'vehicleType', message: 'Vehicle type is required' },
+        { field: 'vehicleNumber', message: 'Vehicle number is required' }
+      ];
+      
+      for (const { field, message } of requiredFields) {
+        if (!req.body[field] && req.body[field] !== 0) {
+          return res.status(400).json({ error: message });
+        }
       }
       
       // Ensure dates are properly handled
@@ -375,11 +447,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         rideData.estimatedArrivalDate = new Date(rideData.estimatedArrivalDate);
       }
       
+      // Convert numerical fields to ensure they're actually numbers
+      rideData.price = Number(rideData.price);
+      rideData.totalSeats = Number(rideData.totalSeats);
+      rideData.availableSeats = Number(rideData.availableSeats);
+      
+      console.log("Processed ride data:", rideData);
+      
       const ride = await storage.createRide(rideData);
+      console.log("Ride created successfully:", ride.id);
       res.status(201).json(ride);
     } catch (error) {
       console.error("Ride creation error:", error);
-      res.status(500).json({ error: "Failed to create ride" });
+      res.status(500).json({ error: "Failed to create ride", details: error instanceof Error ? error.message : undefined });
     }
   });
   
