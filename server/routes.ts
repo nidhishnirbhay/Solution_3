@@ -1542,7 +1542,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rating = await storage.createRating(ratingData);
       res.status(201).json(rating);
     } catch (error) {
-      res.status(500).json({ error: "Rating submission failed" });
+      console.error("Rating submission error:", error);
+      res.status(500).json({ error: "Rating submission failed", details: error.message });
     }
   });
   

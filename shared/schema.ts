@@ -128,7 +128,7 @@ export const ratings = pgTable("ratings", {
   id: serial("id").primaryKey(),
   fromUserId: integer("from_user_id").notNull(),
   toUserId: integer("to_user_id").notNull(),
-  bookingId: integer("booking_id").notNull().unique(),
+  bookingId: integer("booking_id").notNull(),
   rating: integer("rating").notNull(),
   review: text("review"),
   createdAt: timestamp("created_at").defaultNow(),
