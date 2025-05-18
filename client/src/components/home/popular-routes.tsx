@@ -141,7 +141,12 @@ export function PopularRoutes() {
                     <div className="flex justify-between text-sm">
                       <span>Full booking ({ride.totalSeats} seats)</span>
                       <span 
-                        onClick={() => navigate(`/find-rides?from=${ride.fromLocation}&to=${ride.toLocation}`)}
+                        onClick={() => {
+                          // Format date as YYYY-MM-DD for the search form
+                          const dateObj = new Date(ride.departureDate);
+                          const formattedDate = dateObj.toISOString().split('T')[0];
+                          navigate(`/find-rides?from=${ride.fromLocation}&to=${ride.toLocation}&date=${formattedDate}`);
+                        }}
                         className="text-blue-500 font-medium cursor-pointer"
                       >
                         Book Now
