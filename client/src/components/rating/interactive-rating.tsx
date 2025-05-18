@@ -78,7 +78,7 @@ export function InteractiveRating({
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 relative z-0">
         {Array.from({ length: maxRating }).map((_, index) => {
           const starValue = index + 1;
           const isActive = starValue <= currentDisplayRating;
@@ -87,18 +87,26 @@ export function InteractiveRating({
             <motion.button
               key={index}
               type="button"
-              className="focus:outline-none p-1" // Added padding for better touch target
-              onMouseEnter={() => !readOnly && !isRatingLocked && setHoverRating(starValue)}
-              onMouseLeave={() => !readOnly && !isRatingLocked && setHoverRating(0)}
+              className="focus:outline-none p-2 mx-1" // Increased padding for larger touch target
+              onMouseEnter={() => {
+                if (!readOnly && !isRatingLocked) {
+                  setHoverRating(starValue);
+                }
+              }}
+              onMouseLeave={() => {
+                if (!readOnly && !isRatingLocked) {
+                  setHoverRating(0);
+                }
+              }}
               onClick={() => handleStarClick(starValue)}
-              whileTap={{ scale: readOnly ? 1 : 0.9 }}
+              whileTap={{ scale: readOnly ? 1 : 0.95 }}
               animate={
                 isAnimating && isActive 
                   ? { 
-                      scale: [1, 1.2, 1], // Reduced scale to prevent overflow
+                      scale: [1, 1.1, 1], // Further reduced scale animation
                       transition: { 
-                        duration: 0.3,
-                        delay: index * 0.05 
+                        duration: 0.2, // Shorter duration
+                        delay: index * 0.03 // Less delay between stars
                       }
                     } 
                   : {}
@@ -109,7 +117,7 @@ export function InteractiveRating({
               <Star
                 className={cn(
                   sizeClasses[size],
-                  "transition-colors duration-200",
+                  "transition-colors duration-100", // Faster color transition
                   isActive
                     ? "text-yellow-400 fill-yellow-400"
                     : "text-gray-300"

@@ -186,9 +186,13 @@ export function EnhancedRatingForm({
               <div className="flex justify-end mt-6">
                 <Button
                   type="button"
-                  onClick={moveToNextStep}
+                  onClick={() => {
+                    if (form.getValues("rating") > 0) {
+                      moveToNextStep();
+                    }
+                  }}
                   disabled={form.getValues("rating") === 0}
-                  className="bg-primary hover:bg-primary/90 relative z-10"
+                  className="bg-primary hover:bg-primary/90 relative z-20 pointer-events-auto"
                 >
                   Next
                 </Button>

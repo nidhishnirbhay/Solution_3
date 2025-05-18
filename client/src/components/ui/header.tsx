@@ -52,12 +52,10 @@ export function Header() {
       { path: "/find-rides", label: "Find Rides" },
     ];
 
-    // Links for driver
+    // Links for driver - removing the duplicated Publish Ride and My Rides links
     if (user && user.role === "driver") {
       return [
         ...commonLinks,
-        { path: "/publish-ride", label: "Publish Ride" },
-        { path: "/my-published-rides", label: "My Rides" },
         { path: "/my-bookings", label: "My Bookings" },
       ];
     }
