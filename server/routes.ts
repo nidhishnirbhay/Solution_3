@@ -1115,7 +1115,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bookings.map(async (booking) => {
           const ride = await storage.getRide(booking.rideId);
           const driver = ride ? await storage.getUser(ride.driverId) : null;
-          const rating = await storage.getRatingByBookingId(booking.id);
+          // Check if the current user (customer) has rated this booking
+          const customerRatings = await storage.getRatingsByFromUserId(user.id);
+          const hasRated = customerRatings.some(r => r.bookingId === booking.id);
           
           // Include driver's mobile number if booking is confirmed
           const driverInfo = driver ? {
@@ -1129,7 +1131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...booking, 
             ride, 
             driver: driverInfo,
-            hasRated: !!rating 
+            hasRated 
           };
         })
       );
@@ -1178,8 +1180,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Map the results to match the expected format
       const mappedBookings = await Promise.all(
         result.rows.map(async (row) => {
-          // Check if booking has a rating
-          const rating = await storage.getRatingByBookingId(row.id);
+          // Check if the current user (driver) has rated this booking
+          const driverRatings = await storage.getRatingsByFromUserId(user.id);
+          const hasRated = driverRatings.some(r => r.bookingId === row.id);
           
           return {
             id: row.id,
@@ -1192,7 +1195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             cancellationReason: row.cancellation_reason,
             createdAt: row.created_at,
             updatedAt: row.updated_at,
-            hasRated: !!rating,
+            hasRated,
             ride: {
               id: row.ride_id,
               fromLocation: row.from_location,
