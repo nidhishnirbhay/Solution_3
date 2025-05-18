@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RatingForm } from "@/components/rating/rating-form";
 import { RatingDisplay } from "@/components/rating/rating-display";
 import { BookingRatingDisplay } from "@/components/rating/booking-rating-display";
+import { EnhancedRatingForm } from "@/components/rating/enhanced-rating-form";
 import {
   Dialog,
   DialogContent,
@@ -361,9 +362,11 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
                       </DialogDescription>
                     </DialogHeader>
                     
-                    <RatingForm 
+                    <EnhancedRatingForm 
                       bookingId={booking.id}
                       toUserId={person?.id || 0}
+                      userName={person?.fullName || ""}
+                      userType={viewAs === "customer" ? "driver" : "customer"}
                       onSuccess={() => setShowRatingModal(false)}
                     />
                   </DialogContent>
