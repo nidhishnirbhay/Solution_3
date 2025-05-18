@@ -39,6 +39,26 @@ const searchSchema = z.object({
 
 type SearchFormValues = z.infer<typeof searchSchema>;
 
+// Define a RideProps interface to fix TypeScript errors
+interface RideProps {
+  id: number;
+  driverId: number;
+  fromLocation: string;
+  toLocation: string;
+  departureDate: string;
+  price: number;
+  rideType: string[];
+  vehicleType: string;
+  vehicleNumber: string;
+  status?: string;
+  totalSeats?: number;
+  availableSeats?: number;
+  driver?: {
+    fullName: string;
+    averageRating?: number;
+  };
+}
+
 export default function FindRides() {
   const search = useSearch();
   const [submittedValues, setSubmittedValues] = useState<SearchFormValues | null>(null);
@@ -292,7 +312,7 @@ export default function FindRides() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {rides.map((ride) => (
+                  {rides.map((ride: RideProps) => (
                     <RideCard key={ride.id} ride={ride} />
                   ))}
                 </div>

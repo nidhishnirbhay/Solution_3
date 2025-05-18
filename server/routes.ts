@@ -1572,7 +1572,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(rating);
     } catch (error) {
       console.error("Rating submission error:", error);
-      res.status(500).json({ error: "Rating submission failed", details: error.message });
+      res.status(500).json({ 
+        error: "Rating submission failed", 
+        details: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
   
