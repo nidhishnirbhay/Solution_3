@@ -1504,20 +1504,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Can only rate completed bookings" });
       }
       
-      // Check if already rated
-      const existingRating = await storage.getRatingByBookingId(booking.id);
-      if (existingRating) {
-        return res.status(400).json({ error: "Booking already rated" });
-      }
-      
-      // Determine who is rating whom
-      let fromUserId, toUserId;
-      
       // Get the ride to find driver
       const ride = await storage.getRide(booking.rideId);
       if (!ride) {
         return res.status(404).json({ error: "Ride not found" });
       }
+      
+      // Determine who is rating whom
+      let fromUserId, toUserId;
       
       if (user.id === booking.customerId) {
         // Customer rating driver
@@ -1529,6 +1523,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         toUserId = booking.customerId;
       } else {
         return res.status(403).json({ error: "You can only rate your own bookings" });
+      }
+      
+      // Check if this user has already rated this booking
+      const userRatings = await storage.getRatingsByFromUserId(fromUserId);
+      const alreadyRated = userRatings.some(r => r.bookingId === booking.id);
+      
+      if (alreadyRated) {
+        return res.status(400).json({ error: "You have already rated this booking" });
       }
       
       const ratingData = {
