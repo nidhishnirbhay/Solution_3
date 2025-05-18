@@ -598,18 +598,34 @@ export function RideCard({ ride }: { ride: RideProps }) {
                     
                     <Separator className="my-2" />
                     
-                    <div className={`${bookingFeeSetting?.enabled ? "grid grid-cols-2" : "grid grid-cols-1"} gap-4 mb-4`}>
+                    {/* Full vehicle booking price */}
+                    <div className="grid grid-cols-1 gap-4 mb-4">
                       <div>
                         <p className="text-sm text-muted-foreground">Full vehicle booking</p>
                         <p className="font-medium">₹{ride.price}</p>
                       </div>
+                      {/* 
+                        Book & Pay Booking Fee - commented for future use
+                        Currently we are not taking Booking charges
+                      
                       {bookingFeeSetting?.enabled && (
                         <div>
                           <p className="text-sm text-muted-foreground">Booking fee</p>
                           <p className="font-medium">₹{bookingFeeSetting?.amount || 0}</p>
                         </div>
                       )}
+                      */}
                     </div>
+                    
+                    {/* Display driver's additional information if available */}
+                    {ride.description && (
+                      <div className="bg-blue-50 rounded-lg p-3 text-sm mb-4">
+                        <p className="font-medium mb-1 text-blue-800">Additional Information:</p>
+                        <p className="text-blue-700">
+                          {ride.description}
+                        </p>
+                      </div>
+                    )}
                     
                     <div className="bg-orange-50 rounded-lg p-3 text-sm mb-4">
                       <p className="font-medium mb-1 text-orange-800">Important:</p>
@@ -621,12 +637,18 @@ export function RideCard({ ride }: { ride: RideProps }) {
                     <div className="flex justify-between items-center font-medium text-lg mt-4">
                       <span>Total amount</span>
                       <span className="text-primary">
+                        ₹{ride.price}
+                        {/* 
+                          Book & Pay Booking Fee - commented for future use
+                          Currently we are not taking Booking charges
+                        
                         ₹{ride.price + (bookingFeeSetting?.enabled ? (bookingFeeSetting?.amount || 0) : 0)}
                         {bookingFeeSetting?.enabled && (
                           <span className="text-xs ml-1 text-muted-foreground">
                             (includes ₹{bookingFeeSetting?.amount || 0} booking fee)
                           </span>
                         )}
+                        */}
                       </span>
                     </div>
                   </div>
