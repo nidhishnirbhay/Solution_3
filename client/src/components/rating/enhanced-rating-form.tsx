@@ -133,6 +133,16 @@ export function EnhancedRatingForm({
   }) => {
     const [hover, setHover] = useState(0);
     
+    // This function ensures the value is immediately updated in the form
+    const handleStarClick = (starValue: number) => {
+      if (onChange) {
+        onChange(starValue);
+        // Force setValue on the form directly, then trigger validation
+        form.setValue("rating", starValue, { shouldValidate: true });
+        form.trigger("rating");
+      }
+    };
+    
     return (
       <div className="flex flex-col items-center">
         <div className="flex gap-3 py-2">
@@ -141,7 +151,7 @@ export function EnhancedRatingForm({
               key={star}
               type="button"
               disabled={readOnly}
-              onClick={() => onChange && onChange(star)}
+              onClick={() => handleStarClick(star)}
               onMouseEnter={() => !readOnly && setHover(star)}
               onMouseLeave={() => !readOnly && setHover(0)}
               className="relative p-1 w-10 h-10 flex items-center justify-center focus:outline-none disabled:cursor-default"
@@ -240,6 +250,8 @@ export function EnhancedRatingForm({
                 >
                   Next
                 </Button>
+                {/* Used for debugging - can be removed */}
+                <div className="hidden">Selected rating: {form.getValues("rating")}</div>
               </div>
             </motion.div>
           ) : (
