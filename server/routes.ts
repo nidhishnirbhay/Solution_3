@@ -264,9 +264,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const authRouter = express.Router();
   
   authRouter.post('/login', (req, res, next) => {
-    passport.authenticate('local', (err, user, info) => {
+    passport.authenticate('local', (err: Error | null, user: any, info: { message: string } | undefined) => {
       if (err) return next(err);
-      if (!user) return res.status(401).json({ message: info.message });
+      if (!user) return res.status(401).json({ message: info?.message || "Authentication failed" });
       
       // Check if the user is suspended
       if (user.isSuspended) {
@@ -276,8 +276,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      req.logIn(user, (err) => {
-        if (err) return next(err);
+      req.logIn(user, (loginErr: Error | null) => {
+        if (loginErr) return next(loginErr);
         return res.json({
           id: user.id,
           username: user.username,
@@ -815,14 +815,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Emergency fix with direct SQL for updating ride status
+  // Ride status completion endpoint (improved from emergency fix)
   rideRouter.post('/:id/mark-completed', authorize(['driver']), async (req, res) => {
     try {
       const { id } = req.params;
-      const user = req.user as any;
+      const user = req.user as { id: number; role: string };
       
-      console.log("======== 🔴 EMERGENCY RIDE COMPLETION FIX ========");
-      console.log("Ride completion requested for ID:", id, "by user:", user.id);
+      console.log(`Ride completion requested for ID: ${id} by user: ${user.id}`);
       
       // First verify ride exists and belongs to this driver
       const [rideData] = await db.select().from(rides).where(eq(rides.id, Number(id)));
@@ -832,30 +831,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Ride not found" });
       }
       
-      console.log("Ride found in database:", rideData);
-      
       if (rideData.driverId !== user.id) {
         console.log("Authorization error: ride driver ID", rideData.driverId, "doesn't match user ID", user.id);
         return res.status(403).json({ error: "You can only mark your own rides as completed" });
       }
       
-      // Run direct SQL query to update the ride status
-      console.log("Executing direct SQL UPDATE for ride status");
+      // Begin a transaction to ensure ride and bookings are updated atomically
+      await pool.query('BEGIN');
+      
       try {
+        // Update ride status to completed
         const result = await pool.query(
-          'UPDATE rides SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-          ['completed', Number(id)]
+          'UPDATE rides SET status = $1, updated_at = NOW() WHERE id = $2 AND status = $3 RETURNING *',
+          ['completed', Number(id), 'active']
         );
         
-        console.log("SQL UPDATE RESULT:", result.rows[0]);
-        
-        if (result.rowCount === 0) {
-          throw new Error(`No rows updated for ride ${id}`);
+        // Check if ride was actually updated (might already be completed)
+        const rowCount = result.rowCount || 0;
+        if (rowCount === 0) {
+          // Check if the ride is already completed
+          const currentStatus = await pool.query('SELECT status FROM rides WHERE id = $1', [Number(id)]);
+          
+          if (currentStatus.rows[0]?.status === 'completed') {
+            await pool.query('COMMIT');
+            return res.json({ 
+              success: true, 
+              message: "Ride was already marked as completed",
+              rideId: Number(id),
+              currentStatus: 'completed',
+              updated: false
+            });
+          } else {
+            throw new Error(`Could not update ride ${id} to completed status`);
+          }
         }
-        
-        // Verify the update
-        const verifyResult = await pool.query('SELECT id, status FROM rides WHERE id = $1', [Number(id)]);
-        console.log("VERIFICATION QUERY RESULT:", verifyResult.rows[0]);
         
         // Find and update related bookings
         const bookingsResult = await pool.query(
@@ -863,33 +872,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           [Number(id), 'confirmed']
         );
         
-        console.log(`Found ${bookingsResult.rowCount} confirmed bookings to update`);
+        const bookingCount = bookingsResult.rowCount || 0;
+        console.log(`Found ${bookingCount} confirmed bookings to update`);
         
         // Update each booking
         for (const booking of bookingsResult.rows) {
-          console.log(`Updating booking ID ${booking.id} to completed`);
           await pool.query(
             'UPDATE bookings SET status = $1, updated_at = NOW() WHERE id = $2',
             ['completed', booking.id]
           );
         }
         
+        await pool.query('COMMIT');
+        
         return res.json({ 
           success: true, 
-          message: "Ride marked as completed successfully using emergency fix",
+          message: "Ride and all associated bookings marked as completed successfully",
           rideId: Number(id),
-          currentStatus: verifyResult.rows[0]?.status || 'unknown',
-          updated: result.rowCount > 0
+          currentStatus: 'completed',
+          updated: true,
+          bookingsUpdated: bookingCount
         });
-      } catch (sqlError: any) {
-        console.error("SQL UPDATE ERROR:", sqlError);
-        throw new Error(`SQL update failed: ${sqlError.message}`);
+      } catch (dbError) {
+        await pool.query('ROLLBACK');
+        console.error("Database error during ride completion:", dbError);
+        throw new Error(dbError instanceof Error ? dbError.message : "Unknown database error");
       }
-    } catch (error: any) {
-      console.error("🔴 EMERGENCY FIX FAILED:", error);
+    } catch (error) {
+      console.error("Ride completion failed:", error);
       return res.status(500).json({ 
-        error: "Emergency ride completion fix failed", 
-        details: error.message || 'Unknown error'
+        error: "Failed to mark ride as completed", 
+        details: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
@@ -1098,10 +1111,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (dbError) {
         console.error("Database error during booking creation:", dbError);
         await pool.query('ROLLBACK');
-        throw new Error(`Booking creation failed: ${dbError.message}`);
+        throw new Error(`Booking creation failed: ${dbError instanceof Error ? dbError.message : 'Unknown database error'}`);
       }
     } catch (error) {
-      res.status(500).json({ error: "Booking failed" });
+      res.status(500).json({ 
+        error: "Booking failed", 
+        details: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
   
@@ -1138,8 +1154,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Sort bookings by creation date (newest first)
       const sortedBookings = bookingsWithRides.sort((a, b) => {
-        const dateA = new Date(a.createdAt);
-        const dateB = new Date(b.createdAt);
+        // Safely handle potentially missing date values
+        const dateAStr = a.createdAt instanceof Date ? a.createdAt.toISOString() : 
+                         (typeof a.createdAt === 'string' ? a.createdAt : new Date().toISOString());
+        const dateBStr = b.createdAt instanceof Date ? b.createdAt.toISOString() : 
+                         (typeof b.createdAt === 'string' ? b.createdAt : new Date().toISOString());
+        
+        const dateA = new Date(dateAStr);
+        const dateB = new Date(dateBStr);
         return dateB.getTime() - dateA.getTime(); // Descending order (newest first)
       });
       
