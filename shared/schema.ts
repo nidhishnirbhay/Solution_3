@@ -107,6 +107,8 @@ export const bookings = pgTable("bookings", {
   bookingFee: integer("booking_fee").notNull().default(200),
   isPaid: boolean("is_paid").default(false),
   cancellationReason: text("cancellation_reason"),
+  customerHasRated: boolean("customer_has_rated").default(false),
+  driverHasRated: boolean("driver_has_rated").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
