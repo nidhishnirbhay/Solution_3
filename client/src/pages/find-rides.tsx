@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { Header } from "@/components/ui/header";
 import { Footer } from "@/components/ui/footer";
 import { RideCard } from "@/components/ride/ride-card";
-import type { RideProps } from "@/components/ride/ride-card";
+// Using our local RideProps interface instead of importing
 import {
   Form,
   FormControl,
@@ -39,25 +39,7 @@ const searchSchema = z.object({
 
 type SearchFormValues = z.infer<typeof searchSchema>;
 
-// Define a RideProps interface to fix TypeScript errors
-interface RideProps {
-  id: number;
-  driverId: number;
-  fromLocation: string;
-  toLocation: string;
-  departureDate: string;
-  price: number;
-  rideType: string[];
-  vehicleType: string;
-  vehicleNumber: string;
-  status?: string;
-  totalSeats?: number;
-  availableSeats?: number;
-  driver?: {
-    fullName: string;
-    averageRating?: number;
-  };
-}
+
 
 export default function FindRides() {
   const search = useSearch();
@@ -312,7 +294,7 @@ export default function FindRides() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {rides.map((ride: RideProps) => (
+                  {rides.map((ride) => (
                     <RideCard key={ride.id} ride={ride} />
                   ))}
                 </div>
