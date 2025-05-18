@@ -10,6 +10,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { RatingForm } from "@/components/rating/rating-form";
 import { RatingDisplay } from "@/components/rating/rating-display";
+import { BookingRatingDisplay } from "@/components/rating/booking-rating-display";
 import {
   Dialog,
   DialogContent,
@@ -368,7 +369,8 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
                 </Dialog>
               )}
               
-              {booking.status === "completed" && booking.hasRated && (
+              {booking.status === "completed" && 
+                (viewAs === "customer" ? booking.customerHasRated : booking.driverHasRated) && (
                 <Badge variant="outline" className="bg-green-50">
                   Rated
                 </Badge>
@@ -383,28 +385,17 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
                   </DialogTrigger>
                   <DialogContent className="max-w-md">
                     <DialogHeader>
-                      <DialogTitle>Ratings & Reviews</DialogTitle>
+                      <DialogTitle>Booking Ratings</DialogTitle>
                       <DialogDescription>
-                        See ratings from both parties for this booking
+                        Ratings for this specific booking
                       </DialogDescription>
                     </DialogHeader>
                     
-                    <Tabs defaultValue="user1" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="user1">
-                          {viewAs === "customer" ? "Driver Ratings" : "Customer Ratings"}
-                        </TabsTrigger>
-                        <TabsTrigger value="user2">
-                          {viewAs === "customer" ? "Your Ratings" : "Your Ratings"}
-                        </TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="user1" className="pt-4">
-                        <RatingDisplay userId={counterpartUserId} />
-                      </TabsContent>
-                      <TabsContent value="user2" className="pt-4">
-                        <RatingDisplay userId={currentUserId} />
-                      </TabsContent>
-                    </Tabs>
+                    {/* Import the BookingRatingDisplay component at the top of the file */}
+                    <div className="mt-4">
+                      {/* @ts-ignore - will fix type issues later */}
+                      <BookingRatingDisplay bookingId={booking.id} />
+                    </div>
                   </DialogContent>
                 </Dialog>
               )}

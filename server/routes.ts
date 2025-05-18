@@ -1608,6 +1608,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get all ratings for a specific user
   ratingRouter.get('/user/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
@@ -1631,6 +1632,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(ratingsWithUsers);
     } catch (error) {
       res.status(500).json({ error: "Failed to retrieve ratings" });
+    }
+  });
+  
+  // Get ratings for a specific booking
+  ratingRouter.get('/booking/:bookingId', async (req, res) => {
+    try {
+      const { bookingId } = req.params;
+      
+      // Get the booking to ensure it exists
+      const booking = await storage.getBooking(Number(bookingId));
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      // Get the ride to find the driver
+      const ride = await storage.getRide(booking.rideId);
+      if (!ride) {
+        return res.status(404).json({ error: "Ride not found" });
+      }
+      
+      // Find ratings for this booking
+      const query = `
+        SELECT r.*, u.full_name, u.role
+        FROM ratings r
+        JOIN users u ON r.from_user_id = u.id
+        WHERE r.booking_id = $1
+      `;
+      
+      const result = await pool.query(query, [Number(bookingId)]);
+      
+      // Format the ratings
+      const bookingRatings = result.rows.map(row => ({
+        id: row.id,
+        fromUserId: row.from_user_id,
+        toUserId: row.to_user_id,
+        bookingId: row.booking_id,
+        rating: row.rating,
+        review: row.review,
+        createdAt: row.created_at,
+        fromUser: {
+          id: row.from_user_id,
+          fullName: row.full_name,
+          role: row.role
+        }
+      }));
+      
+      res.json(bookingRatings);
+    } catch (error) {
+      console.error("Error fetching booking ratings:", error);
+      res.status(500).json({ 
+        error: "Failed to retrieve booking ratings",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
   
