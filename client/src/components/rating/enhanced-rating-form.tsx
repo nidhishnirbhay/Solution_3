@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Star } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -17,7 +18,6 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
-import { InteractiveRating } from "./interactive-rating";
 
 const ratingSchema = z.object({
   rating: z.number().min(1, "Please select a rating").max(5),
@@ -33,6 +33,15 @@ interface EnhancedRatingFormProps {
   userType: "driver" | "customer";
   onSuccess?: () => void;
 }
+
+// Simple rating labels
+const ratingLabels = {
+  1: "Poor",
+  2: "Fair",
+  3: "Good",
+  4: "Very Good",
+  5: "Excellent"
+};
 
 export function EnhancedRatingForm({
   bookingId,
@@ -88,10 +97,6 @@ export function EnhancedRatingForm({
     },
   });
 
-  const handleRatingChange = (value: number) => {
-    form.setValue("rating", value);
-  };
-
   const moveToNextStep = () => {
     if (currentStep < 2) {
       setCurrentStep(prev => prev + 1);
@@ -114,6 +119,51 @@ export function EnhancedRatingForm({
     if (rating === 3) return `Good. How could ${userName} improve?`;
     if (rating <= 2) return `We're sorry to hear that. What went wrong with ${userName}?`;
     return "";
+  };
+
+  // Simple Star Rating component
+  const SimpleStarRating = ({ 
+    value, 
+    onChange, 
+    readOnly = false 
+  }: { 
+    value: number, 
+    onChange?: (val: number) => void, 
+    readOnly?: boolean 
+  }) => {
+    const [hover, setHover] = useState(0);
+    
+    return (
+      <div className="flex flex-col items-center">
+        <div className="flex gap-3 py-2">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              disabled={readOnly}
+              onClick={() => onChange && onChange(star)}
+              onMouseEnter={() => !readOnly && setHover(star)}
+              onMouseLeave={() => !readOnly && setHover(0)}
+              className="relative p-1 w-10 h-10 flex items-center justify-center focus:outline-none disabled:cursor-default"
+            >
+              <Star
+                size={32}
+                className={`${
+                  (hover ? star <= hover : star <= value)
+                    ? "text-yellow-400 fill-yellow-400"
+                    : "text-gray-300"
+                }`}
+              />
+            </button>
+          ))}
+        </div>
+        {value > 0 && !readOnly && (
+          <div className="text-sm font-medium mt-1">
+            {ratingLabels[value as keyof typeof ratingLabels]}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -171,11 +221,9 @@ export function EnhancedRatingForm({
                 render={({ field }) => (
                   <FormItem className="flex flex-col items-center">
                     <FormControl>
-                      <InteractiveRating
-                        rating={field.value}
-                        onChange={handleRatingChange}
-                        size="lg"
-                        showLabels={true}
+                      <SimpleStarRating
+                        value={field.value}
+                        onChange={(val) => form.setValue("rating", val)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -186,13 +234,9 @@ export function EnhancedRatingForm({
               <div className="flex justify-end mt-6">
                 <Button
                   type="button"
-                  onClick={() => {
-                    if (form.getValues("rating") > 0) {
-                      moveToNextStep();
-                    }
-                  }}
+                  onClick={moveToNextStep}
                   disabled={form.getValues("rating") === 0}
-                  className="bg-primary hover:bg-primary/90 relative z-20 pointer-events-auto"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   Next
                 </Button>
@@ -210,12 +254,9 @@ export function EnhancedRatingForm({
                   {getRatingMessage(form.getValues("rating"))}
                 </h3>
                 <div className="flex justify-center mt-2 mb-4">
-                  <InteractiveRating
-                    rating={form.getValues("rating")}
-                    onChange={() => {}}
+                  <SimpleStarRating
+                    value={form.getValues("rating")}
                     readOnly={true}
-                    size="md"
-                    showLabels={false}
                   />
                 </div>
               </div>
