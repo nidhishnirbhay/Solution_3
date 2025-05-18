@@ -466,6 +466,11 @@ export function RideCard({ ride }: { ride: RideProps }) {
                 <Badge variant="default">
                   One-Way Full Booking
                 </Badge>
+                {ride.additionalInfo && (
+                  <Badge variant="outline" className="bg-blue-100 text-blue-800 hover:bg-blue-200">
+                    Special Requirements
+                  </Badge>
+                )}
                 {ride.status && (
                   <Badge 
                     variant={
