@@ -145,20 +145,27 @@ export default function PublishRide() {
   });
 
   const onSubmit = (data: PublishRideFormValues) => {
-    // Combine date and time into ISO strings with IST timezone offset
-    // Create date object as UTC
+    // Parse local date and time inputs
     const departureDateObj = new Date(`${data.departureDate}T${data.departureTime}`);
     
-    // Adjust for IST (+5:30) when storing in database, so it will be consistent
-    // Note: This prevents timezone conversion issues between client and server
-    // No need to make timezone adjustment - let server handle dates in UTC format
-    // The display in frontend will automatically handle the IST conversion
-    const combineDepartureDateTime = departureDateObj.toISOString();
+    // Store dates in a consistent way - subtract 5:30 hours to account for IST
+    // This ensures the date is stored as if it's UTC, but actually represents IST
+    // When retrieved, it will be displayed correctly in the frontend with the +5:30 offset
+    const istOffsetMs = (5 * 60 + 30) * 60 * 1000; // 5 hours and 30 minutes in milliseconds
     
+    // Adjust departure time to store as UTC-5:30 (which will display as IST when retrieved)
+    const departureTimeAdjusted = new Date(departureDateObj.getTime() - istOffsetMs);
+    const combineDepartureDateTime = departureTimeAdjusted.toISOString();
+    
+    console.log("Original departure input:", `${data.departureDate}T${data.departureTime}`);
+    console.log("Adjusted for database storage:", combineDepartureDateTime);
+    
+    // Do the same for arrival time
     let estimatedArrivalDateTime = undefined;
     if (data.estimatedArrivalDate && data.estimatedArrivalTime) {
       const arrivalDateObj = new Date(`${data.estimatedArrivalDate}T${data.estimatedArrivalTime}`);
-      estimatedArrivalDateTime = arrivalDateObj.toISOString();
+      const arrivalTimeAdjusted = new Date(arrivalDateObj.getTime() - istOffsetMs);
+      estimatedArrivalDateTime = arrivalTimeAdjusted.toISOString();
     }
 
     // Always use one-way price
