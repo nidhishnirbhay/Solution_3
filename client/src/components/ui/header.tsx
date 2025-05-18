@@ -57,8 +57,6 @@ export function Header() {
       return [
         ...commonLinks,
         { path: "/publish-ride", label: "Publish Ride" },
-        { path: "/my-published-rides", label: "My Rides" },
-        { path: "/my-bookings", label: "My Bookings" },
       ];
     }
     
@@ -228,20 +226,20 @@ export function Header() {
                   {/* Only show for driver */}
                   {user.role === "driver" && (
                     <>
-                      <Link href="/publish-ride">
-                        <div
-                          className="block py-2 text-neutral-700 hover:text-primary cursor-pointer"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Publish Ride
-                        </div>
-                      </Link>
                       <Link href="/my-published-rides">
                         <div
                           className="block py-2 text-neutral-700 hover:text-primary cursor-pointer"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           My Rides
+                        </div>
+                      </Link>
+                      <Link href="/my-bookings">
+                        <div
+                          className="block py-2 text-neutral-700 hover:text-primary cursor-pointer"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          My Bookings
                         </div>
                       </Link>
                     </>
