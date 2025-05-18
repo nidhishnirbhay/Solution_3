@@ -124,6 +124,7 @@ export function Hero() {
                             <Input
                               type="date"
                               className="pl-10 text-black bg-white"
+                              min={new Date().toISOString().split("T")[0]}
                               {...field}
                             />
                           </FormControl>
