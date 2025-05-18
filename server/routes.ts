@@ -4,6 +4,79 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { db, pool } from "./db";
 import { eq } from "drizzle-orm";
+
+// Function to check and update past rides
+export async function checkAndUpdatePastRides() {
+  try {
+    // Get current date for SQL comparison
+    const currentDate = new Date();
+    const now = currentDate.toISOString();
+    
+    // Find active rides with departure dates in the past
+    const pastRidesQuery = `
+      SELECT id, driver_id, from_location, to_location, departure_date 
+      FROM rides 
+      WHERE status = 'active' 
+      AND departure_date < $1
+    `;
+    
+    const pastRidesResult = await pool.query(pastRidesQuery, [now]);
+    
+    if (pastRidesResult.rows && pastRidesResult.rows.length > 0) {
+      console.log(`Found ${pastRidesResult.rows.length} active rides with past departure dates`);
+      let cancelledCount = 0;
+      let completedCount = 0;
+      
+      // Process each past ride
+      for (const ride of pastRidesResult.rows) {
+        if (!ride.id) continue; // Skip if no valid ID
+        
+        // Check if the ride has any bookings
+        const bookingsQuery = `
+          SELECT COUNT(*) as booking_count 
+          FROM bookings 
+          WHERE ride_id = $1 AND status = 'confirmed'
+        `;
+        
+        const bookingsResult = await pool.query(bookingsQuery, [ride.id]);
+        const bookingCount = parseInt(bookingsResult.rows[0].booking_count || '0');
+        
+        // If no bookings, automatically cancel the ride
+        if (bookingCount === 0) {
+          const updateQuery = `
+            UPDATE rides 
+            SET status = 'cancelled', 
+                cancellation_reason = 'Automatically cancelled due to expired departure date'
+            WHERE id = $1
+          `;
+          
+          await pool.query(updateQuery, [ride.id]);
+          console.log(`🔄 Auto-cancelled past ride #${ride.id} (${ride.from_location} to ${ride.to_location})`);
+          cancelledCount++;
+        } else {
+          // If ride has bookings but is in the past, mark it as completed
+          const updateQuery = `
+            UPDATE rides 
+            SET status = 'completed'
+            WHERE id = $1 AND status = 'active'
+          `;
+          
+          await pool.query(updateQuery, [ride.id]);
+          console.log(`✅ Auto-completed past ride #${ride.id} with ${bookingCount} booking(s)`);
+          completedCount++;
+        }
+      }
+      
+      return { processed: pastRidesResult.rows.length, cancelled: cancelledCount, completed: completedCount };
+    } else {
+      console.log("No past active rides found that need status updating");
+      return { processed: 0, cancelled: 0, completed: 0 };
+    }
+  } catch (error) {
+    console.error("Error while checking and updating past rides:", error);
+    return { error: "Failed to process past rides" };
+  }
+}
 import {
   insertUserSchema,
   insertKycSchema,
@@ -116,6 +189,18 @@ async function seedAdminUser() {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up a scheduled task to check for past rides every hour
+  const MAINTENANCE_INTERVAL = 60 * 60 * 1000; // 1 hour in milliseconds
+  setInterval(async () => {
+    console.log("🔄 Running scheduled maintenance: Checking for past rides...");
+    await checkAndUpdatePastRides();
+  }, MAINTENANCE_INTERVAL);
+  
+  // Also run once at server startup (after a short delay to allow database connection)
+  setTimeout(async () => {
+    console.log("🔄 Running initial maintenance check for past rides...");
+    await checkAndUpdatePastRides();
+  }, 5000);
   // Seed the admin user
   await seedAdminUser();
   
@@ -504,64 +589,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Current date for filtering:", now);
       
       // First, automatically update status of past rides that haven't been booked
-      try {
-        // Find active rides with departure dates in the past
-        const pastRidesQuery = `
-          SELECT id, driver_id, from_location, to_location, departure_date 
-          FROM rides 
-          WHERE status = 'active' 
-          AND departure_date < $1
-        `;
-        
-        const pastRidesResult = await pool.query(pastRidesQuery, [now]);
-        
-        if (pastRidesResult.rows && pastRidesResult.rows.length > 0) {
-          console.log(`Found ${pastRidesResult.rows.length} active rides with past departure dates`);
-          
-          // Process each past ride
-          for (const ride of pastRidesResult.rows) {
-            if (!ride.id) continue; // Skip if no valid ID
-            
-            // Check if the ride has any bookings
-            const bookingsQuery = `
-              SELECT COUNT(*) as booking_count 
-              FROM bookings 
-              WHERE ride_id = $1 AND status = 'confirmed'
-            `;
-            
-            const bookingsResult = await pool.query(bookingsQuery, [ride.id]);
-            const bookingCount = parseInt(bookingsResult.rows[0].booking_count || '0');
-            
-            // If no bookings, automatically cancel the ride
-            if (bookingCount === 0) {
-              const updateQuery = `
-                UPDATE rides 
-                SET status = 'cancelled', 
-                    cancellation_reason = 'Automatically cancelled due to expired departure date'
-                WHERE id = $1
-              `;
-              
-              await pool.query(updateQuery, [ride.id]);
-              console.log(`🔄 Auto-cancelled past ride #${ride.id} (${ride.from_location} to ${ride.to_location})`);
-            } else {
-              // If ride has bookings but is in the past, mark it as completed
-              const updateQuery = `
-                UPDATE rides 
-                SET status = 'completed'
-                WHERE id = $1 AND status = 'active'
-              `;
-              
-              await pool.query(updateQuery, [ride.id]);
-              console.log(`✅ Auto-completed past ride #${ride.id} with ${bookingCount} booking(s)`);
-            }
-          }
-        } else {
-          console.log("No past active rides found that need status updating");
-        }
-      } catch (autoUpdateError) {
-        console.error("Error while auto-updating past rides:", autoUpdateError);
-        // Continue with normal operation even if this fails
-      }
+      await checkAndUpdatePastRides();
       
       // Now fetch active future rides for display
       const query = `
