@@ -188,6 +188,7 @@ export default function PublishRide() {
       vehicleType: data.vehicleType,
       vehicleNumber: data.vehicleNumber,
       description: data.description || "",
+      additionalInfo: data.additionalInfo || "",
     };
 
     publishRideMutation.mutate(rideData);
