@@ -258,7 +258,9 @@ export default function AdminKyc() {
                                   <Label className="text-muted-foreground">Document URL</Label>
                                   <div className="mt-1">
                                     <a 
-                                      href={selectedKyc.documentUrl} 
+                                      href={selectedKyc.documentUrl && (selectedKyc.documentUrl.startsWith('http') ? 
+                                        selectedKyc.documentUrl : 
+                                        window.location.origin + selectedKyc.documentUrl)} 
                                       target="_blank" 
                                       rel="noopener noreferrer"
                                       className="text-blue-600 hover:underline"
@@ -285,7 +287,9 @@ export default function AdminKyc() {
                                       <Label className="text-muted-foreground">Driving License</Label>
                                       <div className="mt-1">
                                         <a 
-                                          href={selectedKyc.drivingLicenseUrl} 
+                                          href={selectedKyc.drivingLicenseUrl && (selectedKyc.drivingLicenseUrl.startsWith('http') ? 
+                                            selectedKyc.drivingLicenseUrl : 
+                                            window.location.origin + selectedKyc.drivingLicenseUrl)} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
                                           className="text-blue-600 hover:underline"
@@ -302,7 +306,9 @@ export default function AdminKyc() {
                                     <Label className="text-muted-foreground">Selfie</Label>
                                     <div className="mt-1">
                                       <a 
-                                        href={selectedKyc.selfieUrl} 
+                                        href={selectedKyc.selfieUrl && (selectedKyc.selfieUrl.startsWith('http') ? 
+                                          selectedKyc.selfieUrl : 
+                                          window.location.origin + selectedKyc.selfieUrl)} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
                                         className="text-blue-600 hover:underline"

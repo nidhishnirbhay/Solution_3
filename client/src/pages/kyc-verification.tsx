@@ -183,9 +183,10 @@ export default function KycVerification() {
   // Simulate file upload
   const simulateFileUpload = (fieldName: string, form: any, setUploading: (val: boolean) => void) => {
     setUploading(true);
-    // Simulate API call
+    // Simulate API call with proper URLs relative to the current site
     setTimeout(() => {
-      const url = `https://example.com/uploads/${fieldName}-${Date.now()}.jpg`;
+      // Use relative URL structure to ensure it works in any environment
+      const url = `/uploads/${fieldName}-${Date.now()}.jpg`;
       form.setValue(fieldName, url);
       setUploading(false);
     }, 1500);
