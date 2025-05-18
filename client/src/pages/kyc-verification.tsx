@@ -481,7 +481,12 @@ export default function KycVerification() {
                                           type="file"
                                           className="hidden"
                                           id="selfie-upload"
-                                          onChange={() => simulateFileUpload("selfieUrl", driverForm, setUploadingSelfie)}
+                                          accept="image/*"
+                                          onChange={(e) => {
+                                            if (e.target.files && e.target.files[0]) {
+                                              handleFileUpload("selfieUrl", driverForm, setUploadingSelfie, e.target.files[0]);
+                                            }
+                                          }}
                                         />
                                         <Button
                                           type="button"
