@@ -211,54 +211,49 @@ export class DatabaseStorage implements IStorage {
       
       // Filter by date if provided
       if (date) {
+        console.log(`Date filtering with search date: ${date}`);
+        
         results = results.filter(ride => {
-          // Parse dates
           const rideDate = new Date(ride.departureDate);
           const searchDate = new Date(date);
           
-          // Convert both dates to IST (UTC+5:30)
-          // First adjust to UTC
-          const rideUTC = new Date(rideDate.getTime());
-          const searchUTC = new Date(searchDate.getTime());
+          // Get date parts only - without time
+          const rideDay = new Date(rideDate.getFullYear(), rideDate.getMonth(), rideDate.getDate());
+          const searchDay = new Date(searchDate.getFullYear(), searchDate.getMonth(), searchDate.getDate());
           
-          // Then convert to IST by adding 5 hours and 30 minutes
-          const istOffsetHours = 5;
-          const istOffsetMinutes = 30;
-          const rideIST = new Date(rideUTC.getTime() + (istOffsetHours * 60 + istOffsetMinutes) * 60 * 1000);
-          const searchIST = new Date(searchUTC.getTime() + (istOffsetHours * 60 + istOffsetMinutes) * 60 * 1000);
+          // Special handling for early morning rides (between 12:00 AM to 5:30 AM)
+          const rideHour = rideDate.getHours();
+          const rideMinutes = rideDate.getMinutes();
           
-          // Format dates without time for comparison
-          const rideISTDate = new Date(rideIST.getFullYear(), rideIST.getMonth(), rideIST.getDate());
-          const searchISTDate = new Date(searchIST.getFullYear(), searchIST.getMonth(), searchIST.getDate());
+          // Create a date for "next day" from the search date
+          const nextDay = new Date(searchDay);
+          nextDay.setDate(nextDay.getDate() + 1);
+
+          // If this is an early morning ride (before 5:30 AM)
+          const isEarlyMorning = (rideHour < 5 || (rideHour === 5 && rideMinutes <= 30));
           
-          // Get hour from the ride in IST
-          const rideHourIST = rideIST.getHours();
+          // Debug information
+          console.log(`Ride details for ${ride.fromLocation} to ${ride.toLocation}:`, {
+            rideDateTime: rideDate.toLocaleString(),
+            rideHour,
+            rideDay: rideDay.toDateString(),
+            searchDay: searchDay.toDateString(),
+            nextDay: nextDay.toDateString(),
+            isEarlyMorning
+          });
           
-          // For early morning rides (between 12:00 AM and 5:30 AM in IST)
-          // Also show them when searching for the previous day, as is common in India
-          if (rideHourIST >= 0 && rideHourIST < 5 || (rideHourIST === 5 && rideIST.getMinutes() <= 30)) {
-            // Create previous day date for comparison
-            const prevDayIST = new Date(searchISTDate);
-            prevDayIST.setDate(prevDayIST.getDate() - 1);
-            
-            console.log(`Early morning ride check for ${ride.fromLocation} to ${ride.toLocation}:`, {
-              rideTime: rideDate.toLocaleString(),
-              rideTimeIST: rideIST.toLocaleString('en-IN'),
-              searchDate: searchDate.toDateString(),
-              searchDateIST: searchISTDate.toDateString(),
-              prevDayIST: prevDayIST.toDateString(),
-              match: rideISTDate.getTime() === searchISTDate.getTime() || rideISTDate.getTime() === prevDayIST.getTime()
-            });
-            
-            // Match if ride is on the same IST day OR if we're searching for the previous day for an early morning ride
-            return rideISTDate.getTime() === searchISTDate.getTime() || 
-                   (rideISTDate.getTime() > searchISTDate.getTime() && 
-                    rideHourIST < 5.5 && 
-                    Math.abs(rideISTDate.getTime() - searchISTDate.getTime()) <= 86400000); // Within 24 hours
+          // Early morning rides (before 5:30 AM) - should appear when searching the previous day
+          if (isEarlyMorning) {
+            // Check if ride is on the next day from search date
+            // For early morning rides, a search for the previous day should also find them
+            return (
+              rideDay.getTime() === searchDay.getTime() || // Same day
+              (rideDay.getTime() === nextDay.getTime())    // Early morning ride on next day
+            );
           }
           
-          // Standard date matching for non-early morning rides
-          return rideISTDate.getTime() === searchISTDate.getTime();
+          // For regular rides, just match the day
+          return rideDay.getTime() === searchDay.getTime();
         });
       }
       
