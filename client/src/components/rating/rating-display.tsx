@@ -26,7 +26,7 @@ interface Rating {
 }
 
 export function RatingDisplay({ userId }: { userId: number }) {
-  const { data: ratings, isLoading } = useQuery({
+  const { data: ratings, isLoading } = useQuery<Rating[]>({
     queryKey: [`/api/ratings/user/${userId}`],
     enabled: !!userId,
   });
@@ -40,7 +40,9 @@ export function RatingDisplay({ userId }: { userId: number }) {
     );
   }
 
-  if (!ratings || ratings.length === 0) {
+  const ratingsArray = Array.isArray(ratings) ? ratings : [];
+  
+  if (!ratingsArray.length) {
     return (
       <div className="text-center p-4 text-muted-foreground">
         No ratings yet
@@ -50,7 +52,7 @@ export function RatingDisplay({ userId }: { userId: number }) {
 
   // Calculate average rating
   const averageRating = 
-    ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length;
+    ratingsArray.reduce((sum, rating) => sum + rating.rating, 0) / ratingsArray.length;
 
   return (
     <div className="space-y-4">
@@ -73,7 +75,7 @@ export function RatingDisplay({ userId }: { userId: number }) {
           </div>
           <span className="font-medium">{averageRating.toFixed(1)}</span>
           <span className="text-muted-foreground text-sm">
-            ({ratings.length} {ratings.length === 1 ? "rating" : "ratings"})
+            ({ratingsArray.length} {ratingsArray.length === 1 ? "rating" : "ratings"})
           </span>
         </div>
       </div>
@@ -83,7 +85,7 @@ export function RatingDisplay({ userId }: { userId: number }) {
           <AccordionTrigger>View all ratings & reviews</AccordionTrigger>
           <AccordionContent>
             <div className="space-y-3">
-              {ratings.map((rating) => (
+              {ratingsArray.map((rating: Rating) => (
                 <Card key={rating.id} className="overflow-hidden">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">

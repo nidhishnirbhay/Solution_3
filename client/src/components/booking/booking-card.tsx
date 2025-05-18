@@ -4,11 +4,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, MapPin } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { Calendar, MapPin, Star } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { RatingForm } from "@/components/rating/rating-form";
+import { RatingDisplay } from "@/components/rating/rating-display";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
 interface BookingProps {
@@ -59,12 +61,17 @@ interface BookingProps {
 
 export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs: "customer" | "driver" }) {
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showRatingsDialog, setShowRatingsDialog] = useState(false);
   const { toast } = useToast();
 
   const formattedDate = format(new Date(booking.ride.departureDate), "MMM dd, yyyy 'at' h:mm a");
   const bookingDate = format(new Date(booking.createdAt), "MMM dd, yyyy");
   
   const person = viewAs === "customer" ? booking.driver : booking.customer;
+  const counterpartUserId = person?.id || 0;
+  // Here we need to get the user ID based on role - using optional chaining for type safety
+  const driverId = booking.driver?.id;
+  const currentUserId = viewAs === "customer" ? booking.customerId : driverId || 0;
   
   const [cancellationReason, setCancellationReason] = useState("");
   const [showCancellationDialog, setShowCancellationDialog] = useState(false);
@@ -365,6 +372,41 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
                 <Badge variant="outline" className="bg-green-50">
                   Rated
                 </Badge>
+              )}
+              
+              {booking.status === "completed" && (
+                <Dialog open={showRatingsDialog} onOpenChange={setShowRatingsDialog}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="ml-2">
+                      View Ratings
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Ratings & Reviews</DialogTitle>
+                      <DialogDescription>
+                        See ratings from both parties for this booking
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <Tabs defaultValue="user1" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="user1">
+                          {viewAs === "customer" ? "Driver Ratings" : "Customer Ratings"}
+                        </TabsTrigger>
+                        <TabsTrigger value="user2">
+                          {viewAs === "customer" ? "Your Ratings" : "Your Ratings"}
+                        </TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="user1" className="pt-4">
+                        <RatingDisplay userId={counterpartUserId} />
+                      </TabsContent>
+                      <TabsContent value="user2" className="pt-4">
+                        <RatingDisplay userId={currentUserId} />
+                      </TabsContent>
+                    </Tabs>
+                  </DialogContent>
+                </Dialog>
               )}
             </div>
           </div>
