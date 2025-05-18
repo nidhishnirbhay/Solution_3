@@ -1183,7 +1183,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           r.id as ride_id, r.from_location, r.to_location, r.departure_date, 
           r.price, r.ride_type, r.vehicle_type, r.vehicle_number, r.status as ride_status,
           c.id as customer_id, c.full_name as customer_name, c.role as customer_role, 
-          c.average_rating as customer_rating, c.mobile as customer_mobile
+          c.average_rating as customer_rating, c.mobile as customer_mobile,
+          b.customer_has_rated, b.driver_has_rated
         FROM 
           bookings b
         JOIN 
@@ -1202,10 +1203,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Map the results to match the expected format
       const mappedBookings = await Promise.all(
         result.rows.map(async (row) => {
-          // Check if the current user (driver) has rated this booking
-          const driverRatings = await storage.getRatingsByFromUserId(user.id);
-          const hasRated = driverRatings.some(r => r.bookingId === row.id);
-          
           return {
             id: row.id,
             customerId: row.customer_id,
@@ -1217,7 +1214,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             cancellationReason: row.cancellation_reason,
             createdAt: row.created_at,
             updatedAt: row.updated_at,
-            hasRated,
+            customerHasRated: row.customer_has_rated,
+            driverHasRated: row.driver_has_rated,
             ride: {
               id: row.ride_id,
               fromLocation: row.from_location,

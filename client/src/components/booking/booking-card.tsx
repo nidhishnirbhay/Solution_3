@@ -34,7 +34,8 @@ interface BookingProps {
   isPaid: boolean;
   createdAt: string;
   cancellationReason?: string;
-  hasRated?: boolean;
+  customerHasRated?: boolean;
+  driverHasRated?: boolean;
   ride: {
     id: number;
     fromLocation: string;
