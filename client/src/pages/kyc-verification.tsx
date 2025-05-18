@@ -440,7 +440,12 @@ export default function KycVerification() {
                                           type="file"
                                           className="hidden"
                                           id="document-upload"
-                                          onChange={() => simulateFileUpload("documentUrl", driverForm, setUploadingDocument)}
+                                          accept="image/*,.pdf"
+                                          onChange={(e) => {
+                                            if (e.target.files && e.target.files[0]) {
+                                              handleFileUpload("documentUrl", driverForm, setUploadingDocument, e.target.files[0]);
+                                            }
+                                          }}
                                         />
                                         <Button
                                           type="button"
@@ -544,7 +549,12 @@ export default function KycVerification() {
                                           type="file"
                                           className="hidden"
                                           id="license-upload"
-                                          onChange={() => simulateFileUpload("drivingLicenseUrl", driverForm, setUploadingLicense)}
+                                          accept="image/*,.pdf"
+                                          onChange={(e) => {
+                                            if (e.target.files && e.target.files[0]) {
+                                              handleFileUpload("drivingLicenseUrl", driverForm, setUploadingLicense, e.target.files[0]);
+                                            }
+                                          }}
                                         />
                                         <Button
                                           type="button"
@@ -650,7 +660,12 @@ export default function KycVerification() {
                                           type="file"
                                           className="hidden"
                                           id="customer-document-upload"
-                                          onChange={() => simulateFileUpload("documentUrl", customerForm, setUploadingDocument)}
+                                          accept="image/*,.pdf"
+                                          onChange={(e) => {
+                                            if (e.target.files && e.target.files[0]) {
+                                              handleFileUpload("documentUrl", customerForm, setUploadingDocument, e.target.files[0]);
+                                            }
+                                          }}
                                         />
                                         <Button
                                           type="button"
@@ -705,7 +720,12 @@ export default function KycVerification() {
                                           type="file"
                                           className="hidden"
                                           id="customer-selfie-upload"
-                                          onChange={() => simulateFileUpload("selfieUrl", customerForm, setUploadingSelfie)}
+                                          accept="image/*"
+                                          onChange={(e) => {
+                                            if (e.target.files && e.target.files[0]) {
+                                              handleFileUpload("selfieUrl", customerForm, setUploadingSelfie, e.target.files[0]);
+                                            }
+                                          }}
                                         />
                                         <Button
                                           type="button"
