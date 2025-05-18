@@ -180,16 +180,41 @@ export default function KycVerification() {
     },
   });
 
-  // Simulate file upload
-  const simulateFileUpload = (fieldName: string, form: any, setUploading: (val: boolean) => void) => {
+  // Handle actual file upload
+  const handleFileUpload = async (fieldName: string, form: any, setUploading: (val: boolean) => void, file: File) => {
     setUploading(true);
-    // Simulate API call with proper URLs relative to the current site
-    setTimeout(() => {
-      // Use relative URL structure to ensure it works in any environment
-      const url = `/uploads/${fieldName}-${Date.now()}.jpg`;
+    
+    try {
+      // Create form data to submit the file
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Send the file to the server
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      // Get the URL of the uploaded file
+      const data = await response.json();
+      const url = data.url;
+      
+      // Set the URL in the form
       form.setValue(fieldName, url);
+    } catch (error) {
+      console.error('File upload error:', error);
+      toast({
+        title: 'Upload failed',
+        description: 'Could not upload the file. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
       setUploading(false);
-    }, 1500);
+    }
   };
 
   // Submit handler for driver
