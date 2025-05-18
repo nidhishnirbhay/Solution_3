@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { isValidFutureDateInIndia } from "@/lib/utils";
 
 import { Header } from "@/components/ui/header";
 import { Footer } from "@/components/ui/footer";
@@ -33,7 +34,12 @@ import { Card, CardContent } from "@/components/ui/card";
 const searchSchema = z.object({
   from: z.string().min(1, { message: "From location is required" }),
   to: z.string().min(1, { message: "To location is required" }),
-  date: z.string().min(1, { message: "Date is required" }),
+  date: z.string().min(1, { message: "Date is required" })
+    .refine((date) => {
+      return isValidFutureDateInIndia(date);
+    }, { 
+      message: "Please select today or a future date (in Indian Standard Time)" 
+    }),
   type: z.string().default("all"),
 });
 

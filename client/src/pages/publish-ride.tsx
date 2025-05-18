@@ -55,22 +55,10 @@ const publishRideSchema = z.object({
   vehicleNumber: z.string().min(1, { message: "Vehicle number is required" }),
   description: z.string().optional(),
 }).refine((data) => {
-  // Check if selected date and time combination is in the future
-  const today = new Date();
-  const selectedDate = new Date(data.departureDate);
-  
-  // If date is today, check if time is in the future
-  if (selectedDate.toDateString() === today.toDateString()) {
-    const [hours, minutes] = data.departureTime.split(':').map(Number);
-    const selectedTime = new Date(today);
-    selectedTime.setHours(hours, minutes, 0, 0);
-    
-    return selectedTime > today;
-  }
-  
-  return true; // Date is in future, so it's valid
+  // Use the utility function that accounts for India timezone
+  return isValidFutureDateInIndia(data.departureDate, data.departureTime);
 }, {
-  message: "Departure time must be in the future",
+  message: "Departure time must be in the future (in Indian Standard Time)",
   path: ["departureTime"], // This will show the error on the departureTime field
 });
 
