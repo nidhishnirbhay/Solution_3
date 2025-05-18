@@ -1562,14 +1562,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const ratingData = {
-        ...req.body,
-        fromUserId,
-        toUserId
-      };
+      // Begin transaction to ensure both operations complete
+      await pool.query('BEGIN');
       
-      const rating = await storage.createRating(ratingData);
-      res.status(201).json(rating);
+      try {
+        // First create the rating
+        const ratingData = {
+          ...req.body,
+          fromUserId,
+          toUserId
+        };
+        
+        const rating = await storage.createRating(ratingData);
+        
+        // Now update the booking's hasRated field for the current user
+        if (user.id === booking.customerId) {
+          // If customer is rating, update customerHasRated field
+          await pool.query(
+            'UPDATE bookings SET customer_has_rated = true, updated_at = NOW() WHERE id = $1',
+            [booking.id]
+          );
+        } else {
+          // If driver is rating, update driverHasRated field
+          await pool.query(
+            'UPDATE bookings SET driver_has_rated = true, updated_at = NOW() WHERE id = $1',
+            [booking.id]
+          );
+        }
+        
+        // Commit the transaction
+        await pool.query('COMMIT');
+        
+        res.status(201).json(rating);
+      } catch (txnError) {
+        // Rollback the transaction if anything fails
+        await pool.query('ROLLBACK');
+        throw txnError;
+      }
     } catch (error) {
       console.error("Rating submission error:", error);
       res.status(500).json({ 
