@@ -9,6 +9,7 @@ import { Star, Calendar, MapPin, User, Users } from "lucide-react";
 import { format } from "date-fns";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { formatDateTimeForIndia } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { AuthModal } from "@/components/ui/auth-modal";
@@ -93,7 +94,13 @@ export function RideCard({ ride }: { ride: RideProps }) {
     );
   }, [myBookings, ride.id, user]);
 
-  const formattedDate = format(new Date(ride.departureDate), "MMM dd, yyyy 'at' h:mm a");
+  // Extract date and time components from ride.departureDate
+  const departureDateTime = new Date(ride.departureDate);
+  const departureDate = format(departureDateTime, "yyyy-MM-dd");
+  const departureTime = format(departureDateTime, "HH:mm");
+  
+  // Format according to Indian conventions with special handling for early morning times
+  const formattedDate = formatDateTimeForIndia(departureDate, departureTime);
   
   const bookingMutation = useMutation({
     mutationFn: async (data: { rideId: number; numberOfSeats: number }) => {

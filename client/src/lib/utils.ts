@@ -46,3 +46,53 @@ export function isValidFutureDateInIndia(date: string, time?: string): boolean {
   
   return selectedDateTime > indiaTime;
 }
+
+/**
+ * Formats the date and time according to Indian conventions
+ * Handles early morning times (12:00 AM to 5:30 AM) by referring to them
+ * as the previous date's late night
+ * 
+ * @param dateStr ISO date string or Date object
+ * @param timeStr Optional time string (HH:MM)
+ * @returns Formatted date string with appropriate indication
+ */
+export function formatDateTimeForIndia(dateStr: string | Date, timeStr?: string): string {
+  const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+  
+  // If time is not provided, just format the date
+  if (!timeStr) {
+    return date.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  }
+  
+  // Parse the time
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  const dateWithTime = new Date(date);
+  dateWithTime.setHours(hours, minutes, 0, 0);
+  
+  // Indian time format
+  const displayTime = dateWithTime.toLocaleTimeString('en-IN', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true 
+  });
+  
+  // Indian date format
+  let displayDate = dateWithTime.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+  
+  // Special case for early morning hours (12:00 AM to 5:30 AM)
+  if (hours >= 0 && hours < 5 || (hours === 5 && minutes <= 30)) {
+    // For display purposes in India, we consider these times as part of the previous day
+    // Add a note that this is early morning/late night
+    return `${displayDate} (late night/early morning) ${displayTime}`;
+  }
+  
+  return `${displayDate} ${displayTime}`;
+}
