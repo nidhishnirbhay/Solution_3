@@ -218,42 +218,62 @@ export class DatabaseStorage implements IStorage {
           const rideDate = new Date(ride.departureDate);
           const searchDate = new Date(date);
           
-          // Account for IST (UTC+5:30) timezone conversion
-          // For late night rides (after 6:30 PM IST), they might display as early morning rides of the next day
+          // Extract date parts for comparison (ignoring time)
+          const rideDay = new Date(
+            rideDate.getFullYear(),
+            rideDate.getMonth(),
+            rideDate.getDate()
+          );
           
-          // If it's late night (after 18:30/6:30 PM)
-          const isLateNight = rideDate.getHours() >= 18 && (rideDate.getHours() > 18 || rideDate.getMinutes() >= 30);
+          const searchDay = new Date(
+            searchDate.getFullYear(),
+            searchDate.getMonth(),
+            searchDate.getDate()
+          );
           
-          // For rides that are "late night" in server timezone but display as "early morning next day" 
-          // in client timezone (India/IST which is UTC+5:30)
-          // We need to match the search date with both the server date and potential next day client display date
+          // Create next day from search date (for early morning rides)
+          const nextDay = new Date(searchDay);
+          nextDay.setDate(nextDay.getDate() + 1);
           
-          // Get ride day without time
-          const rideDay = new Date(rideDate.getFullYear(), rideDate.getMonth(), rideDate.getDate());
-          const searchDay = new Date(searchDate.getFullYear(), searchDate.getMonth(), searchDate.getDate());
+          // Get hour and convert to IST hour (add +5:30)
+          const rideHour = rideDate.getUTCHours();
+          const istHour = (rideHour + 5 + 24) % 24; // Add 5 hours for IST, ensure it's 0-23
+          const istMinutes = (rideDate.getUTCMinutes() + 30) % 60; // Add 30 minutes for IST
           
-          // Debug information
+          // If minutes overflow, add 1 to hour
+          const isEarlyMorning = (istHour >= 0 && istHour < 5) || (istHour === 5 && istMinutes <= 30);
+          const isLateNight = (istHour >= 21); // After 9 PM
+          
+          // Debug logging
           console.log(`Ride details for ${ride.fromLocation} to ${ride.toLocation}:`, {
             actualDateTime: rideDate.toISOString(),
-            rideHour: rideDate.getHours(),
-            rideMinutes: rideDate.getMinutes(),
-            isLateNight,
+            rideHour: rideHour,
+            istHour: istHour,
+            istMinutes: istMinutes,
+            isEarlyMorning: isEarlyMorning,
+            isLateNight: isLateNight,
             rideDay: rideDay.toDateString(),
-            searchDay: searchDay.toDateString()
+            searchDay: searchDay.toDateString(),
+            nextDay: nextDay.toDateString()
           });
           
-          // Special case for Delhi to Budaun ride which is stored as 11:34 PM but displays as 5:04 AM next day
-          if (ride.fromLocation === "Delhi" && ride.toLocation === "Budaun" && isLateNight) {
-            // Previous day's search should match this ride
-            // Check if we're searching for the day before the actual ride date
-            const prevRideDay = new Date(rideDay);
-            prevRideDay.setDate(prevRideDay.getDate() - 1);
+          // Early morning rides (before 5:30 AM IST) should match when searching for previous day
+          if (isEarlyMorning) {
+            // For IST early morning rides, match if search date is the previous day
+            const dayBeforeRide = new Date(rideDay);
+            dayBeforeRide.setDate(dayBeforeRide.getDate() - 1);
             
-            return rideDay.getTime() === searchDay.getTime() || // Same server day
-                   prevRideDay.getTime() === searchDay.getTime(); // Previous day (for IST display conversion)
+            return rideDay.getTime() === searchDay.getTime() || // Same day
+                   dayBeforeRide.getTime() === searchDay.getTime(); // Previous day
           }
           
-          // For regular rides, match the exact date
+          // Late night rides (after 9 PM IST) should match when searching for the current day
+          // and may appear as early morning rides on the next day
+          if (isLateNight) {
+            return rideDay.getTime() === searchDay.getTime(); // Same day
+          }
+          
+          // For regular daytime rides, just match the day
           return rideDay.getTime() === searchDay.getTime();
         });
       }

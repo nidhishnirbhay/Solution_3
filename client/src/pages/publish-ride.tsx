@@ -148,24 +148,23 @@ export default function PublishRide() {
     // Parse local date and time inputs
     const departureDateObj = new Date(`${data.departureDate}T${data.departureTime}`);
     
-    // Store dates in a consistent way - subtract 5:30 hours to account for IST
-    // This ensures the date is stored as if it's UTC, but actually represents IST
-    // When retrieved, it will be displayed correctly in the frontend with the +5:30 offset
-    const istOffsetMs = (5 * 60 + 30) * 60 * 1000; // 5 hours and 30 minutes in milliseconds
+    // Convert the input date as if it's already in IST to store in UTC
+    // This creates a proper conversion to UTC by adding the offset
+    // This way when the frontend displays it with the auto +5:30 offset,
+    // it will show the actual time that was input
     
-    // Adjust departure time to store as UTC-5:30 (which will display as IST when retrieved)
-    const departureTimeAdjusted = new Date(departureDateObj.getTime() - istOffsetMs);
-    const combineDepartureDateTime = departureTimeAdjusted.toISOString();
+    // Simply use the ISO string since the browser's Date already handles timezone conversion
+    // No need to adjust times - just send the ISO string to be stored in UTC format
+    const combineDepartureDateTime = departureDateObj.toISOString();
     
     console.log("Original departure input:", `${data.departureDate}T${data.departureTime}`);
-    console.log("Adjusted for database storage:", combineDepartureDateTime);
+    console.log("Converted to ISO for database storage:", combineDepartureDateTime);
     
-    // Do the same for arrival time
+    // Same for arrival time
     let estimatedArrivalDateTime = undefined;
     if (data.estimatedArrivalDate && data.estimatedArrivalTime) {
       const arrivalDateObj = new Date(`${data.estimatedArrivalDate}T${data.estimatedArrivalTime}`);
-      const arrivalTimeAdjusted = new Date(arrivalDateObj.getTime() - istOffsetMs);
-      estimatedArrivalDateTime = arrivalTimeAdjusted.toISOString();
+      estimatedArrivalDateTime = arrivalDateObj.toISOString();
     }
 
     // Always use one-way price
