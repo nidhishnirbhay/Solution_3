@@ -145,26 +145,12 @@ export default function PublishRide() {
   });
 
   const onSubmit = (data: PublishRideFormValues) => {
-    // Parse local date and time inputs
-    const departureDateObj = new Date(`${data.departureDate}T${data.departureTime}`);
+    // Combine date and time into ISO strings
+    const combineDepartureDateTime = new Date(`${data.departureDate}T${data.departureTime}`).toISOString();
     
-    // Convert the input date as if it's already in IST to store in UTC
-    // This creates a proper conversion to UTC by adding the offset
-    // This way when the frontend displays it with the auto +5:30 offset,
-    // it will show the actual time that was input
-    
-    // Simply use the ISO string since the browser's Date already handles timezone conversion
-    // No need to adjust times - just send the ISO string to be stored in UTC format
-    const combineDepartureDateTime = departureDateObj.toISOString();
-    
-    console.log("Original departure input:", `${data.departureDate}T${data.departureTime}`);
-    console.log("Converted to ISO for database storage:", combineDepartureDateTime);
-    
-    // Same for arrival time
     let estimatedArrivalDateTime = undefined;
     if (data.estimatedArrivalDate && data.estimatedArrivalTime) {
-      const arrivalDateObj = new Date(`${data.estimatedArrivalDate}T${data.estimatedArrivalTime}`);
-      estimatedArrivalDateTime = arrivalDateObj.toISOString();
+      estimatedArrivalDateTime = new Date(`${data.estimatedArrivalDate}T${data.estimatedArrivalTime}`).toISOString();
     }
 
     // Always use one-way price
