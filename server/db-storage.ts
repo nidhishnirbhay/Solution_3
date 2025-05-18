@@ -214,6 +214,23 @@ export class DatabaseStorage implements IStorage {
         results = results.filter(ride => {
           const rideDate = new Date(ride.departureDate);
           const searchDate = new Date(date);
+          
+          // Get hour from the ride date
+          const rideHour = rideDate.getHours();
+          
+          // For early morning rides (between 12:00 AM and 5:30 AM)
+          // Also show them when searching for the previous day, as is common in India
+          if (rideHour >= 0 && rideHour < 5 || (rideHour === 5 && rideDate.getMinutes() <= 30)) {
+            // Create next day date for comparison
+            const nextDay = new Date(searchDate);
+            nextDay.setDate(nextDay.getDate() + 1);
+            
+            // Match if ride is on the same day OR if it's early morning of the next day
+            return rideDate.toDateString() === searchDate.toDateString() || 
+                   rideDate.toDateString() === nextDay.toDateString();
+          }
+          
+          // Standard date matching for non-early morning rides
           return rideDate.toDateString() === searchDate.toDateString();
         });
       }
