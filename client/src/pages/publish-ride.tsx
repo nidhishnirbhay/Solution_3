@@ -53,7 +53,6 @@ const publishRideSchema = z.object({
   vehicleType: z.string().min(1, { message: "Vehicle type is required" }),
   vehicleNumber: z.string().min(1, { message: "Vehicle number is required" }),
   description: z.string().optional(),
-  additionalInfo: z.string().optional(),
 }).refine((data) => {
   // Check if selected date and time combination is in the future
   const today = new Date();
@@ -98,7 +97,6 @@ export default function PublishRide() {
       vehicleType: "",
       vehicleNumber: "",
       description: "",
-      additionalInfo: "",
     },
   });
 
@@ -188,7 +186,6 @@ export default function PublishRide() {
       vehicleType: data.vehicleType,
       vehicleNumber: data.vehicleNumber,
       description: data.description || "",
-      additionalInfo: data.additionalInfo || "",
     };
 
     publishRideMutation.mutate(rideData);
@@ -495,37 +492,16 @@ export default function PublishRide() {
                         name="description"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Description (Optional)</FormLabel>
+                            <FormLabel>Additional Information (Optional)</FormLabel>
                             <FormControl>
                               <Textarea 
-                                placeholder="Provide general details about the ride..."
+                                placeholder="Provide additional details about the ride..."
                                 className="resize-none"
                                 {...field}
                               />
                             </FormControl>
                             <FormDescription>
-                              Add general information about your ride.
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="additionalInfo"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Special Requirements (Optional)</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Specify luggage requirements, pet policy, smoking policy, etc..."
-                                className="resize-none"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Important details customers should know about luggage capacity, allowed items, or any special conditions.
+                              Add any extra information passengers should know about your ride.
                             </FormDescription>
                             <FormMessage />
                           </FormItem>

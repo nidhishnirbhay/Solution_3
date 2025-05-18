@@ -70,7 +70,6 @@ export const rides = pgTable("rides", {
   vehicleType: text("vehicle_type").notNull(),
   vehicleNumber: text("vehicle_number").notNull(),
   description: text("description"),
-  additionalInfo: text("additional_info"), // For luggage, special requirements, etc.
   status: text("status").default("active").notNull(), // active, cancelled
   cancellationReason: text("cancellation_reason"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -90,7 +89,6 @@ export const insertRideSchema = createInsertSchema(rides).pick({
   vehicleType: true,
   vehicleNumber: true,
   description: true,
-  additionalInfo: true,
 }).extend({
   departureDate: z.coerce.date(),
   estimatedArrivalDate: z.coerce.date().nullable(),

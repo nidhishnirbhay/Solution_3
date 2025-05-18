@@ -446,12 +446,6 @@ export default function AdminRides() {
                         <dt className="text-sm font-medium text-gray-500">Capacity</dt>
                         <dd className="text-sm text-gray-900">Full Vehicle</dd>
                       </div>
-                      {selectedRide.additionalInfo && (
-                        <div className="mt-3 pt-3 border-t">
-                          <dt className="text-sm font-medium text-blue-600 mb-1">Special Requirements</dt>
-                          <dd className="text-sm bg-blue-50 p-2 rounded">{selectedRide.additionalInfo}</dd>
-                        </div>
-                      )}
                     </dl>
                   </CardContent>
                 </Card>

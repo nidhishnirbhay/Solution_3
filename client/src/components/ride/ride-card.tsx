@@ -36,7 +36,6 @@ export interface RideProps {
   vehicleType: string;
   vehicleNumber: string;
   description?: string;
-  additionalInfo?: string; // Special requirements like luggage carrier, etc.
   status?: string; // "active", "cancelled", "completed"
   cancellationReason?: string;
   driver?: {
@@ -466,11 +465,6 @@ export function RideCard({ ride }: { ride: RideProps }) {
                 <Badge variant="default">
                   One-Way Full Booking
                 </Badge>
-                {ride.additionalInfo && (
-                  <Badge variant="outline" className="bg-blue-100 text-blue-800 hover:bg-blue-200">
-                    Special Requirements
-                  </Badge>
-                )}
                 {ride.status && (
                   <Badge 
                     variant={
@@ -601,13 +595,6 @@ export function RideCard({ ride }: { ride: RideProps }) {
                         <p className="font-medium">Full Vehicle</p>
                       </div>
                     </div>
-                    
-                    {ride.additionalInfo && (
-                      <div className="mb-4 bg-blue-50 p-3 rounded-md">
-                        <p className="font-medium text-blue-800 mb-1">Special Requirements:</p>
-                        <p className="text-blue-700 text-sm">{ride.additionalInfo}</p>
-                      </div>
-                    )}
                     
                     <Separator className="my-2" />
                     
