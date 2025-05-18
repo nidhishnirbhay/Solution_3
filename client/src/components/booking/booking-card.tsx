@@ -12,6 +12,7 @@ import { RatingForm } from "@/components/rating/rating-form";
 import { RatingDisplay } from "@/components/rating/rating-display";
 import { BookingRatingDisplay } from "@/components/rating/booking-rating-display";
 import { EnhancedRatingForm } from "@/components/rating/enhanced-rating-form";
+import { InteractiveRatingDisplay } from "@/components/rating/interactive-rating-display";
 import {
   Dialog,
   DialogContent,
@@ -403,9 +404,7 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
                       </DialogDescription>
                     </DialogHeader>
                     
-                    {/* Import the BookingRatingDisplay component at the top of the file */}
                     <div className="mt-4">
-                      {/* @ts-ignore - will fix type issues later */}
                       <BookingRatingDisplay bookingId={booking.id} />
                     </div>
                   </DialogContent>
