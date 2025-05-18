@@ -185,6 +185,7 @@ export default function FindRides() {
                                 type="date"
                                 className="pl-10"
                                 {...field}
+                                min={new Date().toISOString().split("T")[0]}
                               />
                             </FormControl>
                           </div>

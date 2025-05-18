@@ -241,7 +241,11 @@ export default function PublishRide() {
                                 <FormItem>
                                   <FormLabel>Date</FormLabel>
                                   <FormControl>
-                                    <Input type="date" {...field} />
+                                    <Input 
+                                      type="date" 
+                                      {...field} 
+                                      min={format(new Date(), "yyyy-MM-dd")}
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -274,7 +278,11 @@ export default function PublishRide() {
                                 <FormItem>
                                   <FormLabel>Date</FormLabel>
                                   <FormControl>
-                                    <Input type="date" {...field} />
+                                    <Input 
+                                      type="date" 
+                                      {...field} 
+                                      min={format(new Date(), "yyyy-MM-dd")}
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
