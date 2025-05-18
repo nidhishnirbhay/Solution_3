@@ -213,14 +213,14 @@ export function Header() {
               
               {user ? (
                 <>
-                  {/* Only show for customers and drivers */}
-                  {user.role !== "admin" && (
-                    <Link href="/my-bookings">
+                  {/* Admin specific links */}
+                  {user.role === "admin" && (
+                    <Link href="/admin">
                       <div
                         className="block py-2 text-neutral-700 hover:text-primary cursor-pointer"
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        My Bookings
+                        Admin Dashboard
                       </div>
                     </Link>
                   )}
