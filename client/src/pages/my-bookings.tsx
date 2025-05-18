@@ -78,15 +78,15 @@ export default function MyBookings() {
     }
   }, [refetchBookings, refetchRides, queryClient, user?.role, bookingsEndpoint, toast]);
   
-  // Auto-refresh every 10 seconds for more responsive updates
+  // Auto-refresh every 30 seconds for updates (reduced from 10s to decrease server load)
   useEffect(() => {
     const intervalId = setInterval(() => {
-      console.log("🔄 Auto-refreshing bookings data...");
+      // Silent refresh without console logs
       refetchBookings();
       if (user?.role === "driver") {
         refetchRides();
       }
-    }, 10000); // every 10 seconds for more responsive updates
+    }, 30000); // every 30 seconds to reduce server load
     
     // Initial auto-refresh when component mounts
     refetchBookings();
