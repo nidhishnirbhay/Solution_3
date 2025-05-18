@@ -188,7 +188,7 @@ export function EnhancedRatingForm({
                   type="button"
                   onClick={moveToNextStep}
                   disabled={form.getValues("rating") === 0}
-                  className="bg-primary hover:bg-primary/90"
+                  className="bg-primary hover:bg-primary/90 relative z-10"
                 >
                   Next
                 </Button>

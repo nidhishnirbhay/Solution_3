@@ -34,6 +34,7 @@ export function InteractiveRating({
   const [hoverRating, setHoverRating] = useState(0);
   const [selectedRating, setSelectedRating] = useState(rating);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isRatingLocked, setIsRatingLocked] = useState(false);
 
   // Update internal state when prop changes
   useEffect(() => {
@@ -57,10 +58,17 @@ export function InteractiveRating({
   const currentDisplayRating = hoverRating || selectedRating;
   
   const handleStarClick = (index: number) => {
-    if (readOnly) return;
+    if (readOnly || isRatingLocked) return;
     
     setSelectedRating(index);
     setIsAnimating(true);
+    // Temporarily lock rating to prevent rapid changes
+    setIsRatingLocked(true);
+    
+    // Unlock after animation completes
+    setTimeout(() => {
+      setIsRatingLocked(false);
+    }, 500);
     
     // If immediate mode, trigger onChange immediately
     if (immediate) {
@@ -79,15 +87,15 @@ export function InteractiveRating({
             <motion.button
               key={index}
               type="button"
-              className="focus:outline-none"
-              onMouseEnter={() => !readOnly && setHoverRating(starValue)}
-              onMouseLeave={() => !readOnly && setHoverRating(0)}
+              className="focus:outline-none p-1" // Added padding for better touch target
+              onMouseEnter={() => !readOnly && !isRatingLocked && setHoverRating(starValue)}
+              onMouseLeave={() => !readOnly && !isRatingLocked && setHoverRating(0)}
               onClick={() => handleStarClick(starValue)}
-              whileTap={{ scale: readOnly ? 1 : 0.8 }}
+              whileTap={{ scale: readOnly ? 1 : 0.9 }}
               animate={
                 isAnimating && isActive 
                   ? { 
-                      scale: [1, 1.5, 1],
+                      scale: [1, 1.2, 1], // Reduced scale to prevent overflow
                       transition: { 
                         duration: 0.3,
                         delay: index * 0.05 
@@ -96,7 +104,7 @@ export function InteractiveRating({
                   : {}
               }
               onAnimationComplete={() => setIsAnimating(false)}
-              disabled={readOnly}
+              disabled={readOnly || isRatingLocked}
             >
               <Star
                 className={cn(
