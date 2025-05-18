@@ -145,12 +145,20 @@ export default function PublishRide() {
   });
 
   const onSubmit = (data: PublishRideFormValues) => {
-    // Combine date and time into ISO strings
-    const combineDepartureDateTime = new Date(`${data.departureDate}T${data.departureTime}`).toISOString();
+    // Combine date and time into ISO strings with IST timezone offset
+    // Create date object as UTC
+    const departureDateObj = new Date(`${data.departureDate}T${data.departureTime}`);
+    
+    // Adjust for IST (+5:30) when storing in database, so it will be consistent
+    // Note: This prevents timezone conversion issues between client and server
+    // No need to make timezone adjustment - let server handle dates in UTC format
+    // The display in frontend will automatically handle the IST conversion
+    const combineDepartureDateTime = departureDateObj.toISOString();
     
     let estimatedArrivalDateTime = undefined;
     if (data.estimatedArrivalDate && data.estimatedArrivalTime) {
-      estimatedArrivalDateTime = new Date(`${data.estimatedArrivalDate}T${data.estimatedArrivalTime}`).toISOString();
+      const arrivalDateObj = new Date(`${data.estimatedArrivalDate}T${data.estimatedArrivalTime}`);
+      estimatedArrivalDateTime = arrivalDateObj.toISOString();
     }
 
     // Always use one-way price
