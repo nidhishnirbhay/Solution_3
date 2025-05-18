@@ -344,7 +344,7 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
                 </>
               )}
               
-              {booking.status === "completed" && !booking.hasRated && (
+              {booking.status === "completed" && ((viewAs === "customer" && !booking.customerHasRated) || (viewAs === "driver" && !booking.driverHasRated)) && (
                 <Dialog open={showRatingModal} onOpenChange={setShowRatingModal}>
                   <DialogTrigger asChild>
                     <Button size="sm" className="bg-primary hover:bg-primary/90">
@@ -370,11 +370,19 @@ export function BookingCard({ booking, viewAs }: { booking: BookingProps; viewAs
                 </Dialog>
               )}
               
-              {booking.status === "completed" && 
-                (viewAs === "customer" ? booking.customerHasRated : booking.driverHasRated) && (
-                <Badge variant="outline" className="bg-green-50">
-                  Rated
-                </Badge>
+              {booking.status === "completed" && (
+                <>
+                  {viewAs === "customer" && booking.customerHasRated && (
+                    <Badge variant="outline" className="bg-green-50">
+                      Rated
+                    </Badge>
+                  )}
+                  {viewAs === "driver" && booking.driverHasRated && (
+                    <Badge variant="outline" className="bg-green-50">
+                      Rated
+                    </Badge>
+                  )}
+                </>
               )}
               
               {booking.status === "completed" && (
