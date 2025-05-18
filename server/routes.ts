@@ -497,20 +497,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("📊 Fetching popular routes (latest published rides)");
       
+      // Get current date and format for SQL comparison
+      const currentDate = new Date();
+      // Format date with timezone in ISO format, ensuring proper comparison
+      const now = currentDate.toISOString();
+      console.log("Current date for filtering:", now);
+      
       // Use direct SQL for better performance and sorting
-      // Only show active rides with available seats
+      // Only show active rides with available seats and future departure dates
       const query = `
         SELECT * FROM rides 
-        WHERE status = 'active' AND available_seats > 0
-        ORDER BY created_at DESC 
+        WHERE status = 'active' 
+        AND available_seats > 0
+        AND departure_date > $1
+        ORDER BY departure_date ASC
         LIMIT 6
       `;
       
-      const result = await pool.query(query);
-      console.log(`Found ${result.rowCount || 0} active rides`);
+      const result = await pool.query(query, [now]);
+      console.log(`Found ${result.rowCount || 0} active future rides`);
       
       if (!result.rows || result.rows.length === 0) {
-        // Return empty array if no active rides found
+        // Return empty array if no active future rides found
         return res.json([]);
       }
       
