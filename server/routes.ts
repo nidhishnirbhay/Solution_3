@@ -1525,12 +1525,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You can only rate your own bookings" });
       }
       
-      // Check if this user has already rated this booking
-      const userRatings = await storage.getRatingsByFromUserId(fromUserId);
-      const alreadyRated = userRatings.some(r => r.bookingId === booking.id);
+      // Check if this specific user has already rated this specific booking
+      // This needs to be a direct SQL query to avoid any caching issues
+      const checkRatingQuery = `
+        SELECT id FROM ratings 
+        WHERE from_user_id = $1 AND booking_id = $2
+      `;
+      const ratingResult = await pool.query(checkRatingQuery, [fromUserId, booking.id]);
       
-      if (alreadyRated) {
-        return res.status(400).json({ error: "You have already rated this booking" });
+      if (ratingResult.rows.length > 0) {
+        return res.status(400).json({ 
+          error: "You have already rated this booking",
+          details: "Each user can only submit one rating per booking" 
+        });
       }
       
       const ratingData = {
