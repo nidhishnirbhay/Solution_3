@@ -1203,6 +1203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Map the results to match the expected format
       const mappedBookings = await Promise.all(
         result.rows.map(async (row) => {
+          console.log(`Booking #${row.id} - driver_has_rated: ${row.driver_has_rated}, customer_has_rated: ${row.customer_has_rated}`);
           return {
             id: row.id,
             customerId: row.customer_id,
@@ -1214,8 +1215,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             cancellationReason: row.cancellation_reason,
             createdAt: row.created_at,
             updatedAt: row.updated_at,
-            customerHasRated: row.customer_has_rated,
-            driverHasRated: row.driver_has_rated,
+            customerHasRated: row.customer_has_rated === true,
+            driverHasRated: row.driver_has_rated === true,
             ride: {
               id: row.ride_id,
               fromLocation: row.from_location,
