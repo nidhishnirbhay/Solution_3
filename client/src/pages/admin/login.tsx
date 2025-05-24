@@ -112,19 +112,14 @@ export default function AdminLogin() {
         return;
       }
       
-      // Login successful, store user info
+      // Login successful, store user info and handle redirect in login function
       login(userData);
       
-      // Redirect to admin dashboard with a slight delay to ensure user state is updated
+      // Show success toast
       toast({
         title: "Login successful",
         description: "Welcome to OyeGaadi Admin Panel",
       });
-      
-      // Use setTimeout to ensure the user state is properly updated before navigation
-      setTimeout(() => {
-        navigate("/admin/dashboard");
-      }, 100);
     } catch (err: any) {
       setError(err.message || "Login failed. Please check your credentials.");
     } finally {

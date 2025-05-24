@@ -73,12 +73,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
+    // Set user state first
     setUser(userData);
     
-    // Navigate based on user role
-    if (userData.role === "admin") {
-      navigate("/admin/dashboard");
-    }
+    // Navigate based on user role with a slight delay to ensure state is updated
+    setTimeout(() => {
+      if (userData.role === "admin") {
+        navigate("/admin/dashboard");
+      }
+    }, 100);
   };
 
   const logout = async () => {
