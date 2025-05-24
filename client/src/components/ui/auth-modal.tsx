@@ -257,8 +257,11 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
               <p className="mb-4">
                 To reset your password, please contact the administrator at:
               </p>
-              <p className="font-medium text-primary">
+              <p className="font-medium text-primary mb-2">
                 support@oyegaadi.com
+              </p>
+              <p className="font-medium text-primary">
+                or call 08069640595
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
