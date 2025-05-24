@@ -98,7 +98,7 @@ export default function AdminBookings() {
   };
 
   // Filter bookings based on search query and status filter, then sort by priority
-  const filteredBookings = bookings
+  const filteredBookings = (bookings && Array.isArray(bookings))
     ? bookings.filter((booking: any) => {
         // Search filter
         const matchesSearch =

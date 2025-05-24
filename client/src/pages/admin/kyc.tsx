@@ -117,9 +117,9 @@ export default function AdminKyc() {
   };
 
   // Filter KYC verifications by status
-  const filteredKyc = kycVerifications 
+  const filteredKyc = (kycVerifications && Array.isArray(kycVerifications))
     ? (filterStatus === "all" 
-      ? kycVerifications 
+      ? [...kycVerifications] 
       : kycVerifications.filter((kyc: any) => kyc.status === filterStatus))
       // Sort by priority: pending first, then approved, then rejected
       .sort((a: any, b: any) => {

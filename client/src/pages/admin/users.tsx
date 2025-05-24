@@ -104,7 +104,7 @@ export default function AdminUsers() {
     },
   });
 
-  // Filter users based on search query and active tab
+  // Filter users based on search query and active tab, then sort by most recent first
   const filteredUsers = users
     ? users.filter((user: any) => {
         // Search filter
@@ -112,7 +112,7 @@ export default function AdminUsers() {
           searchQuery === "" ||
           user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
           user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.mobile.includes(searchQuery);
+          (user.mobile && user.mobile.includes(searchQuery));
 
         // Tab filter
         if (activeTab === "all") return searchMatch;
@@ -121,6 +121,15 @@ export default function AdminUsers() {
         if (activeTab === "suspended") return user.isSuspended && searchMatch;
 
         return searchMatch;
+      })
+      // Sort by most recent first (highest ID assuming sequential creation)
+      .sort((a: any, b: any) => {
+        // Sort by creation date if available, otherwise by ID
+        if (a.createdAt && b.createdAt) {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+        // Fallback to ID-based sorting (higher ID = more recent)
+        return b.id - a.id;
       })
     : [];
 
