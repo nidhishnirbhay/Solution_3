@@ -102,7 +102,7 @@ export default function AdminRides() {
     return "bg-gray-100 text-gray-800";
   };
 
-  // Filter rides based on search query and status filter
+  // Filter rides based on search query and status filter, then sort by priority
   const filteredRides = rides
     ? rides.filter((ride: any) => {
         // Search filter
@@ -116,6 +116,21 @@ export default function AdminRides() {
         // Status filter
         if (statusFilter === "all") return matchesSearch;
         return matchesSearch && ride.status.toLowerCase() === statusFilter.toLowerCase();
+      })
+      // Sort by createdAt date (newest first)
+      .sort((a: any, b: any) => {
+        // For published rides, prioritize them
+        if (a.status.toLowerCase() === 'published' && b.status.toLowerCase() !== 'published') {
+          return -1;
+        }
+        if (a.status.toLowerCase() !== 'published' && b.status.toLowerCase() === 'published') {
+          return 1;
+        }
+        
+        // For rides with the same status, sort by creation date (newest first)
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA;
       })
     : [];
 
