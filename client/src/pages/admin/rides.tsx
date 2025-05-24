@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import { RequireAuth } from "@/components/layout/require-auth";
@@ -103,8 +103,11 @@ export default function AdminRides() {
   };
 
   // Filter rides based on search query and status filter, then sort by priority
-  const filteredRides = rides
-    ? rides.filter((ride: any) => {
+  const filteredRides = useMemo(() => {
+    if (!rides || !Array.isArray(rides)) return [];
+    
+    return rides
+      .filter((ride: any) => {
         // Search filter
         const matchesSearch =
           searchQuery === "" ||
@@ -131,8 +134,8 @@ export default function AdminRides() {
         const dateA = new Date(a.createdAt || 0).getTime();
         const dateB = new Date(b.createdAt || 0).getTime();
         return dateB - dateA;
-      })
-    : [];
+      });
+  }, [rides, searchQuery, statusFilter]);
 
   return (
     <RequireAuth allowedRoles={["admin"]}>
