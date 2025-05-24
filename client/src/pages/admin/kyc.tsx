@@ -118,9 +118,31 @@ export default function AdminKyc() {
 
   // Filter KYC verifications by status
   const filteredKyc = kycVerifications 
-    ? filterStatus === "all" 
+    ? (filterStatus === "all" 
       ? kycVerifications 
-      : kycVerifications.filter((kyc: any) => kyc.status === filterStatus)
+      : kycVerifications.filter((kyc: any) => kyc.status === filterStatus))
+      // Sort by priority: pending first, then approved, then rejected
+      .sort((a: any, b: any) => {
+        // Priority order: pending > approved > rejected
+        const statusPriority: {[key: string]: number} = {
+          'pending': 1,
+          'approved': 2,
+          'rejected': 3
+        };
+        
+        const priorityA = statusPriority[a.status] || 4;
+        const priorityB = statusPriority[b.status] || 4;
+        
+        // If different status, sort by priority
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB;
+        }
+        
+        // If same status, sort by most recent first
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA;
+      })
     : [];
 
   return (

@@ -97,7 +97,7 @@ export default function AdminBookings() {
     return "bg-gray-100 text-gray-800";
   };
 
-  // Filter bookings based on search query and status filter
+  // Filter bookings based on search query and status filter, then sort by priority
   const filteredBookings = bookings
     ? bookings.filter((booking: any) => {
         // Search filter
@@ -117,6 +117,30 @@ export default function AdminBookings() {
         if (statusFilter === "cancelled") return matchesSearch && booking.status.toLowerCase() === "cancelled";
 
         return matchesSearch;
+      })
+      // Sort by priority: confirmed first, then pending, then completed, then cancelled
+      // Within each status, sort by most recent first
+      .sort((a: any, b: any) => {
+        // Priority order: confirmed > pending > completed > cancelled
+        const statusPriority: {[key: string]: number} = {
+          'confirmed': 1,
+          'pending': 2,
+          'completed': 3,
+          'cancelled': 4
+        };
+        
+        const priorityA = statusPriority[a.status.toLowerCase()] || 5;
+        const priorityB = statusPriority[b.status.toLowerCase()] || 5;
+        
+        // If different status, sort by priority
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB;
+        }
+        
+        // If same status, sort by most recent first
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA;
       })
     : [];
 
