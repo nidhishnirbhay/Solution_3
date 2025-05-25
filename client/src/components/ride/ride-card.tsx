@@ -611,17 +611,12 @@ export function RideCard({ ride }: { ride: RideProps }) {
                         <p className="text-sm text-muted-foreground">Full vehicle booking</p>
                         <p className="font-medium">₹{ride.price}</p>
                       </div>
-                      {/* 
-                        Book & Pay Booking Fee - commented for future use
-                        Currently we are not taking Booking charges
-                      
                       {bookingFeeSetting?.enabled && (
                         <div>
                           <p className="text-sm text-muted-foreground">Booking fee</p>
                           <p className="font-medium">₹{bookingFeeSetting?.amount || 0}</p>
                         </div>
                       )}
-                      */}
                     </div>
                     
                     {/* Display driver's additional information if available */}
@@ -644,18 +639,12 @@ export function RideCard({ ride }: { ride: RideProps }) {
                     <div className="flex justify-between items-center font-medium text-lg mt-4">
                       <span>Total amount</span>
                       <span className="text-primary">
-                        ₹{ride.price}
-                        {/* 
-                          Book & Pay Booking Fee - commented for future use
-                          Currently we are not taking Booking charges
-                        
                         ₹{ride.price + (bookingFeeSetting?.enabled ? (bookingFeeSetting?.amount || 0) : 0)}
                         {bookingFeeSetting?.enabled && (
                           <span className="text-xs ml-1 text-muted-foreground">
                             (includes ₹{bookingFeeSetting?.amount || 0} booking fee)
                           </span>
                         )}
-                        */}
                       </span>
                     </div>
                   </div>
