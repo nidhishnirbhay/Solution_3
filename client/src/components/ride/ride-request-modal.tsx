@@ -15,7 +15,12 @@ import { apiRequest } from "@/lib/queryClient";
 const rideRequestSchema = z.object({
   fromLocation: z.string().min(1, "From location is required"),
   toLocation: z.string().min(1, "To location is required"),
-  preferredDate: z.string().min(1, "Preferred date is required"),
+  preferredDate: z.string().min(1, "Preferred date is required").refine((date) => {
+    const selectedDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return selectedDate >= today;
+  }, "Date cannot be in the past"),
   preferredTime: z.string().optional(),
   numberOfPassengers: z.number().min(1, "At least 1 passenger required").max(8, "Maximum 8 passengers"),
   maxBudget: z.number().min(0, "Budget must be positive").optional(),
@@ -54,7 +59,7 @@ export function RideRequestModal({ isOpen, onClose, initialData }: RideRequestMo
   });
 
   const createRequestMutation = useMutation({
-    mutationFn: (data: RideRequestForm) => apiRequest('/api/ride-requests', 'POST', data),
+    mutationFn: (data: RideRequestForm) => apiRequest('POST', '/api/ride-requests', data),
     onSuccess: () => {
       toast({
         title: "Request Submitted",
