@@ -9,6 +9,7 @@ import { isValidFutureDateInIndia } from "@/lib/utils";
 import { Header } from "@/components/ui/header";
 import { Footer } from "@/components/ui/footer";
 import { RideCard } from "@/components/ride/ride-card";
+import { RideRequestModal } from "@/components/ride/ride-request-modal";
 // Using our local RideProps interface instead of importing
 import {
   Form,
@@ -26,8 +27,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MapPin, Calendar, Search, Info } from "lucide-react";
+import { MapPin, Calendar, Search, Info, MessageSquare } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -50,6 +52,8 @@ type SearchFormValues = z.infer<typeof searchSchema>;
 export default function FindRides() {
   const search = useSearch();
   const [submittedValues, setSubmittedValues] = useState<SearchFormValues | null>(null);
+  const [isRideRequestModalOpen, setIsRideRequestModalOpen] = useState(false);
+  const { user } = useAuth();
   
   // Parse search string manually
   const parseSearchParams = () => {
@@ -297,6 +301,24 @@ export default function FindRides() {
                   <p className="text-muted-foreground mb-4">
                     Try different locations or dates to find available rides.
                   </p>
+                  {user && (
+                    <div className="mt-6">
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Can't find what you're looking for?
+                      </p>
+                      <Button
+                        onClick={() => setIsRideRequestModalOpen(true)}
+                        variant="outline"
+                        className="bg-white hover:bg-gray-50"
+                      >
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Submit Ride Request
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Our admin will help connect you with available drivers
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -310,6 +332,17 @@ export default function FindRides() {
         </div>
       </main>
       <Footer />
+      
+      {/* Ride Request Modal */}
+      <RideRequestModal
+        isOpen={isRideRequestModalOpen}
+        onClose={() => setIsRideRequestModalOpen(false)}
+        initialData={{
+          fromLocation: submittedValues?.from,
+          toLocation: submittedValues?.to,
+          date: submittedValues?.date
+        }}
+      />
     </div>
   );
 }

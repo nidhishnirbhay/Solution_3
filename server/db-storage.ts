@@ -8,6 +8,7 @@ import {
   ratings,
   appSettings,
   pageContents,
+  rideRequests,
   type User, 
   type InsertUser, 
   type KycVerification, 
@@ -18,6 +19,8 @@ import {
   type InsertBooking,
   type Rating,
   type InsertRating,
+  type RideRequest,
+  type InsertRideRequest,
   type AppSetting,
   type PageContent,
   type InsertPageContent,
@@ -520,6 +523,62 @@ export class DatabaseStorage implements IStorage {
       return await db.select().from(pageContents);
     } catch (error) {
       console.error('Error getting all page contents:', error);
+      throw error;
+    }
+  }
+
+  // Ride Request methods
+  async createRideRequest(request: InsertRideRequest): Promise<RideRequest> {
+    try {
+      const [newRequest] = await db
+        .insert(rideRequests)
+        .values(request)
+        .returning();
+      return newRequest;
+    } catch (error) {
+      console.error('Error creating ride request:', error);
+      throw error;
+    }
+  }
+
+  async getRideRequest(id: number): Promise<RideRequest | undefined> {
+    try {
+      const [result] = await db.select().from(rideRequests).where(eq(rideRequests.id, id));
+      return result;
+    } catch (error) {
+      console.error(`Error getting ride request with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async getRideRequestsByUserId(userId: number): Promise<RideRequest[]> {
+    try {
+      return await db.select().from(rideRequests).where(eq(rideRequests.userId, userId));
+    } catch (error) {
+      console.error(`Error getting ride requests for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async getAllRideRequests(): Promise<RideRequest[]> {
+    try {
+      return await db.select().from(rideRequests).orderBy(desc(rideRequests.createdAt));
+    } catch (error) {
+      console.error('Error getting all ride requests:', error);
+      throw error;
+    }
+  }
+
+  async updateRideRequestStatus(id: number, status: string): Promise<RideRequest | undefined> {
+    try {
+      const [updatedRequest] = await db
+        .update(rideRequests)
+        .set({ status, updatedAt: new Date() })
+        .where(eq(rideRequests.id, id))
+        .returning();
+      return updatedRequest;
+    } catch (error) {
+      console.error(`Error updating ride request status for ID ${id}:`, error);
       throw error;
     }
   }

@@ -1797,6 +1797,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Admin ride request management
+  adminRouter.get('/ride-requests', authorize(['admin']), async (req, res) => {
+    try {
+      const requests = await storage.getAllRideRequests();
+      
+      // Get user details for each request
+      const requestsWithUsers = await Promise.all(
+        requests.map(async (request) => {
+          const user = await storage.getUser(request.userId);
+          return { ...request, user };
+        })
+      );
+      
+      res.json(requestsWithUsers);
+    } catch (error) {
+      console.error("Error fetching ride requests:", error);
+      res.status(500).json({ error: "Failed to retrieve ride requests" });
+    }
+  });
+  
+  adminRouter.patch('/ride-requests/:id/status', authorize(['admin']), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      if (!['pending', 'responded', 'closed'].includes(status)) {
+        return res.status(400).json({ error: "Invalid status value" });
+      }
+      
+      const updatedRequest = await storage.updateRideRequestStatus(Number(id), status);
+      if (!updatedRequest) {
+        return res.status(404).json({ error: "Ride request not found" });
+      }
+      
+      res.json(updatedRequest);
+    } catch (error) {
+      console.error("Error updating ride request status:", error);
+      res.status(500).json({ error: "Failed to update ride request status" });
+    }
+  });
+
   // Dashboard statistics for admin
   adminRouter.get('/users/stats', authorize(['admin']), async (req, res) => {
     try {
@@ -2035,6 +2076,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Page Content routes
   const pageContentRouter = express.Router();
   
+  // Ride Request routes
+  const rideRequestRouter = express.Router();
+  
+  // Create a new ride request
+  rideRequestRouter.post('/', async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    try {
+      const user = req.user as any;
+      const requestData = {
+        ...req.body,
+        userId: user.id,
+        status: 'pending'
+      };
+      
+      const rideRequest = await storage.createRideRequest(requestData);
+      res.status(201).json(rideRequest);
+    } catch (error) {
+      console.error("Error creating ride request:", error);
+      res.status(500).json({ error: "Failed to create ride request" });
+    }
+  });
+  
+  // Get ride requests for current user
+  rideRequestRouter.get('/my-requests', async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    try {
+      const user = req.user as any;
+      const requests = await storage.getRideRequestsByUserId(user.id);
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching user ride requests:", error);
+      res.status(500).json({ error: "Failed to fetch ride requests" });
+    }
+  });
+  
   // Get all page contents
   pageContentRouter.get('/', async (req, res) => {
     try {
@@ -2215,6 +2297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/bookings', bookingRouter);
   app.use('/api/ratings', ratingRouter);
   app.use('/api/page-contents', pageContentRouter);
+  app.use('/api/ride-requests', rideRequestRouter);
   app.use('/api/admin', adminRouter);
   
   const httpServer = createServer(app);

@@ -5,7 +5,8 @@ import {
   bookings, type Booking, type InsertBooking,
   ratings, type Rating, type InsertRating,
   appSettings, type AppSetting, type InsertAppSetting,
-  pageContents, type PageContent, type InsertPageContent
+  pageContents, type PageContent, type InsertPageContent,
+  rideRequests, type RideRequest, type InsertRideRequest
 } from "@shared/schema";
 
 export interface IStorage {
@@ -62,6 +63,13 @@ export interface IStorage {
   updatePageContent(id: number, data: Partial<PageContent>): Promise<PageContent | undefined>;
   deletePageContent(id: number): Promise<boolean>;
   getAllPageContents(): Promise<PageContent[]>;
+  
+  // Ride Request methods
+  createRideRequest(request: InsertRideRequest): Promise<RideRequest>;
+  getRideRequest(id: number): Promise<RideRequest | undefined>;
+  getRideRequestsByUserId(userId: number): Promise<RideRequest[]>;
+  getAllRideRequests(): Promise<RideRequest[]>;
+  updateRideRequestStatus(id: number, status: string): Promise<RideRequest | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -466,6 +474,52 @@ export class MemStorage implements IStorage {
   
   async getAllPageContents(): Promise<PageContent[]> {
     return Array.from(this.pageContents.values());
+  }
+
+  // Ride Request methods
+  private rideRequests: Map<number, RideRequest> = new Map();
+  private rideRequestIdCounter: number = 1;
+
+  async createRideRequest(request: InsertRideRequest): Promise<RideRequest> {
+    const id = this.rideRequestIdCounter++;
+    const timestamp = new Date();
+    const newRequest: RideRequest = {
+      ...request,
+      id,
+      status: "pending",
+      createdAt: timestamp,
+      updatedAt: timestamp
+    };
+    this.rideRequests.set(id, newRequest);
+    return newRequest;
+  }
+
+  async getRideRequest(id: number): Promise<RideRequest | undefined> {
+    return this.rideRequests.get(id);
+  }
+
+  async getRideRequestsByUserId(userId: number): Promise<RideRequest[]> {
+    return Array.from(this.rideRequests.values()).filter(
+      (request) => request.userId === userId
+    );
+  }
+
+  async getAllRideRequests(): Promise<RideRequest[]> {
+    return Array.from(this.rideRequests.values());
+  }
+
+  async updateRideRequestStatus(id: number, status: string): Promise<RideRequest | undefined> {
+    const request = this.rideRequests.get(id);
+    if (request) {
+      const updatedRequest: RideRequest = {
+        ...request,
+        status,
+        updatedAt: new Date()
+      };
+      this.rideRequests.set(id, updatedRequest);
+      return updatedRequest;
+    }
+    return undefined;
   }
 }
 

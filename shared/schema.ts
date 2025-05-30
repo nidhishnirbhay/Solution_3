@@ -199,3 +199,35 @@ export const insertPageContentSchema = createInsertSchema(pageContents).pick({
 
 export type PageContent = typeof pageContents.$inferSelect;
 export type InsertPageContent = z.infer<typeof insertPageContentSchema>;
+
+// Ride Requests schema
+export const rideRequests = pgTable("ride_requests", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  fromLocation: text("from_location").notNull(),
+  toLocation: text("to_location").notNull(),
+  preferredDate: text("preferred_date").notNull(),
+  preferredTime: text("preferred_time"),
+  numberOfPassengers: integer("number_of_passengers").notNull().default(1),
+  maxBudget: integer("max_budget"),
+  additionalNotes: text("additional_notes"),
+  contactNumber: text("contact_number").notNull(),
+  status: text("status").notNull().default("pending"), // pending, fulfilled, expired
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertRideRequestSchema = createInsertSchema(rideRequests).pick({
+  userId: true,
+  fromLocation: true,
+  toLocation: true,
+  preferredDate: true,
+  preferredTime: true,
+  numberOfPassengers: true,
+  maxBudget: true,
+  additionalNotes: true,
+  contactNumber: true,
+});
+
+export type RideRequest = typeof rideRequests.$inferSelect;
+export type InsertRideRequest = z.infer<typeof insertRideRequestSchema>;
