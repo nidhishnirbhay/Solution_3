@@ -46,7 +46,7 @@ export default function AdminRideRequests() {
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
-      apiRequest(`/api/admin/ride-requests/${id}/status`, 'PATCH', { status }),
+      apiRequest('PATCH', `/api/admin/ride-requests/${id}/status`, { status }),
     onSuccess: () => {
       toast({ title: "Status Updated", description: "Ride request status has been updated successfully." });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/ride-requests"] });

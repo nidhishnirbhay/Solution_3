@@ -301,24 +301,35 @@ export default function FindRides() {
                   <p className="text-muted-foreground mb-4">
                     Try different locations or dates to find available rides.
                   </p>
-                  {user && (
-                    <div className="mt-6">
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Can't find what you're looking for?
-                      </p>
-                      <Button
-                        onClick={() => setIsRideRequestModalOpen(true)}
-                        variant="outline"
-                        className="bg-white hover:bg-gray-50"
-                      >
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Submit Ride Request
-                      </Button>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Our admin will help connect you with available drivers
-                      </p>
-                    </div>
-                  )}
+                  <div className="mt-6">
+                    {user ? (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Can't find what you're looking for?
+                        </p>
+                        <Button
+                          onClick={() => setIsRideRequestModalOpen(true)}
+                          variant="outline"
+                          className="bg-white hover:bg-gray-50"
+                        >
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Submit Ride Request
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Our admin will help connect you with available drivers
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <p className="text-sm text-blue-800 mb-2">
+                          Sign Up or Login to Submit the Enquiry to OyeGaadi
+                        </p>
+                        <p className="text-xs text-blue-600">
+                          Get personalized ride recommendations and submit ride requests
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
