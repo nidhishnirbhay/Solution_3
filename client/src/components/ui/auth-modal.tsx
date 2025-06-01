@@ -530,7 +530,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
                         </FormControl>
                         <div className="space-y-1 leading-none">
                           <FormLabel className="text-sm cursor-pointer">
-                            I agree to OyeGaadi's <a href="#" className="text-primary">Terms</a> and <a href="#" className="text-primary">Privacy Policy</a>
+                            I agree to OyeGaadi's <a href="/page/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">Terms of Service</a> and <a href="/page/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">Privacy Policy</a>
                           </FormLabel>
                           <FormMessage />
                         </div>
