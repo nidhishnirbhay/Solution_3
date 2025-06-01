@@ -108,6 +108,43 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
     },
   });
 
+  // Forgot Password Form
+  const forgotPasswordForm = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
+
+  // Forgot Password mutation
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (data: ForgotPasswordFormValues) => {
+      const res = await apiRequest("POST", "/api/auth/forgot-password", data);
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to send reset email");
+      }
+      
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Reset email sent",
+        description: "If an account with this email exists, you will receive a password reset link.",
+      });
+      setForgotPasswordOpen(false);
+      forgotPasswordForm.reset();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Reset forms when modal is opened/closed
   useEffect(() => {
     if (isOpen) {
@@ -363,7 +400,14 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
                 </form>
               </Form>
 
-              <div className="mt-4 text-center">
+              <div className="mt-4 text-center space-y-2">
+                <Button
+                  variant="link"
+                  className="p-0 text-sm"
+                  onClick={() => setForgotPasswordOpen(true)}
+                >
+                  Forgot password?
+                </Button>
                 <p className="text-sm text-muted-foreground">
                   Don't have an account?{" "}
                   <Button
@@ -518,6 +562,58 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
               </div>
             </TabsContent>
           </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Forgot Password Dialog */}
+      <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...forgotPasswordForm}>
+            <form onSubmit={forgotPasswordForm.handleSubmit((data) => forgotPasswordMutation.mutate(data))} className="space-y-4">
+              <FormField
+                control={forgotPasswordForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="email" 
+                        placeholder="Enter your email address" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setForgotPasswordOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={forgotPasswordMutation.isPending}
+                  className="flex-1"
+                >
+                  {forgotPasswordMutation.isPending ? "Sending..." : "Send Reset Link"}
+                </Button>
+              </div>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

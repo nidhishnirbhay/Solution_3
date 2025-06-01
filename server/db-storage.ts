@@ -10,6 +10,7 @@ import {
   pageContents,
   rideRequests,
   emailSettings,
+  passwordResetTokens,
   type User, 
   type InsertUser, 
   type KycVerification, 
@@ -27,7 +28,9 @@ import {
   type InsertPageContent,
   type InsertAppSetting,
   type EmailSettings,
-  type InsertEmailSettings
+  type InsertEmailSettings,
+  type PasswordResetToken,
+  type InsertPasswordResetToken
 } from "@shared/schema";
 import { IStorage } from "./storage";
 
@@ -646,6 +649,66 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Email connection test failed:', error);
       return false;
+    }
+  }
+
+  // Password Reset Token methods
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+      return user;
+    } catch (error) {
+      console.error('Error getting user by email:', error);
+      throw error;
+    }
+  }
+
+  async createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken> {
+    try {
+      const [created] = await db
+        .insert(passwordResetTokens)
+        .values(token)
+        .returning();
+      return created;
+    } catch (error) {
+      console.error('Error creating password reset token:', error);
+      throw error;
+    }
+  }
+
+  async getValidPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
+    try {
+      const [resetToken] = await db
+        .select()
+        .from(passwordResetTokens)
+        .where(
+          and(
+            eq(passwordResetTokens.token, token),
+            eq(passwordResetTokens.isUsed, false),
+            sql`${passwordResetTokens.expiresAt} > NOW()`
+          )
+        )
+        .limit(1);
+      return resetToken;
+    } catch (error) {
+      console.error('Error getting valid password reset token:', error);
+      throw error;
+    }
+  }
+
+  async markPasswordResetTokenAsUsed(tokenId: number): Promise<void> {
+    try {
+      await db
+        .update(passwordResetTokens)
+        .set({ isUsed: true })
+        .where(eq(passwordResetTokens.id, tokenId));
+    } catch (error) {
+      console.error('Error marking password reset token as used:', error);
+      throw error;
     }
   }
 }
