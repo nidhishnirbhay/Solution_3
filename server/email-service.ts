@@ -134,11 +134,13 @@ class EmailService {
           <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3>Booking Details:</h3>
             <p><strong>Passenger:</strong> ${customerName}</p>
+            <p><strong>Contact:</strong> ${bookingDetails.customerMobile}</p>
             <p><strong>From:</strong> ${bookingDetails.fromLocation}</p>
             <p><strong>To:</strong> ${bookingDetails.toLocation}</p>
             <p><strong>Date:</strong> ${new Date(bookingDetails.departureDate).toLocaleDateString()}</p>
             <p><strong>Seats Booked:</strong> ${bookingDetails.numberOfSeats}</p>
-            <p><strong>Total Amount:</strong> ₹${bookingDetails.totalAmount}</p>
+            <p><strong>Ride Price:</strong> ₹${bookingDetails.ridePrice || bookingDetails.price}</p>
+            <p><strong>Booking Fee:</strong> ₹${bookingDetails.bookingFee || 0}</p>
           </div>
           
           <p>Please coordinate with the passenger for pickup details.</p>
@@ -148,15 +150,15 @@ class EmailService {
     };
   }
 
-  getBookingConfirmationEmail(customerName: string, customerEmail: string, driverName: string, bookingDetails: any): EmailData {
+  getBookingRequestEmail(customerName: string, customerEmail: string, driverName: string, bookingDetails: any): EmailData {
     return {
       to: customerEmail,
-      subject: 'Booking Confirmed - OyeGaadi',
+      subject: 'Booking Request Submitted - OyeGaadi',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2563eb;">Booking Confirmed!</h2>
+          <h2 style="color: #2563eb;">Booking Request Submitted!</h2>
           <p>Hello ${customerName},</p>
-          <p>Your ride booking has been confirmed.</p>
+          <p>Your ride booking request has been submitted and is pending driver approval.</p>
           
           <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3>Booking Details:</h3>
@@ -164,8 +166,14 @@ class EmailService {
             <p><strong>From:</strong> ${bookingDetails.fromLocation}</p>
             <p><strong>To:</strong> ${bookingDetails.toLocation}</p>
             <p><strong>Date:</strong> ${new Date(bookingDetails.departureDate).toLocaleDateString()}</p>
-            <p><strong>Seats Booked:</strong> ${bookingDetails.numberOfSeats}</p>
-            <p><strong>Total Amount:</strong> ₹${bookingDetails.totalAmount}</p>
+            <p><strong>Seats Requested:</strong> ${bookingDetails.numberOfSeats}</p>
+            <p><strong>Ride Price:</strong> ₹${bookingDetails.ridePrice || bookingDetails.price}</p>
+            <p><strong>Booking Fee:</strong> ₹${bookingDetails.bookingFee || 0}</p>
+          </div>
+          
+          <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Status:</strong> Pending Driver Approval</p>
+            <p>The driver will review your request and confirm or decline the booking. You will receive an email notification once the driver responds.</p>
           </div>
           
           <p>Please coordinate with your driver for pickup details.</p>

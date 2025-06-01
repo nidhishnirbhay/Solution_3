@@ -1194,6 +1194,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 numberOfSeats: newBooking.number_of_seats,
                 customerName: user.fullName,
                 customerMobile: user.mobile,
+                ridePrice: ride.price,
+                bookingFee: newBooking.booking_fee,
                 bookingId: newBooking.id
               }
             );
@@ -1203,8 +1205,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          // Send booking confirmation to customer
-          const customerEmailData = emailService.getBookingConfirmationEmail(
+          // Send booking request confirmation to customer
+          const customerEmailData = emailService.getBookingRequestEmail(
             user.fullName,
             user.email,
             driver ? driver.fullName : 'Driver',
@@ -1213,6 +1215,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               toLocation: ride.toLocation,
               departureDate: ride.departureDate,
               numberOfSeats: newBooking.number_of_seats,
+              ridePrice: ride.price,
               bookingFee: newBooking.booking_fee,
               vehicleType: ride.vehicleType,
               vehicleNumber: ride.vehicleNumber,
