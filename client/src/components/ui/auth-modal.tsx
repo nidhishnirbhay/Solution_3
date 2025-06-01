@@ -54,6 +54,7 @@ const loginSchema = z.object({
 
 const registerSchema = z.object({
   fullName: z.string().min(1, { message: "Full name is required" }),
+  email: z.string().email({ message: "Valid email address is required" }),
   mobile: z.string().min(10, { message: "Valid mobile number is required" }),
   username: z.string().min(4, { message: "Username must be at least 4 characters" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
@@ -93,6 +94,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
     resolver: zodResolver(registerSchema),
     defaultValues: {
       fullName: "",
+      email: "",
       mobile: "",
       username: "",
       password: "",
