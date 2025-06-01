@@ -2769,6 +2769,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Public page endpoint (no auth required)
+  app.get('/api/page/:slug', async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const page = await storage.getPageContentBySlug(slug);
+      
+      if (!page) {
+        return res.status(404).json({ error: "Page not found" });
+      }
+      
+      // Only return published pages to public
+      if (!page.isPublished) {
+        return res.status(404).json({ error: "Page not found" });
+      }
+      
+      res.json(page);
+    } catch (error) {
+      console.error("Error fetching page:", error);
+      res.status(500).json({ error: "Failed to fetch page" });
+    }
+  });
+
   // Register all routes
   app.use('/api/auth', authRouter);
   app.use('/api/kyc', kycRouter);

@@ -58,6 +58,7 @@ function Router() {
         <Route path="/my-published-rides" component={MyPublishedRides} />
         <Route path="/kyc-verification" component={KycVerification} />
         <Route path="/reset-password" component={ResetPasswordPage} />
+        <Route path="/page/:slug" component={PublicPage} />
         
         {/* Admin routes */}
         <Route path="/admin" component={() => {
