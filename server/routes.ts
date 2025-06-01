@@ -1465,7 +1465,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const driverEmailData = emailService.getRideCancelledEmail(
                 driver.fullName,
                 driver.email,
-                false, // isDriver = false means this is notification TO driver
+                true, // isDriver = true means this is notification TO driver
                 {
                   fromLocation: ride.fromLocation,
                   toLocation: ride.toLocation,
@@ -1476,13 +1476,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   bookingId: updatedBooking.id
                 }
               );
-              await emailService.sendEmail(driverEmailData);
+              const driverEmailSent = await emailService.sendEmail(driverEmailData);
+              console.log("Driver cancellation email sent:", driverEmailSent);
               
               // Send cancellation notification to customer
               const customerEmailData = emailService.getRideCancelledEmail(
                 customer.fullName,
                 customer.email,
-                true, // isDriver = true means this is notification TO customer
+                false, // isDriver = false means this is notification TO customer
                 {
                   fromLocation: ride.fromLocation,
                   toLocation: ride.toLocation,
@@ -1493,7 +1494,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   bookingId: updatedBooking.id
                 }
               );
-              await emailService.sendEmail(customerEmailData);
+              const customerEmailSent = await emailService.sendEmail(customerEmailData);
+              console.log("Customer cancellation email sent:", customerEmailSent);
               
               console.log("Cancellation emails sent to both driver and customer");
             }

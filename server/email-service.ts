@@ -218,25 +218,29 @@ class EmailService {
   }
 
   getRideCancelledEmail(recipientName: string, recipientEmail: string, isDriver: boolean, rideDetails: any): EmailData {
-    const subject = isDriver ? 'Booking Cancelled - OyeGaadi' : 'Ride Cancelled - OyeGaadi';
+    const subject = 'Booking Cancelled - OyeGaadi';
+    const cancelledByText = rideDetails.cancelledBy === 'customer' ? 'the passenger' : 'the driver';
     const message = isDriver 
-      ? 'A passenger has cancelled their booking for your ride.'
-      : 'Your ride booking has been cancelled.';
+      ? `A booking for your ride has been cancelled by ${cancelledByText}.`
+      : `Your ride booking has been cancelled by ${cancelledByText}.`;
 
     return {
       to: recipientEmail,
       subject,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #dc2626;">Ride Cancelled</h2>
+          <h2 style="color: #dc2626;">Booking Cancelled</h2>
           <p>Hello ${recipientName},</p>
           <p>${message}</p>
           
           <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
-            <h3>Cancelled Ride Details:</h3>
+            <h3>Cancelled Booking Details:</h3>
+            ${isDriver ? `<p><strong>Passenger:</strong> ${rideDetails.customerName}</p>` : `<p><strong>Driver:</strong> ${rideDetails.driverName}</p>`}
             <p><strong>From:</strong> ${rideDetails.fromLocation}</p>
             <p><strong>To:</strong> ${rideDetails.toLocation}</p>
             <p><strong>Date:</strong> ${new Date(rideDetails.departureDate).toLocaleDateString()}</p>
+            <p><strong>Reason:</strong> ${rideDetails.cancellationReason}</p>
+            <p><strong>Cancelled by:</strong> ${cancelledByText}</p>
           </div>
           
           <p>If you have any questions, please contact our support team.</p>
