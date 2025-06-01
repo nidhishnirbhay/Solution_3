@@ -310,7 +310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Generate secure token
-      const crypto = require('crypto');
+      const crypto = await import('crypto');
       const resetToken = crypto.randomBytes(32).toString('hex');
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
 
@@ -358,7 +358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update user password
-      const bcrypt = require('bcrypt');
+      const bcrypt = await import('bcrypt');
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       
       await storage.updateUser(resetTokenRecord.userId, { password: hashedPassword });
