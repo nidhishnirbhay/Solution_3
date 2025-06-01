@@ -392,6 +392,20 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
 
                   <FormField
                     control={registerForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="Enter your email address" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={registerForm.control}
                     name="mobile"
                     render={({ field }) => (
                       <FormItem>

@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { db, pool } from "./db";
 import { eq } from "drizzle-orm";
+import { users } from "../shared/schema";
+import { emailService } from "./email-service";
 
 // Function to check and update past rides
 export async function checkAndUpdatePastRides() {
@@ -154,6 +156,7 @@ async function seedAdminUser() {
       await storage.createUser({
         username: 'oyegaadicabs@gmail.com',
         password: 'OGC.2000',
+        email: 'oyegaadicabs@gmail.com',
         fullName: 'OyeGaadi Admin',
         role: 'admin',
         mobile: '9999999999'
@@ -298,6 +301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const requiredFields = [
         { field: 'username', message: 'Username is required' },
         { field: 'password', message: 'Password is required' },
+        { field: 'email', message: 'Email is required' },
         { field: 'mobile', message: 'Mobile number is required' },
         { field: 'fullName', message: 'Full name is required' },
         { field: 'role', message: 'Role is required' }
@@ -309,17 +313,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const { username, mobile, role } = req.body;
+      const { username, email, mobile, role } = req.body;
+      
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
       
       // Validate role
       if (!['driver', 'customer'].includes(role)) {
         return res.status(400).json({ error: "Invalid role. Must be 'driver' or 'customer'" });
       }
       
-      // Check if username or mobile already exists
+      // Check if username, email, or mobile already exists
       const existingUsername = await storage.getUserByUsername(username);
       if (existingUsername) {
         return res.status(400).json({ error: "Username already taken" });
+      }
+      
+      // Check for existing email in database
+      try {
+        const existingEmail = await db.select().from(users).where(eq(users.email, email)).limit(1);
+        if (existingEmail.length > 0) {
+          return res.status(400).json({ error: "Email address already registered" });
+        }
+      } catch (emailCheckError) {
+        console.error('Error checking email:', emailCheckError);
       }
       
       const existingMobile = await storage.getUserByMobile(mobile);
@@ -330,6 +350,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Creating new user with role:", role);
       const newUser = await storage.createUser(req.body);
       console.log("User created successfully with ID:", newUser.id);
+      
+      // Send welcome email
+      try {
+        const emailData = emailService.getUserRegistrationEmail(newUser.fullName, newUser.email);
+        const emailSent = await emailService.sendEmail(emailData);
+        if (emailSent) {
+          console.log("Welcome email sent successfully to:", newUser.email);
+        } else {
+          console.log("Welcome email could not be sent to:", newUser.email);
+        }
+      } catch (emailError) {
+        console.error("Error sending welcome email:", emailError);
+        // Don't fail registration if email fails
+      }
       
       // Auto-login after registration
       req.logIn(newUser, (err) => {
