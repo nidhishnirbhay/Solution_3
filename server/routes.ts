@@ -590,6 +590,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const ride = await storage.createRide(rideData);
       console.log("Ride created successfully:", ride.id);
+      
+      // Send ride published confirmation email to driver
+      try {
+        const emailData = emailService.getRidePublishedEmail(user.fullName, user.email, {
+          fromLocation: ride.fromLocation,
+          toLocation: ride.toLocation,
+          departureDate: ride.departureDate,
+          availableSeats: ride.availableSeats,
+          pricePerSeat: ride.price
+        });
+        const emailSent = await emailService.sendEmail(emailData);
+        if (emailSent) {
+          console.log("Ride published email sent to:", user.email);
+        } else {
+          console.log("Ride published email could not be sent to:", user.email);
+        }
+      } catch (emailError) {
+        console.error("Error sending ride published email:", emailError);
+        // Don't fail ride creation if email fails
+      }
+      
       res.status(201).json(ride);
     } catch (error) {
       console.error("Ride creation error:", error);
@@ -1154,6 +1175,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
             vehicleNumber: ride.vehicleNumber
           }
         };
+        
+        // Send email notifications for the new booking
+        try {
+          // Get driver details for email notification
+          const driver = await storage.getUser(ride.driverId);
+          
+          if (driver) {
+            // Send booking notification to driver
+            const driverEmailData = emailService.getRideBookingEmail(
+              driver.fullName, 
+              driver.email, 
+              user.fullName, 
+              {
+                fromLocation: ride.fromLocation,
+                toLocation: ride.toLocation,
+                departureDate: ride.departureDate,
+                numberOfSeats: newBooking.number_of_seats,
+                customerName: user.fullName,
+                customerMobile: user.mobile,
+                bookingId: newBooking.id
+              }
+            );
+            const driverEmailSent = await emailService.sendEmail(driverEmailData);
+            if (driverEmailSent) {
+              console.log("Booking notification email sent to driver:", driver.email);
+            }
+          }
+          
+          // Send booking confirmation to customer
+          const customerEmailData = emailService.getBookingConfirmationEmail(
+            user.fullName,
+            user.email,
+            driver ? driver.fullName : 'Driver',
+            {
+              fromLocation: ride.fromLocation,
+              toLocation: ride.toLocation,
+              departureDate: ride.departureDate,
+              numberOfSeats: newBooking.number_of_seats,
+              bookingFee: newBooking.booking_fee,
+              vehicleType: ride.vehicleType,
+              vehicleNumber: ride.vehicleNumber,
+              bookingId: newBooking.id
+            }
+          );
+          const customerEmailSent = await emailService.sendEmail(customerEmailData);
+          if (customerEmailSent) {
+            console.log("Booking confirmation email sent to customer:", user.email);
+          }
+        } catch (emailError) {
+          console.error("Error sending booking notification emails:", emailError);
+          // Don't fail booking if email fails
+        }
         
         console.log("Responding with booking:", bookingWithCustomer);
         res.status(201).json(bookingWithCustomer);
