@@ -379,7 +379,9 @@ class EmailService {
     // Use production domain for Replit or fallback to localhost for development
     const baseUrl = process.env.REPLIT_URL 
       ? `https://${process.env.REPLIT_URL}` 
-      : process.env.FRONTEND_URL || 'http://localhost:5000';
+      : process.env.NODE_ENV === 'production' 
+        ? 'https://oyegaadi.replit.app'
+        : process.env.FRONTEND_URL || 'http://localhost:5000';
     const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
     
     return {
@@ -403,6 +405,41 @@ class EmailService {
           <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
             <p><strong>Important:</strong> This link will expire in 1 hour for security reasons.</p>
             <p>If you didn't request this password reset, please ignore this email.</p>
+          </div>
+          
+          <p><strong>OyeGaadi Team</strong></p>
+        </div>
+      `,
+    };
+  }
+
+  getPasswordResetSuccessEmail(userName: string, userEmail: string): EmailData {
+    return {
+      to: userEmail,
+      subject: 'Password Reset Successful - OyeGaadi',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #059669;">Password Reset Successful!</h2>
+          <p>Hello ${userName},</p>
+          <p>Your password has been successfully reset for your OyeGaadi account.</p>
+          
+          <div style="background: #dcfce7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669;">
+            <p><strong>✅ Password Updated:</strong> Your new password is now active.</p>
+            <p>You can now log in to your account using your new password.</p>
+          </div>
+          
+          <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Security Tips:</strong></p>
+            <ul style="margin: 0; padding-left: 20px;">
+              <li>Keep your password secure and don't share it with anyone</li>
+              <li>Use a strong password with a mix of letters, numbers, and symbols</li>
+              <li>Log out from shared devices after use</li>
+            </ul>
+          </div>
+          
+          <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Didn't make this change?</strong></p>
+            <p>If you didn't reset your password, please contact our support team immediately.</p>
           </div>
           
           <p><strong>OyeGaadi Team</strong></p>

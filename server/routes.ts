@@ -362,6 +362,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid or expired reset token" });
       }
 
+      // Get user details for email notification
+      const user = await storage.getUser(resetTokenRecord.userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
       // Update user password
       const bcrypt = await import('bcrypt');
       const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -370,6 +376,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Mark token as used
       await storage.markPasswordResetTokenAsUsed(resetTokenRecord.id);
+
+      // Send success notification email
+      try {
+        const successEmail = emailService.getPasswordResetSuccessEmail(user.fullName, user.email);
+        await emailService.sendEmail(successEmail);
+        console.log(`Password reset success email sent to: ${user.email}`);
+      } catch (emailError) {
+        console.error('Failed to send password reset success email:', emailError);
+        // Don't fail the password reset if email fails
+      }
 
       console.log(`Password reset successful for user ID: ${resetTokenRecord.userId}`);
       res.json({ message: "Password reset successful. You can now login with your new password." });
