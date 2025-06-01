@@ -75,6 +75,12 @@ export interface IStorage {
   getEmailSettings(): Promise<EmailSettings | undefined>;
   updateEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings>;
   testEmailConnection(settings: InsertEmailSettings): Promise<boolean>;
+  
+  // Password Reset methods
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken>;
+  getValidPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
+  markPasswordResetTokenAsUsed(tokenId: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {

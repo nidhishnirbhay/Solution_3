@@ -375,6 +375,38 @@ class EmailService {
     };
   }
 
+  getPasswordResetEmail(userName: string, userEmail: string, resetToken: string): EmailData {
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
+    
+    return {
+      to: userEmail,
+      subject: 'Password Reset Request - OyeGaadi',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">Password Reset Request</h2>
+          <p>Hello ${userName},</p>
+          <p>We received a request to reset your password for your OyeGaadi account.</p>
+          
+          <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;">
+            <p>Click the button below to reset your password:</p>
+            <div style="text-align: center; margin: 20px 0;">
+              <a href="${resetUrl}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a>
+            </div>
+            <p style="font-size: 14px; color: #666;">If the button doesn't work, copy and paste this link in your browser:</p>
+            <p style="font-size: 14px; word-break: break-all;">${resetUrl}</p>
+          </div>
+          
+          <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Important:</strong> This link will expire in 1 hour for security reasons.</p>
+            <p>If you didn't request this password reset, please ignore this email.</p>
+          </div>
+          
+          <p><strong>OyeGaadi Team</strong></p>
+        </div>
+      `,
+    };
+  }
+
   // Reset settings cache when configuration changes
   resetSettings() {
     this.settings = null;
