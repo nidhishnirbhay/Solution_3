@@ -9,6 +9,7 @@ import {
   appSettings,
   pageContents,
   rideRequests,
+  emailSettings,
   type User, 
   type InsertUser, 
   type KycVerification, 
@@ -24,7 +25,9 @@ import {
   type AppSetting,
   type PageContent,
   type InsertPageContent,
-  type InsertAppSetting
+  type InsertAppSetting,
+  type EmailSettings,
+  type InsertEmailSettings
 } from "@shared/schema";
 import { IStorage } from "./storage";
 
@@ -580,6 +583,69 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`Error updating ride request status for ID ${id}:`, error);
       throw error;
+    }
+  }
+
+  // Email Settings methods
+  async getEmailSettings(): Promise<EmailSettings | undefined> {
+    try {
+      const [settings] = await db.select().from(emailSettings).limit(1);
+      return settings;
+    } catch (error) {
+      console.error('Error getting email settings:', error);
+      throw error;
+    }
+  }
+
+  async updateEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings> {
+    try {
+      // Check if settings exist
+      const existing = await this.getEmailSettings();
+      
+      if (existing) {
+        // Update existing settings
+        const [updated] = await db
+          .update(emailSettings)
+          .set({
+            ...settings,
+            updatedAt: new Date()
+          })
+          .where(eq(emailSettings.id, existing.id))
+          .returning();
+        return updated;
+      } else {
+        // Create new settings
+        const [created] = await db
+          .insert(emailSettings)
+          .values(settings)
+          .returning();
+        return created;
+      }
+    } catch (error) {
+      console.error('Error updating email settings:', error);
+      throw error;
+    }
+  }
+
+  async testEmailConnection(settings: InsertEmailSettings): Promise<boolean> {
+    try {
+      const nodemailer = await import('nodemailer');
+      
+      const transporter = nodemailer.default.createTransport({
+        host: settings.smtpHost,
+        port: settings.smtpPort,
+        secure: settings.smtpPort === 465,
+        auth: {
+          user: settings.smtpUsername,
+          pass: settings.smtpPassword,
+        },
+      });
+
+      await transporter.verify();
+      return true;
+    } catch (error) {
+      console.error('Email connection test failed:', error);
+      return false;
     }
   }
 }

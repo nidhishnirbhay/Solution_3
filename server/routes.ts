@@ -2289,6 +2289,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to update setting" });
     }
   });
+
+  // Admin email settings routes
+  adminRouter.get('/email-settings', authorize(['admin']), async (req, res) => {
+    try {
+      const settings = await storage.getEmailSettings();
+      res.json(settings || {});
+    } catch (error) {
+      console.error('Error fetching email settings:', error);
+      res.status(500).json({ error: 'Failed to fetch email settings' });
+    }
+  });
+
+  adminRouter.post('/email-settings', authorize(['admin']), validateBody(z.object({
+    smtpHost: z.string().min(1),
+    smtpPort: z.number().min(1).max(65535),
+    smtpUsername: z.string().min(1),
+    smtpPassword: z.string().min(1),
+    fromEmail: z.string().email(),
+    fromName: z.string().min(1),
+    isEnabled: z.boolean(),
+  })), async (req, res) => {
+    try {
+      const settings = await storage.updateEmailSettings(req.body);
+      
+      // Reset email service settings cache
+      const { emailService } = await import('./email-service.js');
+      emailService.resetSettings();
+      
+      res.json(settings);
+    } catch (error) {
+      console.error('Error updating email settings:', error);
+      res.status(500).json({ error: 'Failed to update email settings' });
+    }
+  });
+
+  adminRouter.post('/email-settings/test', authorize(['admin']), validateBody(z.object({
+    smtpHost: z.string().min(1),
+    smtpPort: z.number().min(1).max(65535),
+    smtpUsername: z.string().min(1),
+    smtpPassword: z.string().min(1),
+    fromEmail: z.string().email(),
+    fromName: z.string().min(1),
+    isEnabled: z.boolean(),
+  })), async (req, res) => {
+    try {
+      const isValid = await storage.testEmailConnection(req.body);
+      res.json({ success: isValid });
+    } catch (error) {
+      console.error('Error testing email connection:', error);
+      res.status(500).json({ error: 'Failed to test email connection' });
+    }
+  });
   
   // Register all routes
   app.use('/api/auth', authRouter);
