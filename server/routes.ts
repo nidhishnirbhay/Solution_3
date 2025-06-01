@@ -6,6 +6,7 @@ import { db, pool } from "./db";
 import { eq } from "drizzle-orm";
 import { users } from "../shared/schema";
 import { emailService } from "./email-service";
+import * as bcrypt from "bcrypt";
 
 // Function to check and update past rides
 export async function checkAndUpdatePastRides() {
