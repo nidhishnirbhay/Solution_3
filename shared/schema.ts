@@ -231,3 +231,30 @@ export const insertRideRequestSchema = createInsertSchema(rideRequests).pick({
 
 export type RideRequest = typeof rideRequests.$inferSelect;
 export type InsertRideRequest = z.infer<typeof insertRideRequestSchema>;
+
+// Email Settings schema
+export const emailSettings = pgTable("email_settings", {
+  id: serial("id").primaryKey(),
+  smtpHost: text("smtp_host").notNull(),
+  smtpPort: integer("smtp_port").notNull().default(587),
+  smtpUsername: text("smtp_username").notNull(),
+  smtpPassword: text("smtp_password").notNull(),
+  fromEmail: text("from_email").notNull(),
+  fromName: text("from_name").notNull().default("OyeGaadi"),
+  isEnabled: boolean("is_enabled").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEmailSettingsSchema = createInsertSchema(emailSettings).pick({
+  smtpHost: true,
+  smtpPort: true,
+  smtpUsername: true,
+  smtpPassword: true,
+  fromEmail: true,
+  fromName: true,
+  isEnabled: true,
+});
+
+export type EmailSettings = typeof emailSettings.$inferSelect;
+export type InsertEmailSettings = z.infer<typeof insertEmailSettingsSchema>;

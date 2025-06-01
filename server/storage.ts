@@ -70,6 +70,11 @@ export interface IStorage {
   getRideRequestsByUserId(userId: number): Promise<RideRequest[]>;
   getAllRideRequests(): Promise<RideRequest[]>;
   updateRideRequestStatus(id: number, status: string): Promise<RideRequest | undefined>;
+  
+  // Email Settings methods
+  getEmailSettings(): Promise<EmailSettings | undefined>;
+  updateEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings>;
+  testEmailConnection(settings: InsertEmailSettings): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
