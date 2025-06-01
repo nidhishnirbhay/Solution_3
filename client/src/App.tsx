@@ -23,6 +23,7 @@ import AdminEmailSettings from "@/pages/admin/email-settings";
 import AdminSettings from "@/pages/admin/settings";
 import AdminBusinessSetup from "@/pages/admin/business-setup";
 import AdminLogin from "@/pages/admin/login";
+import { ResetPasswordPage } from "@/pages/reset-password";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -55,6 +56,7 @@ function Router() {
         <Route path="/my-bookings" component={MyBookings} />
         <Route path="/my-published-rides" component={MyPublishedRides} />
         <Route path="/kyc-verification" component={KycVerification} />
+        <Route path="/reset-password" component={ResetPasswordPage} />
         
         {/* Admin routes */}
         <Route path="/admin" component={() => {
