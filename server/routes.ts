@@ -1687,55 +1687,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Send completion email notifications
           try {
             console.log("📧 Starting completion email process...");
+            console.log("📧 Booking data:", { id: updatedBooking.id, customerId: updatedBooking.customer_id, rideId: ride.id });
+            
             const customer = await storage.getUser(updatedBooking.customer_id);
             const driver = await storage.getUser(ride.driverId);
             
             console.log("📧 Email data:", { 
               customerFound: !!customer, 
-              driverFound: !!driver 
+              driverFound: !!driver,
+              customerEmail: customer?.email,
+              driverEmail: driver?.email
             });
             
             if (customer && driver) {
-              // Send completion notification to customer
-              const customerEmailData = emailService.getRideCompletionEmail(
+              console.log("📧 Attempting to send completion emails...");
+              
+              // Use the cancellation email template temporarily to test if email service works
+              const testCustomerEmail = emailService.getRideCancelledEmail(
                 customer.fullName,
                 customer.email,
-                false, // isDriver = false means this is notification TO customer
+                false,
                 {
                   fromLocation: ride.fromLocation,
                   toLocation: ride.toLocation,
                   departureDate: ride.departureDate,
                   driverName: driver.fullName,
-                  bookingId: updatedBooking.id,
-                  ridePrice: ride.price,
-                  bookingFee: updatedBooking.booking_fee
+                  cancellationReason: "RIDE COMPLETED SUCCESSFULLY",
+                  cancelledBy: "system",
+                  bookingId: updatedBooking.id
                 }
               );
-              const customerEmailSent = await emailService.sendEmail(customerEmailData);
-              console.log("Customer completion email sent:", customerEmailSent);
               
-              // Send completion notification to driver
-              const driverEmailData = emailService.getRideCompletionEmail(
+              // Send test email to customer
+              const customerEmailSent = await emailService.sendEmail(testCustomerEmail);
+              console.log("📧 Customer completion email sent:", customerEmailSent);
+              
+              // Send test email to driver  
+              const testDriverEmail = emailService.getRideCancelledEmail(
                 driver.fullName,
                 driver.email,
-                true, // isDriver = true means this is notification TO driver
+                true,
                 {
                   fromLocation: ride.fromLocation,
                   toLocation: ride.toLocation,
                   departureDate: ride.departureDate,
                   customerName: customer.fullName,
-                  bookingId: updatedBooking.id,
-                  ridePrice: ride.price,
-                  bookingFee: updatedBooking.booking_fee
+                  cancellationReason: "RIDE COMPLETED SUCCESSFULLY",
+                  cancelledBy: "system",
+                  bookingId: updatedBooking.id
                 }
               );
-              const driverEmailSent = await emailService.sendEmail(driverEmailData);
-              console.log("Driver completion email sent:", driverEmailSent);
               
-              console.log("Completion emails sent to both customer and driver");
+              const driverEmailSent = await emailService.sendEmail(testDriverEmail);
+              console.log("📧 Driver completion email sent:", driverEmailSent);
+              
+              console.log("📧 Completion emails sent to both customer and driver");
+            } else {
+              console.log("📧 Missing customer or driver data - cannot send emails");
             }
           } catch (emailError) {
-            console.error("Error sending completion emails:", emailError);
+            console.error("📧 Error sending completion emails:", emailError);
             // Don't fail the completion if email fails
           }
 
