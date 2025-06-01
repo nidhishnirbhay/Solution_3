@@ -1450,6 +1450,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
             updatedAt: updatedBooking.updated_at
           };
           
+          // Send cancellation email notifications
+          try {
+            const ride = await storage.getRide(updatedBooking.ride_id);
+            const customer = await storage.getUser(updatedBooking.customer_id);
+            const driver = ride ? await storage.getUser(ride.driverId) : null;
+            
+            if (ride && customer && driver) {
+              // Determine who cancelled (check current user)
+              const user = req.user as any;
+              const cancelledBy = user.id === customer.id ? 'customer' : 'driver';
+              
+              // Send cancellation notification to driver
+              const driverEmailData = emailService.getRideCancelledEmail(
+                driver.fullName,
+                driver.email,
+                false, // isDriver = false means this is notification TO driver
+                {
+                  fromLocation: ride.fromLocation,
+                  toLocation: ride.toLocation,
+                  departureDate: ride.departureDate,
+                  customerName: customer.fullName,
+                  cancellationReason: reason,
+                  cancelledBy: cancelledBy,
+                  bookingId: updatedBooking.id
+                }
+              );
+              await emailService.sendEmail(driverEmailData);
+              
+              // Send cancellation notification to customer
+              const customerEmailData = emailService.getRideCancelledEmail(
+                customer.fullName,
+                customer.email,
+                true, // isDriver = true means this is notification TO customer
+                {
+                  fromLocation: ride.fromLocation,
+                  toLocation: ride.toLocation,
+                  departureDate: ride.departureDate,
+                  driverName: driver.fullName,
+                  cancellationReason: reason,
+                  cancelledBy: cancelledBy,
+                  bookingId: updatedBooking.id
+                }
+              );
+              await emailService.sendEmail(customerEmailData);
+              
+              console.log("Cancellation emails sent to both driver and customer");
+            }
+          } catch (emailError) {
+            console.error("Error sending cancellation emails:", emailError);
+            // Don't fail the cancellation if email fails
+          }
+          
           console.log("✅ Booking cancelled:", formattedBooking);
           res.json(formattedBooking);
         } catch (dbError: any) {
@@ -1516,6 +1568,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
               vehicleNumber: ride.vehicleNumber
             } : null
           };
+          
+          // Send booking confirmation email notifications
+          try {
+            if (customer && ride) {
+              const driver = await storage.getUser(ride.driverId);
+              
+              if (driver) {
+                // Send confirmation notification to customer
+                const customerEmailData = emailService.getBookingConfirmationEmail(
+                  customer.fullName,
+                  customer.email,
+                  driver.fullName,
+                  {
+                    fromLocation: ride.fromLocation,
+                    toLocation: ride.toLocation,
+                    departureDate: ride.departureDate,
+                    numberOfSeats: updatedBooking.number_of_seats,
+                    ridePrice: ride.price,
+                    bookingFee: updatedBooking.booking_fee,
+                    vehicleType: ride.vehicleType,
+                    vehicleNumber: ride.vehicleNumber,
+                    bookingId: updatedBooking.id
+                  }
+                );
+                await emailService.sendEmail(customerEmailData);
+                
+                // Send confirmation notification to driver
+                const driverEmailData = emailService.getRideBookingEmail(
+                  driver.fullName,
+                  driver.email,
+                  customer.fullName,
+                  {
+                    fromLocation: ride.fromLocation,
+                    toLocation: ride.toLocation,
+                    departureDate: ride.departureDate,
+                    numberOfSeats: updatedBooking.number_of_seats,
+                    customerName: customer.fullName,
+                    customerMobile: customer.mobile,
+                    ridePrice: ride.price,
+                    bookingFee: updatedBooking.booking_fee,
+                    bookingId: updatedBooking.id,
+                    isConfirmed: true
+                  }
+                );
+                await emailService.sendEmail(driverEmailData);
+                
+                console.log("Booking confirmation emails sent to both customer and driver");
+              }
+            }
+          } catch (emailError) {
+            console.error("Error sending confirmation emails:", emailError);
+            // Don't fail the confirmation if email fails
+          }
           
           console.log("✅ Responding with complete booking data:", JSON.stringify(formattedResponse).slice(0, 200) + "...");
           res.json(formattedResponse);

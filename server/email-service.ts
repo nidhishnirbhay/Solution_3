@@ -183,6 +183,40 @@ class EmailService {
     };
   }
 
+  getBookingConfirmationEmail(customerName: string, customerEmail: string, driverName: string, bookingDetails: any): EmailData {
+    return {
+      to: customerEmail,
+      subject: 'Booking Confirmed - OyeGaadi',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">Booking Confirmed!</h2>
+          <p>Hello ${customerName},</p>
+          <p>Great news! Your ride booking has been confirmed by the driver.</p>
+          
+          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3>Confirmed Booking Details:</h3>
+            <p><strong>Driver:</strong> ${driverName}</p>
+            <p><strong>From:</strong> ${bookingDetails.fromLocation}</p>
+            <p><strong>To:</strong> ${bookingDetails.toLocation}</p>
+            <p><strong>Date:</strong> ${new Date(bookingDetails.departureDate).toLocaleDateString()}</p>
+            <p><strong>Seats Confirmed:</strong> ${bookingDetails.numberOfSeats}</p>
+            <p><strong>Ride Price:</strong> ₹${bookingDetails.ridePrice}</p>
+            <p><strong>Booking Fee:</strong> ₹${bookingDetails.bookingFee || 0}</p>
+            <p><strong>Vehicle:</strong> ${bookingDetails.vehicleType} - ${bookingDetails.vehicleNumber}</p>
+          </div>
+          
+          <div style="background: #dcfce7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Status:</strong> Confirmed ✅</p>
+            <p>Your booking is now confirmed. Please be ready at the pickup location on time.</p>
+          </div>
+          
+          <p>Have a safe journey!</p>
+          <p><strong>OyeGaadi Team</strong></p>
+        </div>
+      `,
+    };
+  }
+
   getRideCancelledEmail(recipientName: string, recipientEmail: string, isDriver: boolean, rideDetails: any): EmailData {
     const subject = isDriver ? 'Booking Cancelled - OyeGaadi' : 'Ride Cancelled - OyeGaadi';
     const message = isDriver 
