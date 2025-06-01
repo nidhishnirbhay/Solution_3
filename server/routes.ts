@@ -1702,43 +1702,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (customer && driver) {
               console.log("📧 Attempting to send completion emails...");
               
-              // Use the cancellation email template temporarily to test if email service works
-              const testCustomerEmail = emailService.getRideCancelledEmail(
+              // Send proper completion notification to customer
+              const customerEmailData = emailService.getRideCompletionEmail(
                 customer.fullName,
                 customer.email,
-                false,
+                false, // isDriver = false means this is notification TO customer
                 {
                   fromLocation: ride.fromLocation,
                   toLocation: ride.toLocation,
                   departureDate: ride.departureDate,
                   driverName: driver.fullName,
-                  cancellationReason: "RIDE COMPLETED SUCCESSFULLY",
-                  cancelledBy: "system",
-                  bookingId: updatedBooking.id
+                  bookingId: updatedBooking.id,
+                  ridePrice: ride.price,
+                  bookingFee: updatedBooking.booking_fee
                 }
               );
-              
-              // Send test email to customer
-              const customerEmailSent = await emailService.sendEmail(testCustomerEmail);
+              const customerEmailSent = await emailService.sendEmail(customerEmailData);
               console.log("📧 Customer completion email sent:", customerEmailSent);
               
-              // Send test email to driver  
-              const testDriverEmail = emailService.getRideCancelledEmail(
+              // Send proper completion notification to driver
+              const driverEmailData = emailService.getRideCompletionEmail(
                 driver.fullName,
                 driver.email,
-                true,
+                true, // isDriver = true means this is notification TO driver
                 {
                   fromLocation: ride.fromLocation,
                   toLocation: ride.toLocation,
                   departureDate: ride.departureDate,
                   customerName: customer.fullName,
-                  cancellationReason: "RIDE COMPLETED SUCCESSFULLY",
-                  cancelledBy: "system",
-                  bookingId: updatedBooking.id
+                  bookingId: updatedBooking.id,
+                  ridePrice: ride.price,
+                  bookingFee: updatedBooking.booking_fee
                 }
               );
-              
-              const driverEmailSent = await emailService.sendEmail(testDriverEmail);
+              const driverEmailSent = await emailService.sendEmail(driverEmailData);
               console.log("📧 Driver completion email sent:", driverEmailSent);
               
               console.log("📧 Completion emails sent to both customer and driver");
