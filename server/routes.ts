@@ -240,9 +240,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!user) {
           return done(null, false, { message: 'Invalid username or password' });
         }
-        if (user.password !== password) {
+        
+        // Use bcrypt to compare the password with the stored hash
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if (!isValidPassword) {
           return done(null, false, { message: 'Invalid username or password' });
         }
+        
         return done(null, user);
       } catch (err) {
         return done(err);

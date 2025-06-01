@@ -102,11 +102,13 @@ export class DatabaseStorage implements IStorage {
         id: row.id,
         username: row.username,
         password: row.password,
+        email: row.email,
         fullName: row.full_name,
         role: row.role,
         mobile: row.mobile,
         isKycVerified: row.is_kyc_verified,
         isSuspended: row.is_suspended,
+        emergencyContact: row.emergency_contact,
         averageRating: row.average_rating,
         createdAt: row.created_at,
         updatedAt: row.updated_at
