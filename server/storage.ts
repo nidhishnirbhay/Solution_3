@@ -6,7 +6,9 @@ import {
   ratings, type Rating, type InsertRating,
   appSettings, type AppSetting, type InsertAppSetting,
   pageContents, type PageContent, type InsertPageContent,
-  rideRequests, type RideRequest, type InsertRideRequest
+  rideRequests, type RideRequest, type InsertRideRequest,
+  emailSettings, type EmailSettings, type InsertEmailSettings,
+  passwordResetTokens, type PasswordResetToken, type InsertPasswordResetToken
 } from "@shared/schema";
 
 export interface IStorage {
@@ -531,6 +533,53 @@ export class MemStorage implements IStorage {
       return updatedRequest;
     }
     return undefined;
+  }
+
+  // Password Reset Token methods
+  private passwordResetTokens: Map<number, PasswordResetToken> = new Map();
+  private tokenIdCounter: number = 1;
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.email === email);
+  }
+
+  async createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken> {
+    const newToken: PasswordResetToken = {
+      id: this.tokenIdCounter++,
+      ...token,
+      isUsed: false,
+      createdAt: new Date()
+    };
+    this.passwordResetTokens.set(newToken.id, newToken);
+    return newToken;
+  }
+
+  async getValidPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
+    const resetToken = Array.from(this.passwordResetTokens.values()).find(
+      t => t.token === token && !t.isUsed && t.expiresAt > new Date()
+    );
+    return resetToken;
+  }
+
+  async markPasswordResetTokenAsUsed(tokenId: number): Promise<void> {
+    const token = this.passwordResetTokens.get(tokenId);
+    if (token) {
+      token.isUsed = true;
+      this.passwordResetTokens.set(tokenId, token);
+    }
+  }
+
+  // Email Settings methods (placeholder implementations)
+  async getEmailSettings(): Promise<EmailSettings | undefined> {
+    return undefined;
+  }
+
+  async updateEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings> {
+    throw new Error("Not implemented in memory storage");
+  }
+
+  async testEmailConnection(settings: InsertEmailSettings): Promise<boolean> {
+    return false;
   }
 }
 
