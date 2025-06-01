@@ -455,6 +455,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const kyc = await storage.createKycVerification(kycData);
       console.log("KYC verification created successfully:", kyc.id);
+      
+      // Send KYC submission confirmation email
+      try {
+        const emailData = emailService.getKycSubmissionEmail(user.fullName, user.email);
+        const emailSent = await emailService.sendEmail(emailData);
+        if (emailSent) {
+          console.log("KYC submission confirmation email sent to:", user.email);
+        } else {
+          console.log("KYC submission confirmation email could not be sent to:", user.email);
+        }
+      } catch (emailError) {
+        console.error("Error sending KYC submission email:", emailError);
+        // Don't fail KYC submission if email fails
+      }
+      
       res.status(201).json(kyc);
     } catch (error) {
       console.error("KYC submission error:", error);
@@ -1820,9 +1835,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         remarks 
       });
       
+      // Get user details for email notification
+      const user = await storage.getUser(kyc.userId);
+      
       // If approved, update user's KYC status
       if (status === 'approved') {
         await storage.updateUser(kyc.userId, { isKycVerified: true });
+        
+        // Send approval email
+        if (user) {
+          try {
+            const emailData = emailService.getKycApprovedEmail(user.fullName, user.email);
+            const emailSent = await emailService.sendEmail(emailData);
+            if (emailSent) {
+              console.log("KYC approval email sent to:", user.email);
+            } else {
+              console.log("KYC approval email could not be sent to:", user.email);
+            }
+          } catch (emailError) {
+            console.error("Error sending KYC approval email:", emailError);
+          }
+        }
+      } else if (status === 'rejected') {
+        // Send rejection email
+        if (user) {
+          try {
+            const emailData = emailService.getKycRejectedEmail(user.fullName, user.email, remarks || 'Please review and resubmit your documents.');
+            const emailSent = await emailService.sendEmail(emailData);
+            if (emailSent) {
+              console.log("KYC rejection email sent to:", user.email);
+            } else {
+              console.log("KYC rejection email could not be sent to:", user.email);
+            }
+          } catch (emailError) {
+            console.error("Error sending KYC rejection email:", emailError);
+          }
+        }
       }
       
       res.json(updatedKyc);

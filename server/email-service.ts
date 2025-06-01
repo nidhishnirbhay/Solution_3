@@ -204,6 +204,93 @@ class EmailService {
     };
   }
 
+  getKycSubmissionEmail(userName: string, userEmail: string): EmailData {
+    return {
+      to: userEmail,
+      subject: 'KYC Documents Submitted Successfully - OyeGaadi',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">KYC Documents Submitted</h2>
+          <p>Hello ${userName},</p>
+          <p>Your KYC (Know Your Customer) documents have been submitted successfully and are now under review.</p>
+          
+          <div style="background: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;">
+            <h3>What happens next?</h3>
+            <ul>
+              <li>Our verification team will review your documents</li>
+              <li>The review process typically takes 1-3 business days</li>
+              <li>You'll receive an email notification once the review is complete</li>
+              <li>Once approved, you'll have full access to all OyeGaadi features</li>
+            </ul>
+          </div>
+          
+          <p>Thank you for helping us maintain a safe and trusted community.</p>
+          <p><strong>OyeGaadi Team</strong></p>
+        </div>
+      `,
+    };
+  }
+
+  getKycApprovedEmail(userName: string, userEmail: string): EmailData {
+    return {
+      to: userEmail,
+      subject: 'KYC Verification Approved - Welcome to OyeGaadi!',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #16a34a;">KYC Verification Approved!</h2>
+          <p>Hello ${userName},</p>
+          <p>Congratulations! Your KYC documents have been successfully verified and approved.</p>
+          
+          <div style="background: #dcfce7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #16a34a;">
+            <h3>You now have full access to:</h3>
+            <ul>
+              <li>Publish and manage rides</li>
+              <li>Book rides from verified drivers</li>
+              <li>Access to premium features</li>
+              <li>Enhanced profile visibility</li>
+              <li>Priority customer support</li>
+            </ul>
+          </div>
+          
+          <p>Start exploring OyeGaadi with your verified account and enjoy safe, reliable travel!</p>
+          <p><strong>OyeGaadi Team</strong></p>
+        </div>
+      `,
+    };
+  }
+
+  getKycRejectedEmail(userName: string, userEmail: string, rejectionReason: string): EmailData {
+    return {
+      to: userEmail,
+      subject: 'KYC Verification - Additional Information Required',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #dc2626;">KYC Verification Update</h2>
+          <p>Hello ${userName},</p>
+          <p>We've reviewed your KYC documents and need some additional information to complete the verification process.</p>
+          
+          <div style="background: #fee2e2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+            <h3>Reason for Review:</h3>
+            <p>${rejectionReason}</p>
+          </div>
+          
+          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3>Next Steps:</h3>
+            <ol>
+              <li>Log in to your OyeGaadi account</li>
+              <li>Go to the KYC verification section</li>
+              <li>Upload the corrected or additional documents</li>
+              <li>Resubmit for review</li>
+            </ol>
+          </div>
+          
+          <p>If you have any questions about the verification process, please contact our support team.</p>
+          <p><strong>OyeGaadi Team</strong></p>
+        </div>
+      `,
+    };
+  }
+
   // Reset settings cache when configuration changes
   resetSettings() {
     this.settings = null;
