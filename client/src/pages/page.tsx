@@ -21,7 +21,7 @@ export default function PublicPage() {
   const slug = params?.slug;
 
   const { data: page, isLoading, error } = useQuery<PageContent>({
-    queryKey: ['/api/page', slug],
+    queryKey: [`/api/page/${slug}`],
     enabled: !!slug,
   });
 
