@@ -1452,14 +1452,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Send cancellation email notifications
           try {
+            console.log("📧 Starting cancellation email process...");
             const ride = await storage.getRide(updatedBooking.ride_id);
             const customer = await storage.getUser(updatedBooking.customer_id);
             const driver = ride ? await storage.getUser(ride.driverId) : null;
+            
+            console.log("📧 Email data:", { 
+              rideFound: !!ride, 
+              customerFound: !!customer, 
+              driverFound: !!driver 
+            });
             
             if (ride && customer && driver) {
               // Determine who cancelled (check current user)
               const user = req.user as any;
               const cancelledBy = user.id === customer.id ? 'customer' : 'driver';
+              console.log("📧 Cancellation by:", cancelledBy);
               
               // Send cancellation notification to driver
               const driverEmailData = emailService.getRideCancelledEmail(
@@ -1573,8 +1581,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Send booking confirmation email notifications
           try {
+            console.log("📧 Starting confirmation email process...");
+            console.log("📧 Email data:", { customerFound: !!customer, rideFound: !!ride });
+            
             if (customer && ride) {
               const driver = await storage.getUser(ride.driverId);
+              console.log("📧 Driver found:", !!driver);
               
               if (driver) {
                 // Send confirmation notification to customer
