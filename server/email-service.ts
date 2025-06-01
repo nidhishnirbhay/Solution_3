@@ -376,7 +376,11 @@ class EmailService {
   }
 
   getPasswordResetEmail(userName: string, userEmail: string, resetToken: string): EmailData {
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
+    // Use production domain for Replit or fallback to localhost for development
+    const baseUrl = process.env.REPLIT_URL 
+      ? `https://${process.env.REPLIT_URL}` 
+      : process.env.FRONTEND_URL || 'http://localhost:5000';
+    const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
     
     return {
       to: userEmail,

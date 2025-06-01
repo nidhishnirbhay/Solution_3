@@ -47,7 +47,9 @@ import {
   Facebook,
   Twitter,
   Instagram,
-  Linkedin
+  Linkedin,
+  Scale,
+  Shield
 } from "lucide-react";
 import { AdminLayout } from "@/components/layout/admin-layout";
 
@@ -337,6 +339,10 @@ export default function BusinessSetup() {
                 <Globe className="h-4 w-4" />
                 <span>Contact & Social</span>
               </TabsTrigger>
+              <TabsTrigger value="legal" className="flex items-center gap-1">
+                <Scale className="h-4 w-4" />
+                <span>Terms & Privacy</span>
+              </TabsTrigger>
               <TabsTrigger value="pages" className="flex items-center gap-1">
                 <LayoutGrid className="h-4 w-4" />
                 <span>Page Management</span>
@@ -505,6 +511,183 @@ export default function BusinessSetup() {
                   </Form>
                 </CardContent>
               </Card>
+            </TabsContent>
+            
+            {/* Legal Pages - Terms & Privacy */}
+            <TabsContent value="legal">
+              <div className="grid gap-6">
+                {/* Terms of Service */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Scale className="h-5 w-5" />
+                      Terms of Service
+                    </CardTitle>
+                    <CardDescription>
+                      Manage your Terms of Service content that users see when they register or use your platform.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      const termsPage = pages.find(p => p.slug === 'terms-of-service');
+                      return (
+                        <div className="space-y-4">
+                          {termsPage ? (
+                            <div className="border rounded-lg p-4 bg-muted/50">
+                              <div className="flex items-center justify-between mb-3">
+                                <div>
+                                  <h4 className="font-medium">{termsPage.title}</h4>
+                                  <p className="text-sm text-muted-foreground">/{termsPage.slug}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Badge variant={termsPage.isPublished ? "default" : "outline"}>
+                                    {termsPage.isPublished ? "Published" : "Draft"}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  onClick={() => handleEditPage(termsPage)}
+                                  className="flex items-center gap-2"
+                                >
+                                  <FileEdit className="h-4 w-4" />
+                                  Edit Content
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  asChild
+                                  className="flex items-center gap-2"
+                                >
+                                  <a 
+                                    href={`/page/${termsPage.slug}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                    View Live
+                                  </a>
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                              <Scale className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                              <h4 className="font-medium mb-2">No Terms of Service Page</h4>
+                              <p className="text-sm text-muted-foreground mb-4">
+                                Create your Terms of Service page to inform users about your platform's rules and conditions.
+                              </p>
+                              <Button 
+                                onClick={() => {
+                                  setEditingPage(null);
+                                  pageForm.reset({
+                                    slug: 'terms-of-service',
+                                    title: 'Terms of Service',
+                                    content: '',
+                                    category: 'legal',
+                                    isPublished: true
+                                  });
+                                  setShowPageDialog(true);
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <Plus className="h-4 w-4" />
+                                Create Terms of Service
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+
+                {/* Privacy Policy */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      Privacy Policy
+                    </CardTitle>
+                    <CardDescription>
+                      Manage your Privacy Policy content that explains how you collect, use, and protect user data.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      const privacyPage = pages.find(p => p.slug === 'privacy-policy');
+                      return (
+                        <div className="space-y-4">
+                          {privacyPage ? (
+                            <div className="border rounded-lg p-4 bg-muted/50">
+                              <div className="flex items-center justify-between mb-3">
+                                <div>
+                                  <h4 className="font-medium">{privacyPage.title}</h4>
+                                  <p className="text-sm text-muted-foreground">/{privacyPage.slug}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Badge variant={privacyPage.isPublished ? "default" : "outline"}>
+                                    {privacyPage.isPublished ? "Published" : "Draft"}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  onClick={() => handleEditPage(privacyPage)}
+                                  className="flex items-center gap-2"
+                                >
+                                  <FileEdit className="h-4 w-4" />
+                                  Edit Content
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  asChild
+                                  className="flex items-center gap-2"
+                                >
+                                  <a 
+                                    href={`/page/${privacyPage.slug}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                    View Live
+                                  </a>
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                              <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                              <h4 className="font-medium mb-2">No Privacy Policy Page</h4>
+                              <p className="text-sm text-muted-foreground mb-4">
+                                Create your Privacy Policy page to inform users how their data is collected and used.
+                              </p>
+                              <Button 
+                                onClick={() => {
+                                  setEditingPage(null);
+                                  pageForm.reset({
+                                    slug: 'privacy-policy',
+                                    title: 'Privacy Policy',
+                                    content: '',
+                                    category: 'legal',
+                                    isPublished: true
+                                  });
+                                  setShowPageDialog(true);
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <Plus className="h-4 w-4" />
+                                Create Privacy Policy
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
             
             {/* Page Management */}

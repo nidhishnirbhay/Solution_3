@@ -24,6 +24,7 @@ import AdminSettings from "@/pages/admin/settings";
 import AdminBusinessSetup from "@/pages/admin/business-setup";
 import AdminLogin from "@/pages/admin/login";
 import { ResetPasswordPage } from "@/pages/reset-password";
+import PublicPage from "@/pages/page";
 import NotFound from "@/pages/not-found";
 
 function Router() {
