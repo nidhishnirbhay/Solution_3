@@ -1603,7 +1603,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     bookingFee: updatedBooking.booking_fee,
                     vehicleType: ride.vehicleType,
                     vehicleNumber: ride.vehicleNumber,
-                    bookingId: updatedBooking.id
+                    bookingId: updatedBooking.id,
+                    driverMobile: driver.mobile
                   }
                 );
                 await emailService.sendEmail(customerEmailData);

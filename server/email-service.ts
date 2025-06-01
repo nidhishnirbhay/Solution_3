@@ -196,6 +196,7 @@ class EmailService {
           <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3>Confirmed Booking Details:</h3>
             <p><strong>Driver:</strong> ${driverName}</p>
+            <p><strong>Driver Contact:</strong> ${bookingDetails.driverMobile}</p>
             <p><strong>From:</strong> ${bookingDetails.fromLocation}</p>
             <p><strong>To:</strong> ${bookingDetails.toLocation}</p>
             <p><strong>Date:</strong> ${new Date(bookingDetails.departureDate).toLocaleDateString()}</p>
