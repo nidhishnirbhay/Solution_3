@@ -1684,6 +1684,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Commit the transaction
           await pool.query('COMMIT');
           
+          // Send completion email notifications
+          try {
+            console.log("📧 Starting completion email process...");
+            const customer = await storage.getUser(updatedBooking.customer_id);
+            const driver = await storage.getUser(ride.driverId);
+            
+            console.log("📧 Email data:", { 
+              customerFound: !!customer, 
+              driverFound: !!driver 
+            });
+            
+            if (customer && driver) {
+              // Send completion notification to customer
+              const customerEmailData = emailService.getRideCompletionEmail(
+                customer.fullName,
+                customer.email,
+                false, // isDriver = false means this is notification TO customer
+                {
+                  fromLocation: ride.fromLocation,
+                  toLocation: ride.toLocation,
+                  departureDate: ride.departureDate,
+                  driverName: driver.fullName,
+                  bookingId: updatedBooking.id,
+                  ridePrice: ride.price,
+                  bookingFee: updatedBooking.booking_fee
+                }
+              );
+              const customerEmailSent = await emailService.sendEmail(customerEmailData);
+              console.log("Customer completion email sent:", customerEmailSent);
+              
+              // Send completion notification to driver
+              const driverEmailData = emailService.getRideCompletionEmail(
+                driver.fullName,
+                driver.email,
+                true, // isDriver = true means this is notification TO driver
+                {
+                  fromLocation: ride.fromLocation,
+                  toLocation: ride.toLocation,
+                  departureDate: ride.departureDate,
+                  customerName: customer.fullName,
+                  bookingId: updatedBooking.id,
+                  ridePrice: ride.price,
+                  bookingFee: updatedBooking.booking_fee
+                }
+              );
+              const driverEmailSent = await emailService.sendEmail(driverEmailData);
+              console.log("Driver completion email sent:", driverEmailSent);
+              
+              console.log("Completion emails sent to both customer and driver");
+            }
+          } catch (emailError) {
+            console.error("Error sending completion emails:", emailError);
+            // Don't fail the completion if email fails
+          }
+
           // Format the updated booking response
           const formattedBooking = {
             id: updatedBooking.id,

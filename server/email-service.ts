@@ -217,6 +217,43 @@ class EmailService {
     };
   }
 
+  getRideCompletionEmail(recipientName: string, recipientEmail: string, isDriver: boolean, rideDetails: any): EmailData {
+    const subject = 'Ride Completed - OyeGaadi';
+    const message = isDriver 
+      ? `Your ride has been successfully completed! Thank you for providing a safe journey.`
+      : `Your ride has been completed successfully! We hope you had a pleasant journey.`;
+
+    return {
+      to: recipientEmail,
+      subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #059669;">Ride Completed Successfully!</h2>
+          <p>Hello ${recipientName},</p>
+          <p>${message}</p>
+          
+          <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669;">
+            <h3>Completed Ride Details:</h3>
+            ${isDriver ? `<p><strong>Passenger:</strong> ${rideDetails.customerName}</p>` : `<p><strong>Driver:</strong> ${rideDetails.driverName}</p>`}
+            <p><strong>From:</strong> ${rideDetails.fromLocation}</p>
+            <p><strong>To:</strong> ${rideDetails.toLocation}</p>
+            <p><strong>Date:</strong> ${new Date(rideDetails.departureDate).toLocaleDateString()}</p>
+            <p><strong>Ride Price:</strong> ₹${rideDetails.ridePrice}</p>
+            <p><strong>Booking Fee:</strong> ₹${rideDetails.bookingFee}</p>
+            <p><strong>Booking ID:</strong> #${rideDetails.bookingId}</p>
+          </div>
+          
+          ${isDriver ? 
+            `<p>Your earnings for this ride will be processed shortly. Thank you for being a trusted driver on OyeGaadi!</p>` :
+            `<p>Don't forget to rate your driver and share your experience. This helps us maintain quality service for everyone!</p>`
+          }
+          
+          <p><strong>OyeGaadi Team</strong></p>
+        </div>
+      `,
+    };
+  }
+
   getRideCancelledEmail(recipientName: string, recipientEmail: string, isDriver: boolean, rideDetails: any): EmailData {
     const subject = 'Booking Cancelled - OyeGaadi';
     const cancelledByText = rideDetails.cancelledBy === 'customer' ? 'the passenger' : 'the driver';
