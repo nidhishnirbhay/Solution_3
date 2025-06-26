@@ -212,7 +212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Configure session and passport
   app.use(session({
-    secret: 'oyegaadi-secret-key-for-production-use-env-var',
+    secret: process.env.SESSION_SECRET || 'fallback-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: { 
