@@ -3,10 +3,18 @@ import { useLocation } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
 import {
   Form,
@@ -24,7 +32,12 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+});
+
 type LoginFormValues = z.infer<typeof loginSchema>;
+type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
 export default function AdminLogin() {
   const { toast } = useToast();
@@ -32,6 +45,8 @@ export default function AdminLogin() {
   const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -41,9 +56,46 @@ export default function AdminLogin() {
     },
   });
 
+  const forgotPasswordForm = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
+
   // Track login attempts with a counter
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
+
+  // Forgot password mutation
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (data: ForgotPasswordFormValues) => {
+      const res = await apiRequest("POST", "/api/auth/forgot-password", data);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to send reset email");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setResetEmailSent(true);
+      toast({
+        title: "Reset email sent",
+        description: "Please check your email for password reset instructions.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  async function onForgotPasswordSubmit(data: ForgotPasswordFormValues) {
+    forgotPasswordMutation.mutate(data);
+  }
   
   async function onSubmit(data: LoginFormValues) {
     // Check if account is temporarily locked due to too many failed attempts
@@ -188,15 +240,92 @@ export default function AdminLogin() {
                   {isLoading ? "Signing in..." : isLocked ? "Account Temporarily Locked" : "Sign In"}
                 </Button>
                 
-                {/* Account help text */}
-                <div className="text-center mt-4 text-sm text-muted-foreground">
-                  <p>Forgot your password or having trouble logging in?</p>
-                  <p className="mt-1">Contact <a href="mailto:support@oyegaadi.com" className="text-primary hover:underline">support@oyegaadi.com</a> for assistance.</p>
+                {/* Forgot password link */}
+                <div className="text-center mt-4">
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="text-sm"
+                    onClick={() => setShowForgotPassword(true)}
+                  >
+                    Forgot your password?
+                  </Button>
                 </div>
               </form>
             </Form>
           </CardContent>
         </Card>
+
+        {/* Forgot Password Dialog */}
+        <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Reset Password</DialogTitle>
+              <DialogDescription>
+                Enter your email address and we'll send you a link to reset your password.
+              </DialogDescription>
+            </DialogHeader>
+            
+            {resetEmailSent ? (
+              <div className="text-center py-4">
+                <p className="text-green-600 font-medium">Reset email sent!</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Please check your email for password reset instructions.
+                </p>
+                <Button
+                  onClick={() => {
+                    setShowForgotPassword(false);
+                    setResetEmailSent(false);
+                    forgotPasswordForm.reset();
+                  }}
+                  className="mt-4"
+                >
+                  Close
+                </Button>
+              </div>
+            ) : (
+              <Form {...forgotPasswordForm}>
+                <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPasswordSubmit)} className="space-y-4">
+                  <FormField
+                    control={forgotPasswordForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="Enter your email address"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowForgotPassword(false)}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={forgotPasswordMutation.isPending}
+                      className="flex-1"
+                    >
+                      {forgotPasswordMutation.isPending ? "Sending..." : "Send Reset Link"}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
