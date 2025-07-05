@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { AdminLayout } from '@/components/layout/admin-layout';
-import { Check, X, AlertTriangle, Loader2 } from "lucide-react";
+import { Check, X, AlertTriangle, Loader2, Shield, Eye, EyeOff } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -53,10 +53,45 @@ export default function AdminSettings() {
     }
   });
 
+  // Password change mutation
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      const response = await apiRequest("POST", '/api/admin/change-password', data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Password updated',
+        description: 'Your password has been successfully updated.',
+        variant: 'default'
+      });
+      // Clear password fields
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update password. Please try again.',
+        variant: 'destructive'
+      });
+      console.error('Error updating password:', error);
+    }
+  });
+
   // Form state
   const [enabled, setEnabled] = useState<boolean>(true);
   const [amount, setAmount] = useState<string>('200');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
+  
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState<string>('');
+  const [newPassword, setNewPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState<boolean>(false);
+  const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
 
   // Update form state when data is loaded
   useEffect(() => {
@@ -93,6 +128,60 @@ export default function AdminSettings() {
     updateBookingFeeMutation.mutate({
       enabled,
       amount: parsedAmount
+    });
+  };
+
+  // Handle password change
+  const handlePasswordChange = () => {
+    // Validation
+    if (!currentPassword.trim()) {
+      toast({
+        title: 'Current password required',
+        description: 'Please enter your current password.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!newPassword.trim()) {
+      toast({
+        title: 'New password required',
+        description: 'Please enter a new password.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: 'Password too short',
+        description: 'New password must be at least 6 characters long.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: 'Passwords do not match',
+        description: 'New password and confirmation password must match.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      toast({
+        title: 'Same password',
+        description: 'New password must be different from current password.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    changePasswordMutation.mutate({
+      currentPassword,
+      newPassword
     });
   };
 
@@ -190,6 +279,145 @@ export default function AdminSettings() {
                   <>
                     <Check className="mr-2 h-4 w-4" />
                     Save Changes
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Password Change Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Change Password
+              </CardTitle>
+              <CardDescription>
+                Update your admin account password for security.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="current-password">Current Password</Label>
+                <div className="relative">
+                  <Input
+                    id="current-password"
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter your current password"
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  >
+                    {showCurrentPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <div className="relative">
+                  <Input
+                    id="new-password"
+                    type={showNewPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter your new password (min 6 characters)"
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                  >
+                    {showNewPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm New Password</Label>
+                <div className="relative">
+                  <Input
+                    id="confirm-password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm your new password"
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {newPassword && confirmPassword && newPassword !== confirmPassword && (
+                <Alert className="bg-red-50 text-red-800 border-red-200">
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                  <AlertDescription>
+                    Passwords do not match.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {newPassword && newPassword.length < 6 && (
+                <Alert className="bg-amber-50 text-amber-800 border-amber-200">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription>
+                    Password must be at least 6 characters long.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={handlePasswordChange}
+                disabled={
+                  !currentPassword || 
+                  !newPassword || 
+                  !confirmPassword || 
+                  newPassword !== confirmPassword ||
+                  newPassword.length < 6 ||
+                  changePasswordMutation.isPending
+                }
+                className="w-full"
+              >
+                {changePasswordMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating Password...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="mr-2 h-4 w-4" />
+                    Update Password
                   </>
                 )}
               </Button>

@@ -2822,6 +2822,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin password change endpoint
+  adminRouter.post('/change-password', authorize(['admin']), validateBody(z.object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(6, 'New password must be at least 6 characters'),
+  })), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { currentPassword, newPassword } = req.body;
+
+      // Verify current password
+      const isValidCurrentPassword = await bcrypt.compare(currentPassword, user.password);
+      if (!isValidCurrentPassword) {
+        return res.status(400).json({ error: 'Current password is incorrect' });
+      }
+
+      // Check if new password is different from current
+      const isSamePassword = await bcrypt.compare(newPassword, user.password);
+      if (isSamePassword) {
+        return res.status(400).json({ error: 'New password must be different from current password' });
+      }
+
+      // Hash new password
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password in database
+      await storage.updateUser(user.id, { password: hashedNewPassword });
+
+      res.json({ success: true, message: 'Password updated successfully' });
+    } catch (error) {
+      console.error('Error changing admin password:', error);
+      res.status(500).json({ error: 'Failed to update password' });
+    }
+  });
+
   // Register all routes
   app.use('/api/auth', authRouter);
   app.use('/api/kyc', kycRouter);
