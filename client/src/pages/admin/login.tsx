@@ -20,7 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/auth-context";
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  mobile: z.string().min(1, "Mobile number or email is required"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -36,7 +36,7 @@ export default function AdminLogin() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      mobile: "",
       password: "",
     },
   });
@@ -56,11 +56,11 @@ export default function AdminLogin() {
     setError(null);
 
     try {
-      console.log("Attempting admin login with username:", data.username);
+      console.log("Attempting admin login with mobile/email:", data.mobile);
       
       // Validate input before sending to server
-      if (!data.username.trim() || !data.password.trim()) {
-        throw new Error("Please enter both username and password");
+      if (!data.mobile.trim() || !data.password.trim()) {
+        throw new Error("Please enter both mobile number/email and password");
       }
       
       const res = await apiRequest("POST", "/api/auth/login", data);
@@ -150,12 +150,12 @@ export default function AdminLogin() {
                 
                 <FormField
                   control={form.control}
-                  name="username"
+                  name="mobile"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Username or Email</FormLabel>
+                      <FormLabel>Mobile Number or Email</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter your username" {...field} />
+                        <Input placeholder="Enter your mobile number or email" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

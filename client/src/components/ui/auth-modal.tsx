@@ -158,13 +158,15 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormValues) => {
       console.log("User login attempt for:", data.mobile);
+      console.log("Login data received:", data);
+      console.log("Request payload:", { mobile: data.mobile, password: data.password });
       
       // Client-side validation
-      if (!data.mobile.trim()) {
+      if (!data.mobile || !data.mobile.trim()) {
         throw new Error("Mobile number is required");
       }
       
-      if (!data.password.trim()) {
+      if (!data.password || !data.password.trim()) {
         throw new Error("Password is required");
       }
       
