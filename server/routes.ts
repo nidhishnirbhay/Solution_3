@@ -238,17 +238,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Configure passport local strategy
   passport.use(new LocalStrategy(
-    async (username, password, done) => {
+    { usernameField: 'mobile' }, // Use mobile field instead of username
+    async (mobile, password, done) => {
       try {
-        const user = await storage.getUserByUsername(username);
+        const user = await storage.getUserByMobile(mobile);
         if (!user) {
-          return done(null, false, { message: 'Invalid username or password' });
+          return done(null, false, { message: 'Invalid mobile number or password' });
         }
         
         // Use bcrypt to compare the password with the stored hash
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) {
-          return done(null, false, { message: 'Invalid username or password' });
+          return done(null, false, { message: 'Invalid mobile number or password' });
         }
         
         return done(null, user);

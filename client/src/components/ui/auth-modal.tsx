@@ -47,7 +47,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const loginSchema = z.object({
-  username: z.string().min(1, { message: "Username is required" }),
+  mobile: z.string().min(10, { message: "Mobile number is required" }),
   password: z.string().min(1, { message: "Password is required" }),
   rememberMe: z.boolean().optional(),
 });
@@ -88,7 +88,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      mobile: "",
       password: "",
       rememberMe: false,
     },
@@ -157,11 +157,11 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormValues) => {
-      console.log("User login attempt for:", data.username);
+      console.log("User login attempt for:", data.mobile);
       
       // Client-side validation
-      if (!data.username.trim()) {
-        throw new Error("Username is required");
+      if (!data.mobile.trim()) {
+        throw new Error("Mobile number is required");
       }
       
       if (!data.password.trim()) {
@@ -170,7 +170,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
       
       try {
         const res = await apiRequest("POST", "/api/auth/login", {
-          username: data.username,
+          mobile: data.mobile,
           password: data.password,
         });
         
@@ -197,7 +197,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
       }
     },
     onSuccess: (data) => {
-      console.log("Login successful for user:", data.username);
+      console.log("Login successful for user:", data.mobile);
       login(data);
       toast({
         title: "Login successful",
@@ -335,12 +335,12 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
                 <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
                   <FormField
                     control={loginForm.control}
-                    name="username"
+                    name="mobile"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Username</FormLabel>
+                        <FormLabel>Mobile Number</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter your username" {...field} />
+                          <Input type="tel" placeholder="Enter your mobile number" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
