@@ -153,10 +153,13 @@ async function seedAdminUser() {
     const existingAdmin = await storage.getUserByUsername('oyegaadicabs@gmail.com');
     if (!existingAdmin) {
       console.log('Creating admin user...');
+      // Hash admin password before storing
+      const hashedAdminPassword = await bcrypt.hash('OGC.2000', 10);
+      
       // Create admin user
       await storage.createUser({
         username: 'oyegaadicabs@gmail.com',
-        password: 'OGC.2000',
+        password: hashedAdminPassword,
         email: 'oyegaadicabs@gmail.com',
         fullName: 'OyeGaadi Admin',
         role: 'admin',
@@ -449,8 +452,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Mobile number already registered" });
       }
       
+      // Hash password before storing
+      const hashedPassword = await bcrypt.hash(req.body.password, 10);
+      
       console.log("Creating new user with role:", role);
-      const newUser = await storage.createUser(req.body);
+      const userData = { ...req.body, password: hashedPassword };
+      const newUser = await storage.createUser(userData);
       console.log("User created successfully with ID:", newUser.id);
       
       // Send welcome email
