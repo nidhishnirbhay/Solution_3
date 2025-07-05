@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { AdminLayout } from '@/components/layout/admin-layout';
-import { Check, X, AlertTriangle, Loader2 } from "lucide-react";
+import { Check, X, AlertTriangle, Loader2, Key, Shield } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -53,10 +53,42 @@ export default function AdminSettings() {
     }
   });
 
+  // Password reset mutation
+  const passwordResetMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      const response = await apiRequest("PATCH", '/api/admin/reset-password', data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Password updated',
+        description: 'Your password has been successfully updated.',
+        variant: 'default'
+      });
+      // Clear form
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update password. Please try again.',
+        variant: 'destructive'
+      });
+      console.error('Error updating password:', error);
+    }
+  });
+
   // Form state
   const [enabled, setEnabled] = useState<boolean>(true);
   const [amount, setAmount] = useState<string>('200');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
+
+  // Password reset form state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   // Update form state when data is loaded
   useEffect(() => {
@@ -96,6 +128,41 @@ export default function AdminSettings() {
     });
   };
 
+  // Handle password reset form submission
+  const handlePasswordReset = () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast({
+        title: 'Missing fields',
+        description: 'Please fill in all password fields.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: 'Password too short',
+        description: 'New password must be at least 6 characters long.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: 'Passwords do not match',
+        description: 'New password and confirm password must match.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    passwordResetMutation.mutate({
+      currentPassword,
+      newPassword
+    });
+  };
+
   return (
     <AdminLayout title="Settings">
       <div className="space-y-6 p-6">
@@ -107,7 +174,82 @@ export default function AdminSettings() {
         </div>
         <Separator />
         
-        <div className="max-w-xl">
+        <div className="max-w-xl space-y-6">
+          {/* Password Reset Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Key className="mr-2 h-5 w-5" />
+                Change Password
+              </CardTitle>
+              <CardDescription>
+                Update your admin account password for enhanced security.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="current-password">Current Password</Label>
+                <Input
+                  id="current-password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter your current password"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="new-password">New Password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password (min 6 characters)"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="confirm-password">Confirm New Password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm your new password"
+                />
+              </div>
+
+              <Alert className="bg-blue-50 text-blue-800 border-blue-200">
+                <Shield className="h-4 w-4 text-blue-600" />
+                <AlertTitle>Security Notice</AlertTitle>
+                <AlertDescription>
+                  Choose a strong password with at least 6 characters including letters, numbers, and symbols.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={handlePasswordReset}
+                disabled={passwordResetMutation.isPending || !currentPassword || !newPassword || !confirmPassword}
+                className="w-full"
+              >
+                {passwordResetMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating Password...
+                  </>
+                ) : (
+                  <>
+                    <Key className="mr-2 h-4 w-4" />
+                    Update Password
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Booking Fee Settings */}
           <Card>
             <CardHeader>
               <CardTitle>Booking Fee</CardTitle>

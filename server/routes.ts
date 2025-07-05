@@ -2830,6 +2830,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/ratings', ratingRouter);
   app.use('/api/page-contents', pageContentRouter);
   app.use('/api/ride-requests', rideRequestRouter);
+  // Admin password reset routes
+  adminRouter.patch('/reset-password', authorize(['admin']), async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const admin = req.user as any;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Current password and new password are required" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: "New password must be at least 6 characters long" });
+      }
+
+      // Verify current password
+      const user = await storage.getUser(admin.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+      if (!isValidPassword) {
+        return res.status(400).json({ error: "Current password is incorrect" });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password
+      await storage.updateUser(admin.id, { password: hashedPassword });
+
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Admin password reset error:", error);
+      res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
+  // Admin reset user password (for resetting other users' passwords)
+  adminRouter.patch('/users/:userId/reset-password', authorize(['admin']), async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { newPassword } = req.body;
+
+      if (!newPassword) {
+        return res.status(400).json({ error: "New password is required" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: "New password must be at least 6 characters long" });
+      }
+
+      // Verify user exists
+      const user = await storage.getUser(Number(userId));
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password
+      await storage.updateUser(Number(userId), { password: hashedPassword });
+
+      // Send password reset notification email to user
+      try {
+        const resetNotificationEmail = emailService.getPasswordResetSuccessEmail(user.fullName, user.email);
+        await emailService.sendEmail(resetNotificationEmail);
+        console.log(`Password reset notification sent to: ${user.email}`);
+      } catch (emailError) {
+        console.error('Failed to send password reset notification:', emailError);
+        // Don't fail the password reset if email fails
+      }
+
+      res.json({ message: `Password reset successfully for user: ${user.fullName}` });
+    } catch (error) {
+      console.error("Admin user password reset error:", error);
+      res.status(500).json({ error: "Failed to reset user password" });
+    }
+  });
+
   app.use('/api/admin', adminRouter);
   
   const httpServer = createServer(app);
