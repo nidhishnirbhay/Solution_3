@@ -119,7 +119,7 @@ OyeGaadi is a comprehensive ride-sharing platform built with modern web technolo
 - **Build Process**: npm run build followed by npm run start
 
 ## Changelog
-- July 5, 2025. Updated authentication system to use mobile numbers instead of usernames for login, improving user experience since mobile numbers are easier to remember and always unique
+- July 5, 2025. Updated authentication system to use mobile numbers instead of usernames for login, improving user experience since mobile numbers are easier to remember and always unique. Added admin login flexibility to accept both email and mobile number
 - June 26, 2025. Initial setup
 
 ## User Preferences

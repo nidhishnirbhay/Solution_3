@@ -241,7 +241,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     { usernameField: 'mobile' }, // Use mobile field instead of username
     async (mobile, password, done) => {
       try {
-        const user = await storage.getUserByMobile(mobile);
+        // First try to find user by mobile number
+        let user = await storage.getUserByMobile(mobile);
+        
+        // If not found by mobile, try by email (for admin compatibility)
+        if (!user) {
+          user = await storage.getUserByEmail(mobile);
+        }
+        
         if (!user) {
           return done(null, false, { message: 'Invalid mobile number or password' });
         }

@@ -340,7 +340,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
                       <FormItem>
                         <FormLabel>Mobile Number</FormLabel>
                         <FormControl>
-                          <Input type="tel" placeholder="Enter your mobile number" {...field} />
+                          <Input type="tel" placeholder="Enter your mobile number (or email for admin)" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
