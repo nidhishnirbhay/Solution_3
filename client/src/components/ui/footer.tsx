@@ -40,14 +40,9 @@ export function Footer() {
       }
     }
     
-    // Commenting out to prevent unnecessary API calls while footer is hidden
-    // fetchSettings();
+    fetchSettings();
   }, []);
   
-  // Return null instead of the footer to hide it from the website
-  return null;
-  
-  /* Original footer code preserved for future use
   return (
     <footer className="bg-neutral-800 text-white py-12">
       <div className="container mx-auto px-4">
@@ -201,5 +196,4 @@ export function Footer() {
       </div>
     </footer>
   );
-  */
 }
