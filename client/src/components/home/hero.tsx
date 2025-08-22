@@ -75,7 +75,6 @@ export function Hero() {
                     name="fromLocation"
                     render={({ field }) => (
                       <FormItem className="flex-1">
-                        <FormLabel className="text-white font-medium">From</FormLabel>
                         <div className="relative">
                           <MapPin className="absolute left-3 top-3 h-4 w-4 text-neutral-500" />
                           <FormControl>
@@ -95,7 +94,6 @@ export function Hero() {
                     name="toLocation"
                     render={({ field }) => (
                       <FormItem className="flex-1">
-                        <FormLabel className="text-white font-medium">To</FormLabel>
                         <div className="relative">
                           <MapPin className="absolute left-3 top-3 h-4 w-4 text-neutral-500" />
                           <FormControl>
@@ -117,7 +115,6 @@ export function Hero() {
                     name="travelDate"
                     render={({ field }) => (
                       <FormItem className="flex-1">
-                        <FormLabel className="text-white font-medium">When</FormLabel>
                         <div className="relative">
                           <Calendar className="absolute left-3 top-3 h-4 w-4 text-neutral-500" />
                           <FormControl>
@@ -138,7 +135,6 @@ export function Hero() {
                     name="rideType"
                     render={({ field }) => (
                       <FormItem className="flex-1">
-                        <FormLabel className="text-neutral-700">Ride Type</FormLabel>
                         <Select defaultValue={field.value} onValueChange={field.onChange}>
                           <FormControl>
                             <SelectTrigger>
