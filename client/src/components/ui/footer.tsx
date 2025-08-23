@@ -23,6 +23,7 @@ export function Footer() {
         setLoading(true);
         // Now using the public endpoint that doesn't require authentication
         const response = await apiRequest('GET', '/api/settings/public');
+        console.log('Footer: Raw API response:', response);
         
         if (response && Array.isArray(response)) {
           const settingsObj: Record<string, any> = {};
@@ -31,10 +32,11 @@ export function Footer() {
             settingsObj[setting.key] = setting.value;
           });
           
+          console.log('Footer: Processed settings object:', settingsObj);
           setSettings(settingsObj);
         }
       } catch (error) {
-        console.error('Error fetching settings:', error);
+        console.error('Error fetching footer settings:', error);
       } finally {
         setLoading(false);
       }
@@ -42,6 +44,9 @@ export function Footer() {
     
     fetchSettings();
   }, []);
+  
+  console.log('Footer: Current settings state:', settings);
+  console.log('Footer: Loading state:', loading);
   
   return (
     <footer className="bg-neutral-800 text-white py-12">
