@@ -86,7 +86,7 @@ export function Hero() {
       <div className="container mx-auto px-4">
         <div className="max-w-xl">
           <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            One-way rides at affordable prices
+            Find rides at affordable prices
           </h1>
           <p className="text-lg mb-8">
             Book full cars or share rides. Verified drivers, safe journeys.

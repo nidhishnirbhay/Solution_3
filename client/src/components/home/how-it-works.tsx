@@ -43,7 +43,7 @@ export function HowItWorks() {
     {
       number: 3,
       title: "Book & Pay Booking Fee",
-      description: "Secure your seat with a ₹200 booking fee.",
+      description: "Secure your seat with a ₹49 booking fee.",
       type: "traveler"
     },
     {

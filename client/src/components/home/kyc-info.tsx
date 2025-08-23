@@ -63,12 +63,17 @@ export function KycInfo() {
           </div>
           
           <div className="mt-8">
-            <Link href="/kyc-verification">
+            <a
+              href="https://www.youtube.com/watch?v=mA3alO8gYN4"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <Button className="bg-primary hover:bg-primary/90 text-white">
                 Learn More About KYC
               </Button>
-            </Link>
+            </a>
           </div>
+
         </div>
       </div>
     </section>
