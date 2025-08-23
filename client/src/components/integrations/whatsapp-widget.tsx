@@ -35,7 +35,7 @@ export function WhatsAppWidget() {
   const handleOpenWhatsApp = () => {
     const encodedMessage = encodeURIComponent(message);
     const cleanPhoneNumber = phoneNumber.replace(/\s+/g, '').replace(/^\+/, '');
-    const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodedMessage}`;
+    const whatsappUrl = `https://api.whatsapp.com/send/?phone=${cleanPhoneNumber}&text=${encodedMessage}&type=phone_number&app_absent=0`;
     
     window.open(whatsappUrl, '_blank');
     setIsOpen(false);
