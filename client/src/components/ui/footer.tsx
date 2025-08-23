@@ -21,14 +21,15 @@ export function Footer() {
     async function fetchSettings() {
       try {
         setLoading(true);
-        // Now using the public endpoint that doesn't require authentication
-        const response = await apiRequest('GET', '/api/settings/public');
-        console.log('Footer: Raw API response:', response);
+        // Using fetch directly for the public endpoint since apiRequest might not be parsing correctly
+        const response = await fetch('/api/settings/public');
+        const data = await response.json();
+        console.log('Footer: Raw API response:', data);
         
-        if (response && Array.isArray(response)) {
+        if (data && Array.isArray(data)) {
           const settingsObj: Record<string, any> = {};
           
-          response.forEach((setting) => {
+          data.forEach((setting) => {
             settingsObj[setting.key] = setting.value;
           });
           
