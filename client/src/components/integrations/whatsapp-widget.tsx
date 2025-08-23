@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { MessageCircle, X } from 'lucide-react';
+import { X } from 'lucide-react';
+import { FaWhatsapp } from 'react-icons/fa';
 
 interface WhatsAppSettings {
   enabled: boolean;
@@ -57,7 +58,7 @@ export function WhatsAppWidget() {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <MessageCircle className="w-4 h-4 text-white" />
+                  <FaWhatsapp className="w-4 h-4 text-white" />
                 </div>
                 <div>
                   <p className="font-medium text-sm">WhatsApp Support</p>
@@ -78,7 +79,7 @@ export function WhatsAppWidget() {
               onClick={handleOpenWhatsApp}
               className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
-              <MessageCircle className="w-4 h-4" />
+              <FaWhatsapp className="w-4 h-4" />
               Start Chat
             </button>
           </div>
@@ -86,14 +87,20 @@ export function WhatsAppWidget() {
 
         {/* Floating WhatsApp Button */}
         <button
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => {
+            if (isOpen) {
+              setIsOpen(false);
+            } else {
+              handleOpenWhatsApp();
+            }
+          }}
           className="bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2"
           aria-label="Open WhatsApp Chat"
         >
           {isOpen ? (
             <X className="w-6 h-6" />
           ) : (
-            <MessageCircle className="w-6 h-6" />
+            <FaWhatsapp className="w-6 h-6" />
           )}
         </button>
 
