@@ -1,6 +1,4 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { X } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 
 interface WhatsAppSettings {
@@ -16,8 +14,6 @@ interface IntegrationSettings {
 }
 
 export function WhatsAppWidget() {
-  const [isOpen, setIsOpen] = useState(false);
-
   const { data: settings } = useQuery<IntegrationSettings>({
     queryKey: ['/api/settings/integrations'],
     queryFn: async () => {
@@ -26,19 +22,28 @@ export function WhatsAppWidget() {
     }
   });
 
+  console.log('WhatsApp Widget - Settings:', settings);
+  
   if (!settings?.whatsapp?.enabled || !settings.whatsapp.phoneNumber) {
+    console.log('WhatsApp Widget - Not rendered, enabled:', settings?.whatsapp?.enabled, 'phone:', settings?.whatsapp?.phoneNumber);
     return null;
   }
+  
+  console.log('WhatsApp Widget - Rendering widget');
 
   const { phoneNumber, message, position } = settings.whatsapp;
 
   const handleOpenWhatsApp = () => {
+    console.log('WhatsApp button clicked!');
+    console.log('Phone number:', phoneNumber);
+    console.log('Message:', message);
+    
     const encodedMessage = encodeURIComponent(message);
     const cleanPhoneNumber = phoneNumber.replace(/\s+/g, '').replace(/^\+/, '');
     const whatsappUrl = `https://api.whatsapp.com/send/?phone=${cleanPhoneNumber}&text=${encodedMessage}&type=phone_number&app_absent=0`;
     
+    console.log('Generated WhatsApp URL:', whatsappUrl);
     window.open(whatsappUrl, '_blank');
-    setIsOpen(false);
   };
 
   const positionClasses = {
@@ -47,67 +52,26 @@ export function WhatsAppWidget() {
   };
 
   return (
-    <div className={`fixed ${positionClasses[position]} z-50`}>
-      {/* Main WhatsApp Button */}
-      <div
-        className={`relative ${isOpen ? 'mb-2' : ''}`}
-      >
-        {/* Chat preview (when opened) */}
-        {isOpen && (
-          <div className="bg-white rounded-lg shadow-lg border mb-2 p-4 w-72 animate-in slide-in-from-bottom-2">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <FaWhatsapp className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <p className="font-medium text-sm">WhatsApp Support</p>
-                  <p className="text-xs text-green-600">Online</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-3 mb-3">
-              <p className="text-sm text-gray-700">{message}</p>
-            </div>
-            <button
-              onClick={handleOpenWhatsApp}
-              className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <FaWhatsapp className="w-4 h-4" />
-              Start Chat
-            </button>
-          </div>
-        )}
-
+    <div className={`fixed ${positionClasses[position]}`} style={{ zIndex: 9999 }}>
+      {/* Direct WhatsApp Button */}
+      <div className="relative">
         {/* Floating WhatsApp Button */}
         <button
-          onClick={() => {
-            if (isOpen) {
-              setIsOpen(false);
-            } else {
-              handleOpenWhatsApp();
-            }
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Button clicked!');
+            handleOpenWhatsApp();
           }}
-          className="bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2"
+          className="bg-[#25D366] hover:bg-[#20b358] text-white p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 cursor-pointer"
           aria-label="Open WhatsApp Chat"
+          style={{ zIndex: 9999 }}
         >
-          {isOpen ? (
-            <X className="w-6 h-6" />
-          ) : (
-            <FaWhatsapp className="w-6 h-6" />
-          )}
+          <FaWhatsapp className="w-6 h-6" />
         </button>
 
-        {/* Pulse animation when closed */}
-        {!isOpen && (
-          <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-20"></div>
-        )}
+        {/* Pulse animation */}
+        <div className="absolute inset-0 bg-[#25D366] rounded-full animate-ping opacity-20 pointer-events-none"></div>
       </div>
     </div>
   );
