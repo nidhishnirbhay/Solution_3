@@ -2165,6 +2165,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to fetch booking fee setting' });
     }
   });
+
+  // GTM settings endpoints
+  adminRouter.get('/settings/gtm', authorize(['admin']), async (req, res) => {
+    try {
+      const setting = await storage.getSetting('gtm_settings');
+      if (!setting) {
+        return res.json({ enabled: false, containerId: '' });
+      }
+      res.json(setting.value);
+    } catch (error) {
+      console.error('Error fetching GTM settings:', error);
+      res.status(500).json({ error: 'Failed to fetch GTM settings' });
+    }
+  });
+
+  adminRouter.patch('/settings/gtm', authorize(['admin']), validateBody(z.object({
+    enabled: z.boolean(),
+    containerId: z.string(),
+  })), async (req, res) => {
+    try {
+      const setting = await storage.updateSetting('gtm_settings', req.body);
+      res.json(setting);
+    } catch (error) {
+      console.error('Error updating GTM settings:', error);
+      res.status(500).json({ error: 'Failed to update GTM settings' });
+    }
+  });
+
+  // WhatsApp widget settings endpoints  
+  adminRouter.get('/settings/whatsapp', authorize(['admin']), async (req, res) => {
+    try {
+      const setting = await storage.getSetting('whatsapp_settings');
+      if (!setting) {
+        return res.json({ 
+          enabled: false, 
+          phoneNumber: '', 
+          message: 'Hi! How can we help you?',
+          position: 'bottom-right'
+        });
+      }
+      res.json(setting.value);
+    } catch (error) {
+      console.error('Error fetching WhatsApp settings:', error);
+      res.status(500).json({ error: 'Failed to fetch WhatsApp settings' });
+    }
+  });
+
+  adminRouter.patch('/settings/whatsapp', authorize(['admin']), validateBody(z.object({
+    enabled: z.boolean(),
+    phoneNumber: z.string(),
+    message: z.string(),
+    position: z.enum(['bottom-right', 'bottom-left']),
+  })), async (req, res) => {
+    try {
+      const setting = await storage.updateSetting('whatsapp_settings', req.body);
+      res.json(setting);
+    } catch (error) {
+      console.error('Error updating WhatsApp settings:', error);
+      res.status(500).json({ error: 'Failed to update WhatsApp settings' });
+    }
+  });
+
+  // Public API to get GTM and WhatsApp settings for frontend
+  app.get('/api/settings/integrations', async (req, res) => {
+    try {
+      const gtmSetting = await storage.getSetting('gtm_settings');
+      const whatsappSetting = await storage.getSetting('whatsapp_settings');
+      
+      res.json({
+        gtm: gtmSetting?.value || { enabled: false, containerId: '' },
+        whatsapp: whatsappSetting?.value || { 
+          enabled: false, 
+          phoneNumber: '', 
+          message: 'Hi! How can we help you?',
+          position: 'bottom-right'
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching integration settings:', error);
+      res.status(500).json({ error: 'Failed to fetch integration settings' });
+    }
+  });
   
   // Admin KYC management
   adminRouter.get('/kyc', authorize(['admin']), async (req, res) => {

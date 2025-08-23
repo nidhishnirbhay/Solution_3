@@ -29,6 +29,8 @@ import AdminLogin from "@/pages/admin/login";
 import { ResetPasswordPage } from "@/pages/reset-password";
 import PublicPage from "@/pages/page";
 import NotFound from "@/pages/not-found";
+import { GTMIntegration } from "@/components/integrations/gtm";
+import { WhatsAppWidget } from "@/components/integrations/whatsapp-widget";
 
 function Router() {
   const { toast } = useToast();
@@ -53,6 +55,7 @@ function Router() {
 
   return (
     <AuthProvider>
+      <GTMIntegration />
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/find-rides" component={FindRides} />
@@ -86,6 +89,7 @@ function Router() {
         {/* Fallback to 404 */}
         <Route component={NotFound} />
       </Switch>
+      <WhatsAppWidget />
     </AuthProvider>
   );
 }
