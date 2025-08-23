@@ -24,8 +24,6 @@ export function Footer() {
         // Using fetch directly for the public endpoint since apiRequest might not be parsing correctly
         const response = await fetch('/api/settings/public');
         const data = await response.json();
-        console.log('Footer: Raw API response:', data);
-        
         if (data && Array.isArray(data)) {
           const settingsObj: Record<string, any> = {};
           
@@ -33,7 +31,6 @@ export function Footer() {
             settingsObj[setting.key] = setting.value;
           });
           
-          console.log('Footer: Processed settings object:', settingsObj);
           setSettings(settingsObj);
         }
       } catch (error) {
@@ -45,9 +42,6 @@ export function Footer() {
     
     fetchSettings();
   }, []);
-  
-  console.log('Footer: Current settings state:', settings);
-  console.log('Footer: Loading state:', loading);
   
   return (
     <footer className="bg-neutral-800 text-white py-12">
@@ -147,24 +141,24 @@ export function Footer() {
             <h4 className="font-medium mb-4">Support</h4>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-neutral-400 hover:text-white">
+                <Link href="/page/help-center" className="text-neutral-400 hover:text-white">
                   Help Center
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-neutral-400 hover:text-white">
+                <Link href="/page/safety-guidelines" className="text-neutral-400 hover:text-white">
                   Safety Guidelines
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-neutral-400 hover:text-white">
+                <Link href="/page/contact-us" className="text-neutral-400 hover:text-white">
                   Contact Us
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-neutral-400 hover:text-white">
+                <Link href="/page/faqs" className="text-neutral-400 hover:text-white">
                   FAQs
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -173,24 +167,24 @@ export function Footer() {
             <h4 className="font-medium mb-4">Legal</h4>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-neutral-400 hover:text-white">
+                <Link href="/page/terms-of-service" className="text-neutral-400 hover:text-white">
                   Terms of Service
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-neutral-400 hover:text-white">
+                <Link href="/page/privacy-policy" className="text-neutral-400 hover:text-white">
                   Privacy Policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-neutral-400 hover:text-white">
+                <Link href="/page/cancellation-policy" className="text-neutral-400 hover:text-white">
                   Cancellation Policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-neutral-400 hover:text-white">
+                <Link href="/page/cookie-policy" className="text-neutral-400 hover:text-white">
                   Cookie Policy
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
