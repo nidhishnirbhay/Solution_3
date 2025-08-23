@@ -44,7 +44,7 @@ export function Hero() {
       destinationLocation: "",
       pickupDate: new Date().toISOString().split("T")[0],
       mobileNumber: "",
-      rideType: "1 Way Ride",
+      rideType: undefined as any,
     },
   });
 
@@ -185,10 +185,10 @@ export function Hero() {
                     name="rideType"
                     render={({ field }) => (
                       <FormItem>
-                        <Select defaultValue={field.value} onValueChange={field.onChange}>
+                        <Select value={field.value} onValueChange={field.onChange}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select Ride Type" />
+                              <SelectValue placeholder="Choose your preferred Ride" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
