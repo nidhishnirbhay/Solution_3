@@ -20,13 +20,17 @@ import {
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { MapPin, Calendar } from "lucide-react";
+import { MapPin, Calendar, Phone } from "lucide-react";
 
 const searchSchema = z.object({
-  fromLocation: z.string().min(1, { message: "From location is required" }),
-  toLocation: z.string().min(1, { message: "To location is required" }),
-  travelDate: z.string().min(1, { message: "Travel date is required" }),
-  rideType: z.string().default("all"),
+  pickupLocation: z.string().min(1, { message: "Pickup location is required" }),
+  destinationLocation: z.string().min(1, { message: "Destination location is required" }),
+  pickupDate: z.string().min(1, { message: "Pickup date is required" }),
+  mobileNumber: z.string()
+    .min(10, { message: "Mobile number must be 10 digits" })
+    .max(10, { message: "Mobile number must be 10 digits" })
+    .regex(/^\d{10}$/, { message: "Mobile number must contain only digits" }),
+  rideType: z.enum(["Round Trip", "1 Way Ride", "Sharing Ride"], { message: "Please select a ride type" }),
 });
 
 type SearchFormValues = z.infer<typeof searchSchema>;
@@ -36,22 +40,45 @@ export function Hero() {
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchSchema),
     defaultValues: {
-      fromLocation: "",
-      toLocation: "",
-      travelDate: new Date().toISOString().split("T")[0],
-      rideType: "all",
+      pickupLocation: "",
+      destinationLocation: "",
+      pickupDate: new Date().toISOString().split("T")[0],
+      mobileNumber: "",
+      rideType: "1 Way Ride",
     },
   });
 
-  const onSubmit = (data: SearchFormValues) => {
-    const searchParams = new URLSearchParams({
-      from: data.fromLocation,
-      to: data.toLocation,
-      date: data.travelDate,
-      type: data.rideType,
-    });
-    
-    navigate(`/find-rides?${searchParams.toString()}`);
+  const onSubmit = async (data: SearchFormValues) => {
+    // Send form data via email notification
+    try {
+      await fetch('/api/send-ride-request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+    } catch (error) {
+      console.error('Failed to send email notification:', error);
+    }
+
+    // Redirect based on ride type selection
+    if (data.rideType === "Round Trip") {
+      navigate("/thank-you");
+    } else {
+      const searchParams = new URLSearchParams({
+        pickup: data.pickupLocation,
+        destination: data.destinationLocation,
+        date: data.pickupDate,
+        mobile: data.mobileNumber,
+      });
+      
+      if (data.rideType === "1 Way Ride") {
+        navigate(`/one-way-rides?${searchParams.toString()}`);
+      } else if (data.rideType === "Sharing Ride") {
+        navigate(`/sharing-rides?${searchParams.toString()}`);
+      }
+    }
   };
 
   return (
@@ -72,14 +99,14 @@ export function Hero() {
                 <div className="flex flex-col md:flex-row gap-4">
                   <FormField
                     control={form.control}
-                    name="fromLocation"
+                    name="pickupLocation"
                     render={({ field }) => (
                       <FormItem className="flex-1">
                         <div className="relative">
                           <MapPin className="absolute left-3 top-3 h-4 w-4 text-neutral-500" />
                           <FormControl>
                             <Input
-                              placeholder="Departure city"
+                              placeholder="Pickup Location"
                               className="pl-10 text-black bg-white"
                               {...field}
                             />
@@ -91,14 +118,14 @@ export function Hero() {
 
                   <FormField
                     control={form.control}
-                    name="toLocation"
+                    name="destinationLocation"
                     render={({ field }) => (
                       <FormItem className="flex-1">
                         <div className="relative">
                           <MapPin className="absolute left-3 top-3 h-4 w-4 text-neutral-500" />
                           <FormControl>
                             <Input
-                              placeholder="Destination city"
+                              placeholder="Destination Location"
                               className="pl-10 text-black bg-white"
                               {...field}
                             />
@@ -112,7 +139,7 @@ export function Hero() {
                 <div className="flex flex-col md:flex-row gap-4">
                   <FormField
                     control={form.control}
-                    name="travelDate"
+                    name="pickupDate"
                     render={({ field }) => (
                       <FormItem className="flex-1">
                         <div className="relative">
@@ -132,19 +159,42 @@ export function Hero() {
 
                   <FormField
                     control={form.control}
-                    name="rideType"
+                    name="mobileNumber"
                     render={({ field }) => (
                       <FormItem className="flex-1">
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-3 h-4 w-4 text-neutral-500" />
+                          <FormControl>
+                            <Input
+                              type="tel"
+                              placeholder="Mobile Number"
+                              className="pl-10 text-black bg-white"
+                              maxLength={10}
+                              {...field}
+                            />
+                          </FormControl>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  <FormField
+                    control={form.control}
+                    name="rideType"
+                    render={({ field }) => (
+                      <FormItem>
                         <Select defaultValue={field.value} onValueChange={field.onChange}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="All Ride Types" />
+                              <SelectValue placeholder="Select Ride Type" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="all">All Ride Types</SelectItem>
-                            <SelectItem value="one-way">One-Way Full Booking</SelectItem>
-                            <SelectItem value="sharing">Sharing / Pooling</SelectItem>
+                            <SelectItem value="Round Trip">Round Trip</SelectItem>
+                            <SelectItem value="1 Way Ride">1 Way Ride</SelectItem>
+                            <SelectItem value="Sharing Ride">Sharing Ride</SelectItem>
                           </SelectContent>
                         </Select>
                       </FormItem>

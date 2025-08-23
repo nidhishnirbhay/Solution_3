@@ -9,6 +9,9 @@ import { AuthProvider } from "./contexts/auth-context";
 // Pages
 import Home from "@/pages/home";
 import FindRides from "@/pages/find-rides";
+import OneWayRides from "@/pages/one-way-rides";
+import SharingRides from "@/pages/sharing-rides";
+import ThankYou from "@/pages/thank-you";
 import PublishRide from "@/pages/publish-ride";
 import MyBookings from "@/pages/my-bookings";
 import MyPublishedRides from "@/pages/my-published-rides";
@@ -53,6 +56,9 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/find-rides" component={FindRides} />
+        <Route path="/one-way-rides" component={OneWayRides} />
+        <Route path="/sharing-rides" component={SharingRides} />
+        <Route path="/thank-you" component={ThankYou} />
         <Route path="/publish-ride" component={PublishRide} />
         <Route path="/my-bookings" component={MyBookings} />
         <Route path="/my-published-rides" component={MyPublishedRides} />

@@ -448,6 +448,47 @@ class EmailService {
     };
   }
 
+  getRideRequestEmail(requestDetails: any): EmailData {
+    const rideTypeText = requestDetails.rideType === "Round Trip" 
+      ? "Round Trip" 
+      : requestDetails.rideType === "1 Way Ride" 
+        ? "One Way Ride" 
+        : "Sharing Ride";
+
+    return {
+      to: "oyegaadicabs@gmail.com", // Send to OyeGaadi admin
+      subject: `New Ride Request - ${rideTypeText} | ${requestDetails.pickupLocation} to ${requestDetails.destinationLocation}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">New Ride Request Received!</h2>
+          <p>A new ride request has been submitted through the OyeGaadi platform.</p>
+          
+          <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;">
+            <h3>Request Details:</h3>
+            <p><strong>Ride Type:</strong> ${rideTypeText}</p>
+            <p><strong>Pickup Location:</strong> ${requestDetails.pickupLocation}</p>
+            <p><strong>Destination:</strong> ${requestDetails.destinationLocation}</p>
+            <p><strong>Pickup Date:</strong> ${new Date(requestDetails.pickupDate).toLocaleDateString()}</p>
+            <p><strong>Customer Mobile:</strong> ${requestDetails.mobileNumber}</p>
+          </div>
+          
+          <div style="background: #fff7ed; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Next Steps:</strong></p>
+            <ul style="margin: 0; padding-left: 20px;">
+              <li>Contact the customer at ${requestDetails.mobileNumber}</li>
+              <li>Check available drivers for this route</li>
+              <li>Coordinate ride arrangements</li>
+              <li>Follow up with booking confirmation</li>
+            </ul>
+          </div>
+          
+          <p>Please process this request as soon as possible to ensure customer satisfaction.</p>
+          <p><strong>OyeGaadi Admin Team</strong></p>
+        </div>
+      `,
+    };
+  }
+
   // Reset settings cache when configuration changes
   resetSettings() {
     this.settings = null;

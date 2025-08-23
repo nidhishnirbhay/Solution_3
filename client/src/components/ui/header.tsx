@@ -45,30 +45,9 @@ export function Header() {
       .substring(0, 2);
   };
 
-  // Navigation links based on user role
+  // Navigation links - simplified 3 tab structure
   const getNavLinks = () => {
-    const commonLinks = [
-      { path: "/", label: "Home" },
-      { path: "/find-rides", label: "Find Rides" },
-    ];
-
-    // Links for driver - removing the duplicated Publish Ride and My Rides links
-    if (user && user.role === "driver") {
-      return [
-        ...commonLinks,
-        { path: "/my-bookings", label: "My Bookings" },
-      ];
-    }
-    
-    // Links for customer
-    if (user && user.role === "customer") {
-      return [
-        ...commonLinks,
-        { path: "/my-bookings", label: "My Bookings" },
-      ];
-    }
-    
-    // Links for admin
+    // For admin users, show admin navigation
     if (user && user.role === "admin") {
       return [
         { path: "/admin", label: "Dashboard" },
@@ -78,8 +57,12 @@ export function Header() {
       ];
     }
     
-    // Default links for guests
-    return commonLinks;
+    // For all other users (guests, customers, drivers), show the 3 main tabs
+    return [
+      { path: "/", label: "Home" },
+      { path: "/one-way-rides", label: "One Way Rides" },
+      { path: "/sharing-rides", label: "Sharing Rides" },
+    ];
   };
 
   const navLinks = getNavLinks();
