@@ -58,7 +58,7 @@ export default function ThankYou() {
                   <div>
                     <h3 className="font-medium">Contact & Confirmation</h3>
                     <p className="text-gray-600 text-sm">
-                      Our team will contact you within 2-4 hours with available options and pricing.
+                      Our team will contact you within 5-10 minutes with available options and pricing.
                     </p>
                   </div>
                 </div>
@@ -73,11 +73,15 @@ export default function ThankYou() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <div className="flex items-center gap-2 text-sm">
                   <Phone className="h-4 w-4 text-gray-500" />
-                  <span>Call: 08069640595</span>
+                  <a href="tel:08069640595" className="hover:underline">
+                    Call: 08069640595
+                  </a>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Mail className="h-4 w-4 text-gray-500" />
-                  <span>Email: support@oyegaadi.com</span>
+                  <a href="mailto:support@oyegaadi.com" className="hover:underline">
+                    Email: support@oyegaadi.com
+                  </a>
                 </div>
               </div>
             </CardContent>

@@ -62,19 +62,19 @@ export function Testimonials() {
       name: "Priya Sharma",
       rating: 5,
       image: "https://randomuser.me/api/portraits/women/12.jpg",
-      text: "\"Found an affordable ride from Delhi to Chandigarh when all other options were expensive. The driver was professional and the journey was comfortable.\""
+      text: "\"Found an affordable ride from Delhi to Agra when all other options were expensive. The driver was professional and the journey was comfortable.\""
     },
     {
       name: "Rajesh Patel",
       rating: 4.5,
       image: "https://randomuser.me/api/portraits/men/22.jpg",
-      text: "\"As a driver, this platform has helped me fill empty seats on my regular Mumbai-Pune trips. The KYC process was thorough but worth it for the security.\""
+      text: "\"OyeGaadi made my travel from Aligarh to Agra really smooth by offering a convenient one-way ride at a fair price. I didn’t have to worry about paying for a return trip.\""
     },
     {
       name: "Ananya Singh",
       rating: 4,
       image: "https://randomuser.me/api/portraits/women/33.jpg",
-      text: "\"Used the sharing option to travel from Bangalore to Mysore with two other passengers. Saved money and made new friends. Will definitely use again!\""
+      text: "\"Used the sharing option to travel from Aligarh to Delhi with two other passengers. Saved money and made new friends. Will definitely use again!\""
     }
   ];
 

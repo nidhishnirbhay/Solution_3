@@ -50,7 +50,7 @@ export function Footer() {
           <div>
             <h3 className="text-xl font-bold mb-4">OyeGaadi</h3>
             <p className="text-neutral-400 mb-4">
-              Affordable one-way rides connecting cities across India.
+              Affordable rides connecting cities across India.
             </p>
             <div className="flex space-x-4">
               {settings.social_facebook && (

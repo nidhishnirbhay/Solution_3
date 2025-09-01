@@ -42,7 +42,7 @@ export function CtaSection() {
           Ready to start your journey?
         </h2>
         <p className="text-white text-opacity-90 mb-8 max-w-2xl mx-auto">
-          Join thousands of travelers and drivers on OyeGaadi for affordable, convenient, and secure one-way rides.
+          Join thousands of travelers and drivers on OyeGaadi for affordable, convenient, and secure rides.
         </p>
         
         <div className="flex flex-col sm:flex-row justify-center gap-4">
