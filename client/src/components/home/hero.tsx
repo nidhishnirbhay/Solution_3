@@ -20,7 +20,7 @@ import {
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { MapPin, Calendar, Phone } from "lucide-react";
+import { MapPin, Calendar, Phone, Car } from "lucide-react";
 import { gtmEvent } from "@/components/integrations/gtm";
 
 const searchSchema = z.object({
@@ -38,6 +38,8 @@ type SearchFormValues = z.infer<typeof searchSchema>;
 
 export function Hero() {
   const [, navigate] = useLocation();
+  const [isSearching, setIsSearching] = useState(false);
+  
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchSchema),
     defaultValues: {
@@ -50,6 +52,8 @@ export function Hero() {
   });
 
   const onSubmit = async (data: SearchFormValues) => {
+    setIsSearching(true);
+    
     // Track ride search event in GTM
     gtmEvent('ride_search', {
       pickup_location: data.pickupLocation,
@@ -88,6 +92,9 @@ export function Hero() {
       });
     }
 
+    // Add a small delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     // Redirect based on ride type selection
     if (data.rideType === "Round Trip") {
       navigate("/thank-you");
@@ -105,6 +112,8 @@ export function Hero() {
         navigate(`/sharing-rides?${searchParams.toString()}`);
       }
     }
+    
+    setIsSearching(false);
   };
 
   return (
@@ -230,9 +239,17 @@ export function Hero() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-primary hover:bg-primary/90 text-white py-3"
+                  disabled={isSearching}
+                  className="w-full bg-primary hover:bg-primary/90 text-white py-3 relative"
                 >
-                  Search Rides
+                  {isSearching ? (
+                    <>
+                      <Car className="w-5 h-5 mr-2 animate-cab" />
+                      Searching for rides...
+                    </>
+                  ) : (
+                    'Search Rides'
+                  )}
                 </Button>
               </form>
             </Form>

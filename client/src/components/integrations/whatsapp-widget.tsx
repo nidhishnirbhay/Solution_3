@@ -23,14 +23,14 @@ export function WhatsAppWidget() {
     }
   });
 
-  console.log('WhatsApp Widget - Settings:', settings);
+  // console.log('WhatsApp Widget - Settings:', settings);
   
   if (!settings?.whatsapp?.enabled || !settings.whatsapp.phoneNumber) {
-    console.log('WhatsApp Widget - Not rendered, enabled:', settings?.whatsapp?.enabled, 'phone:', settings?.whatsapp?.phoneNumber);
+    // console.log('WhatsApp Widget - Not rendered, enabled:', settings?.whatsapp?.enabled, 'phone:', settings?.whatsapp?.phoneNumber);
     return null;
   }
   
-  console.log('WhatsApp Widget - Rendering widget');
+  // console.log('WhatsApp Widget - Rendering widget');
 
   const { phoneNumber, message, position } = settings.whatsapp;
 
@@ -43,15 +43,15 @@ export function WhatsAppWidget() {
       click_source: 'whatsapp_widget'
     });
     
-    console.log('WhatsApp button clicked!');
-    console.log('Phone number:', phoneNumber);
-    console.log('Message:', message);
+    // console.log('WhatsApp button clicked!');
+    // console.log('Phone number:', phoneNumber);
+    // console.log('Message:', message);
     
     const encodedMessage = encodeURIComponent(message);
     const cleanPhoneNumber = phoneNumber.replace(/\s+/g, '').replace(/^\+/, '');
     const whatsappUrl = `https://api.whatsapp.com/send/?phone=${cleanPhoneNumber}&text=${encodedMessage}&type=phone_number&app_absent=0`;
     
-    console.log('Generated WhatsApp URL:', whatsappUrl);
+    // console.log('Generated WhatsApp URL:', whatsappUrl);
     window.open(whatsappUrl, '_blank');
   };
 
@@ -69,7 +69,7 @@ export function WhatsAppWidget() {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Button clicked!');
+            // console.log('Button clicked!');
             handleOpenWhatsApp();
           }}
           className="bg-[#25D366] hover:bg-[#20b358] text-white p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 cursor-pointer"

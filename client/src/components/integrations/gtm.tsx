@@ -29,7 +29,7 @@ export function GTMIntegration() {
 
     // Check if GTM is already loaded
     if (window.dataLayer && document.querySelector(`script[src*="googletagmanager.com/gtm.js"]`)) {
-      console.log('GTM already loaded, skipping initialization');
+      // console.log('GTM already loaded, skipping initialization');
       return;
     }
 
@@ -63,8 +63,8 @@ export function GTMIntegration() {
     // Insert noscript as first child of body
     document.body.insertBefore(noscript, document.body.firstChild);
 
-    console.log(`Google Tag Manager loaded with container ID: ${containerId}`);
-    console.log('GTM dataLayer initialized:', window.dataLayer);
+    // console.log(`Google Tag Manager loaded with container ID: ${containerId}`);
+    // console.log('GTM dataLayer initialized:', window.dataLayer);
 
     // Send initial page view event
     window.dataLayer.push({
@@ -100,7 +100,7 @@ export const gtmEvent = (eventName: string, parameters: Record<string, any> = {}
       event: eventName,
       ...parameters
     });
-    console.log('GTM Event sent:', eventName, parameters);
+    // console.log('GTM Event sent:', eventName, parameters);
   }
 };
 
