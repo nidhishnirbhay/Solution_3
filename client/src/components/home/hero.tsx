@@ -21,6 +21,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MapPin, Calendar, Phone } from "lucide-react";
+import { gtmEvent } from "@/components/integrations/gtm";
 
 const searchSchema = z.object({
   pickupLocation: z.string().min(1, { message: "Pickup location is required" }),
@@ -49,6 +50,15 @@ export function Hero() {
   });
 
   const onSubmit = async (data: SearchFormValues) => {
+    // Track ride search event in GTM
+    gtmEvent('ride_search', {
+      pickup_location: data.pickupLocation,
+      destination_location: data.destinationLocation,
+      ride_type: data.rideType,
+      pickup_date: data.pickupDate,
+      search_source: 'hero_form'
+    });
+
     // Send form data via email notification
     try {
       await fetch('/api/send-ride-request', {
@@ -58,8 +68,24 @@ export function Hero() {
         },
         body: JSON.stringify(data),
       });
+      
+      // Track successful ride request
+      gtmEvent('ride_request_submitted', {
+        pickup_location: data.pickupLocation,
+        destination_location: data.destinationLocation,
+        ride_type: data.rideType,
+        request_method: 'email'
+      });
     } catch (error) {
       console.error('Failed to send email notification:', error);
+      
+      // Track failed ride request
+      gtmEvent('ride_request_failed', {
+        pickup_location: data.pickupLocation,
+        destination_location: data.destinationLocation,
+        ride_type: data.rideType,
+        error: 'email_send_failed'
+      });
     }
 
     // Redirect based on ride type selection

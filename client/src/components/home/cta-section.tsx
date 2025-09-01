@@ -3,12 +3,19 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import { AuthModal } from "@/components/ui/auth-modal";
 import { useState } from "react";
+import { gtmEvent } from "@/components/integrations/gtm";
 
 export function CtaSection() {
   const { user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleFindRideClick = () => {
+    gtmEvent('cta_button_click', {
+      button_text: 'Find a Ride',
+      user_status: user ? 'logged_in' : 'guest',
+      button_location: 'cta_section'
+    });
+    
     if (!user) {
       setShowAuthModal(true);
       return;
@@ -16,6 +23,12 @@ export function CtaSection() {
   };
 
   const handleOfferRideClick = () => {
+    gtmEvent('cta_button_click', {
+      button_text: 'Offer a Ride',
+      user_status: user ? 'logged_in' : 'guest',
+      button_location: 'cta_section'
+    });
+    
     if (!user) {
       setShowAuthModal(true);
       return;

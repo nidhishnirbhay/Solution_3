@@ -28,45 +28,61 @@ export function GTMIntegration() {
     const containerId = settings.gtm.containerId;
 
     // Check if GTM is already loaded
-    if (window.dataLayer && document.querySelector(`script[src*="${containerId}"]`)) {
+    if (window.dataLayer && document.querySelector(`script[src*="googletagmanager.com/gtm.js"]`)) {
+      console.log('GTM already loaded, skipping initialization');
       return;
     }
 
-    // Initialize dataLayer
+    // Initialize dataLayer BEFORE GTM script
     window.dataLayer = window.dataLayer || [];
-    window.gtag = function() {
-      window.dataLayer.push(arguments);
-    };
+    
+    // GTM initialization function
+    window.dataLayer.push({
+      'gtm.start': new Date().getTime(),
+      event: 'gtm.js'
+    });
 
-    // Set initial config
-    window.gtag('js', new Date());
-    window.gtag('config', containerId);
-
-    // Create and inject GTM script
+    // Create and inject GTM script (proper GTM format)
     const script = document.createElement('script');
     script.async = true;
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${containerId}`;
+    script.src = `https://www.googletagmanager.com/gtm.js?id=${containerId}`;
     
     // Add script to head
     document.head.appendChild(script);
 
-    // Also inject the noscript iframe for users with JavaScript disabled
+    // Add noscript iframe for users with JavaScript disabled
     const noscript = document.createElement('noscript');
-    noscript.innerHTML = `<iframe src="https://www.googletagmanager.com/ns.html?id=${containerId}" height="0" width="0" style="display:none;visibility:hidden"></iframe>`;
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://www.googletagmanager.com/ns.html?id=${containerId}`;
+    iframe.height = '0';
+    iframe.width = '0';
+    iframe.style.display = 'none';
+    iframe.style.visibility = 'hidden';
+    noscript.appendChild(iframe);
+    
+    // Insert noscript as first child of body
     document.body.insertBefore(noscript, document.body.firstChild);
 
     console.log(`Google Tag Manager loaded with container ID: ${containerId}`);
+    console.log('GTM dataLayer initialized:', window.dataLayer);
+
+    // Send initial page view event
+    window.dataLayer.push({
+      event: 'page_view',
+      page_title: document.title,
+      page_location: window.location.href
+    });
 
     // Cleanup function
     return () => {
-      // Remove script if component unmounts
-      const existingScript = document.querySelector(`script[src*="${containerId}"]`);
+      // Remove GTM script if component unmounts
+      const existingScript = document.querySelector(`script[src*="googletagmanager.com/gtm.js"]`);
       if (existingScript) {
         existingScript.remove();
       }
       
       // Remove noscript iframe
-      const existingNoscript = document.querySelector('noscript iframe[src*="googletagmanager"]');
+      const existingNoscript = document.querySelector('noscript iframe[src*="googletagmanager.com/ns.html"]');
       if (existingNoscript?.parentElement) {
         existingNoscript.parentElement.remove();
       }
@@ -77,10 +93,47 @@ export function GTMIntegration() {
   return null;
 }
 
+// GTM Event Helper Functions
+export const gtmEvent = (eventName: string, parameters: Record<string, any> = {}) => {
+  if (typeof window !== 'undefined' && window.dataLayer) {
+    window.dataLayer.push({
+      event: eventName,
+      ...parameters
+    });
+    console.log('GTM Event sent:', eventName, parameters);
+  }
+};
+
+// Common event helpers
+export const gtmPageView = (pageName: string, additionalData: Record<string, any> = {}) => {
+  gtmEvent('page_view', {
+    page_title: pageName,
+    page_location: window.location.href,
+    ...additionalData
+  });
+};
+
+export const gtmUserAction = (action: string, category: string, label?: string, value?: number) => {
+  gtmEvent('user_action', {
+    action,
+    category,
+    label,
+    value
+  });
+};
+
+export const gtmConversion = (conversionType: string, conversionValue: number, additionalData: Record<string, any> = {}) => {
+  gtmEvent('conversion', {
+    conversion_type: conversionType,
+    conversion_value: conversionValue,
+    currency: 'INR',
+    ...additionalData
+  });
+};
+
 // Extend the Window interface to include GTM globals
 declare global {
   interface Window {
     dataLayer: any[];
-    gtag: (...args: any[]) => void;
   }
 }

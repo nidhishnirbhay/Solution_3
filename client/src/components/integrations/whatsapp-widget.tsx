@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { FaWhatsapp } from 'react-icons/fa';
+import { gtmEvent } from './gtm';
 
 interface WhatsAppSettings {
   enabled: boolean;
@@ -34,6 +35,14 @@ export function WhatsAppWidget() {
   const { phoneNumber, message, position } = settings.whatsapp;
 
   const handleOpenWhatsApp = () => {
+    // Track WhatsApp widget click in GTM
+    gtmEvent('whatsapp_widget_click', {
+      phone_number: phoneNumber,
+      message_preview: message.substring(0, 50),
+      widget_position: position,
+      click_source: 'whatsapp_widget'
+    });
+    
     console.log('WhatsApp button clicked!');
     console.log('Phone number:', phoneNumber);
     console.log('Message:', message);
