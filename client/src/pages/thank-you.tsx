@@ -3,9 +3,13 @@ import { Header } from "@/components/ui/header";
 import { Footer } from "@/components/ui/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { gtmEvent } from "@/components/integrations/gtm";
 import { CheckCircle, MapPin, Phone, Mail, ArrowLeft } from "lucide-react";
 
 export default function ThankYou() {
+  gtmEvent('2 Way Ride Form Submitted', {
+    page_location: window.location.href,
+  });
   return (
     <div className="flex flex-col min-h-screen">
       <Header />

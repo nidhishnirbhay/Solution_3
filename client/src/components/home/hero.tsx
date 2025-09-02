@@ -52,6 +52,8 @@ export function Hero() {
   });
 
   const onSubmit = async (data: SearchFormValues) => {
+
+    
     setIsSearching(true);
     
     // Track ride search event in GTM
@@ -78,7 +80,7 @@ export function Hero() {
         pickup_location: data.pickupLocation,
         destination_location: data.destinationLocation,
         ride_type: data.rideType,
-        request_method: 'email'
+        request_method: 'email Sent on OyeGaadi'
       });
     } catch (error) {
       console.error('Failed to send email notification:', error);

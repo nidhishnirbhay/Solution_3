@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { formatDateTimeForIndia } from "@/lib/utils";
+import { gtmEvent } from "@/components/integrations/gtm";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { AuthModal } from "@/components/ui/auth-modal";
@@ -70,12 +71,12 @@ export function RideCard({ ride }: { ride: RideProps }) {
     const now = new Date();
     const isPast = rideDate < now;
     
-    console.log(`Ride ${ride.id} (${ride.fromLocation} to ${ride.toLocation}):`, {
-      status: ride.status,
-      departureDate: rideDate.toLocaleString(),
-      isPastRide: isPast,
-      currentTime: now.toLocaleString()
-    });
+    // console.log(`Ride ${ride.id} (${ride.fromLocation} to ${ride.toLocation}):`, {
+    //   status: ride.status,
+    //   departureDate: rideDate.toLocaleString(),
+    //   isPastRide: isPast,
+    //   currentTime: now.toLocaleString()
+    // });
     
     return isPast;
   }, [ride.departureDate, ride.id, ride.fromLocation, ride.toLocation, ride.status]);
@@ -120,7 +121,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
           throw new Error("You need to be logged in to book a ride");
         }
         
-        console.log("Booking ride:", data);
+        // console.log("Booking ride:", data);
         const res = await apiRequest("POST", "/api/bookings", data);
         
         if (!res.ok) {
@@ -167,10 +168,10 @@ export function RideCard({ ride }: { ride: RideProps }) {
   
   const cancelRideMutation = useMutation({
     mutationFn: async (data: { id: number; reason: string }) => {
-      console.log("Sending ride cancellation request with data:", {
-        id: data.id,
-        cancellationReason: data.reason
-      });
+      // console.log("Sending ride cancellation request with data:", {
+      //   id: data.id,
+      //   cancellationReason: data.reason
+      // });
       
       // Validate the request data
       if (!data.id) {
@@ -228,7 +229,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
       }
       
       try {
-        console.log("Attempting to mark ride as completed:", id);
+        // console.log("Attempting to mark ride as completed:", id);
         const res = await apiRequest("PATCH", `/api/rides/${id}/complete`, {});
         
         if (!res.ok) {
@@ -316,7 +317,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
   
   // Handle mark ride as completed
   const handleCompleteRide = async () => {
-    console.log("🔴 EMERGENCY FIX 2.0: Marking ride as completed, ride ID:", ride.id);
+    // console.log("🔴 EMERGENCY FIX 2.0: Marking ride as completed, ride ID:", ride.id);
     
     try {
       // Check for necessary conditions
@@ -337,7 +338,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
       });
       
       // STEP 1: Mark ride as completed via API
-      console.log("STEP 1: Marking ride as completed via API...");
+      // console.log("STEP 1: Marking ride as completed via API...");
       
       // Make 3 attempts to mark the ride as completed
       let success = false;
@@ -346,7 +347,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
       
       for (let attempt = 1; attempt <= 3 && !success; attempt++) {
         try {
-          console.log(`API Attempt ${attempt} to mark ride ${ride.id} as completed`);
+          // console.log(`API Attempt ${attempt} to mark ride ${ride.id} as completed`);
           
           // Use direct fetch with emergency fixed endpoint
           const response = await fetch(`/api/rides/${ride.id}/mark-completed`, {
@@ -358,7 +359,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
           });
           
           lastResponse = await response.json();
-          console.log(`API Attempt ${attempt} response:`, lastResponse);
+          // console.log(`API Attempt ${attempt} response:`, lastResponse);
           
           if (!response.ok) {
             throw new Error(lastResponse.error || `Failed on attempt ${attempt}`);
@@ -367,7 +368,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
           // Check if the status was actually updated
           if (lastResponse.currentStatus === 'completed') {
             success = true;
-            console.log("Ride completion successful on attempt", attempt);
+            // console.log("Ride completion successful on attempt", attempt);
           } else {
             console.error(`API Attempt ${attempt}: Status not updated - reported as '${lastResponse.currentStatus}'`);
             if (attempt < 3) await new Promise(r => setTimeout(r, 500)); // Wait 500ms between attempts
@@ -381,7 +382,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
       
       // STEP 2: Also mark any related bookings as completed for redundancy
       try {
-        console.log("STEP 2: Updating all related bookings to 'completed' status...");
+        // console.log("STEP 2: Updating all related bookings to 'completed' status...");
         
         // Use the booking update endpoint for any bookings related to this ride
         const bookingsResponse = await fetch('/api/bookings/ride-bookings', {
@@ -394,11 +395,11 @@ export function RideCard({ ride }: { ride: RideProps }) {
           booking.rideId === ride.id && booking.status === 'confirmed'
         );
         
-        console.log(`Found ${relatedBookings.length} confirmed bookings to update for ride ${ride.id}`);
+        // console.log(`Found ${relatedBookings.length} confirmed bookings to update for ride ${ride.id}`);
         
         // Update each booking
         for (const booking of relatedBookings) {
-          console.log(`Updating booking ${booking.id} to completed status`);
+          // console.log(`Updating booking ${booking.id} to completed status`);
           await fetch(`/api/bookings/${booking.id}/status`, {
             method: 'PUT',
             headers: {
@@ -409,7 +410,7 @@ export function RideCard({ ride }: { ride: RideProps }) {
           });
         }
         
-        console.log("All related bookings updated successfully");
+        // console.log("All related bookings updated successfully");
       } catch (bookingError: any) {
         console.error("Error updating related bookings:", bookingError);
         // We'll continue even if this part fails
@@ -556,7 +557,20 @@ export function RideCard({ ride }: { ride: RideProps }) {
             ) : (
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button className="bg-primary hover:bg-primary/90">Book Now</Button>
+                  <Button className="bg-primary hover:bg-primary/90"
+                    onClick={() => {
+                      gtmEvent('book_now_clicked', {
+                        page_location: window.location.href,
+                        ride_id: ride.id,
+                        ride_from: ride.fromLocation,
+                        ride_to: ride.toLocation,
+                        ride_date: ride.departureDate,
+                        ride_price: ride.price,
+                        ride_driver: ride.driver?.fullName || 'Unknown',
+                      });
+                    }}
+
+                    >Book Now</Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
