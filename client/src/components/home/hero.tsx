@@ -104,10 +104,11 @@ export function Hero() {
     // Track ride search event in GTM
     gtmEvent('ride_search', {
       pickup_location: data.pickupLocation,
-      destination_location: data.destinationLocation,
+      destination_location:data.destinationLocation,
       ride_type: data.rideType,
       pickup_date: data.pickupDate,
-      search_source: 'hero_form'
+      search_source: 'hero_form',
+       ...utmParams,
     });
 
     // Send form data via email notification
