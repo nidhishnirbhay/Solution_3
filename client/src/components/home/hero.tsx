@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,50 @@ const searchSchema = z.object({
 type SearchFormValues = z.infer<typeof searchSchema>;
 
 export function Hero() {
+
+
+
+  type UTMParams = {
+    utm_id: string;
+    utm_source: string;
+    utm_term: string;
+    utm_content: string;
+    utm_campaign: string;
+    utm_medium: string;
+  };
+
+
+    const [utmParams, setUtmParams] = useState<UTMParams>({
+      utm_id: "",
+      utm_source: "",
+      utm_term: "",
+      utm_content: "",
+      utm_campaign: "",
+      utm_medium: "",
+    });
+
+    useEffect(() => {
+      const params = new URLSearchParams(window.location.search);
+
+      // ✅ Create a strongly-typed object, not Record<string, string>
+      const updatedParams: UTMParams = {
+        utm_id: params.get("utm_id") || localStorage.getItem("utm_id") || "",
+        utm_source: params.get("utm_source") || localStorage.getItem("utm_source") || "",
+        utm_term: params.get("utm_term") || localStorage.getItem("utm_term") || "",
+        utm_content: params.get("utm_content") || localStorage.getItem("utm_content") || "",
+        utm_campaign: params.get("utm_campaign") || localStorage.getItem("utm_campaign") || "",
+        utm_medium: params.get("utm_medium") || localStorage.getItem("utm_medium") || "",
+      };
+
+      // ✅ Save in localStorage for persistence
+      Object.entries(updatedParams).forEach(([key, value]) => {
+        if (value) localStorage.setItem(key, value);
+      });
+
+      setUtmParams(updatedParams);
+    }, []);
+
+  
   const [, navigate] = useLocation();
   const [isSearching, setIsSearching] = useState(false);
   
@@ -55,6 +99,7 @@ export function Hero() {
 
     
     setIsSearching(true);
+    
     
     // Track ride search event in GTM
     gtmEvent('ride_search', {
@@ -118,6 +163,8 @@ export function Hero() {
     setIsSearching(false);
   };
 
+  
+
   return (
     <section className="relative bg-gradient-to-r from-primary to-blue-500 py-16 md:py-24 text-white">
       <div className="container mx-auto px-4">
@@ -133,7 +180,16 @@ export function Hero() {
           <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 text-gray-800">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+
+                {/* ✅ Hidden UTM Fields */}
+
+                {Object.entries(utmParams).map(([key, value]) => (
+                  <input key={key} type="hidden" name={key} value={value as string} />
+                ))}
+                
                 <div className="flex flex-col md:flex-row gap-4">
+
+        
                   <FormField
                     control={form.control}
                     name="pickupLocation"
