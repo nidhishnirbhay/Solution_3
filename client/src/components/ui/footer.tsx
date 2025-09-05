@@ -191,8 +191,49 @@ export function Footer() {
         </div>
 
         <div className="border-t border-neutral-700 mt-8 pt-8 text-center text-neutral-400 text-sm">
-          <p>&copy; {new Date().getFullYear()} OyeGaadi. All rights reserved.</p>
+          {/* Heading */}
+          <h3 className="text-lg font-semibold text-white mb-4">
+            Download OyeGaadi App & Book Your Ride Now
+          </h3>
+
+          <div className="flex justify-center gap-8 mb-4">
+            {/* User App Button */}
+            <div className="flex flex-col items-center">
+              <a
+                href="https://play.google.com/store/apps/details?id=com.cabs.oyegaadi.user&hl=en_IN"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
+                  alt="Get OyeGaadi User App on Google Play"
+                  className="h-12"
+                />
+              </a>
+              <span className="mt-2 text-xs text-neutral-300">User App</span>
+            </div>
+
+            {/* Driver App Button */}
+            <div className="flex flex-col items-center">
+              <a
+                href="https://play.google.com/store/apps/details?id=com.cabs.oyegaadi.driver&hl=en_IN"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
+                  alt="Get OyeGaadi Driver App on Google Play"
+                  className="h-12"
+                />
+              </a>
+              <span className="mt-2 text-xs text-neutral-300">Driver App</span>
+            </div>
+          </div>
+
+          <p>&copy; {new Date().getFullYear()} OyeGaadi. All Rights Reserved.</p>
         </div>
+
+
       </div>
     </footer>
   );

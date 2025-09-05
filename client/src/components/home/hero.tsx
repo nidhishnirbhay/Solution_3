@@ -47,6 +47,8 @@ export function Hero() {
     utm_content: string;
     utm_campaign: string;
     utm_medium: string;
+    gclid?: string;   // ✅ optional
+    fbclid?: string;  // ✅ optional
   };
 
 
@@ -57,6 +59,8 @@ export function Hero() {
       utm_content: "",
       utm_campaign: "",
       utm_medium: "",
+      gclid: "",   // ✅ optional
+      fbclid: ""  // ✅ optional
     });
 
     useEffect(() => {
@@ -70,6 +74,8 @@ export function Hero() {
         utm_content: params.get("utm_content") || localStorage.getItem("utm_content") || "",
         utm_campaign: params.get("utm_campaign") || localStorage.getItem("utm_campaign") || "",
         utm_medium: params.get("utm_medium") || localStorage.getItem("utm_medium") || "",
+          gclid: params.get("gclid") || localStorage.getItem("gclid") || "",
+          fbclid: params.get("fbclid") || localStorage.getItem("fbclid") || "",
       };
 
       // ✅ Save in localStorage for persistence
@@ -99,7 +105,35 @@ export function Hero() {
 
     
     setIsSearching(true);
-    
+    const storedUTM = {
+      utm_id: localStorage.getItem("utm_id") || "",
+      utm_source: localStorage.getItem("utm_source") || "",
+      utm_term: localStorage.getItem("utm_term") || "",
+      utm_content: localStorage.getItem("utm_content") || "",
+      utm_campaign: localStorage.getItem("utm_campaign") || "",
+      utm_medium: localStorage.getItem("utm_medium") || "",
+      gclid:localStorage.getItem("gclid") || "",
+      fbclid:localStorage.getItem("fbclid") || "",
+    };
+
+
+    // ✅ Push to Google Sheets Webhook
+    try {
+      await fetch("https://script.google.com/macros/s/AKfycbwrGk_e2LbiWEB-GdSn0VUDlF8ZJX7z0qn5IuPVMEE-z7mIdNTAuSPSdIRTkhh3VYxcsg/exec", {
+        method: "POST",
+        mode: "no-cors", // 👈 if you don't need to read the response
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...data,
+          ...storedUTM, // include UTM data if you collected it
+        }),
+      });
+      console.log("Form data sent to Google Sheets");
+    } catch (err) {
+      console.error("Failed to send data to Google Sheets:", err);
+    }
     
     // Track ride search event in GTM
     gtmEvent('ride_search', {

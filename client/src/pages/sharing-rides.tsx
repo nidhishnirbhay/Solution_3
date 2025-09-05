@@ -180,11 +180,14 @@ export default function SharingRides() {
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               No sharing rides found
             </h3>
-            <p className="text-gray-500 mb-6">
+            <p className="text-gray-500">
               {searchParams.pickup && searchParams.destination 
                 ? `No shared rides available from ${searchParams.pickup} to ${searchParams.destination} on the selected date.`
                 : "Try searching with different locations and dates to find available shared rides."
               }
+            </p>
+            <p className="text-gray-500">
+              We will contact you soon with available options.
             </p>
             
             {/* Ride request option */}

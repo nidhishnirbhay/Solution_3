@@ -168,13 +168,16 @@ export default function OneWayRides() {
           <div className="text-center py-12">
             <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No one-way rides found
+              No one-way rides found 
             </h3>
             <p className="text-gray-500 mb-6">
               {searchParams.pickup && searchParams.destination 
                 ? `No rides available from ${searchParams.pickup} to ${searchParams.destination} on the selected date.`
                 : "Try searching with different locations and dates to find available rides."
               }
+              <p className="text-gray-500 mb-6">
+                We will contact you soon with available options.
+              </p>
             </p>
             
             {/* Ride request option */}
