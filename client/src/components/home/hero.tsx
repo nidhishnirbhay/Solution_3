@@ -100,6 +100,7 @@ export function Hero() {
       rideType: undefined as any,
     },
   });
+  const { formState: { errors } } = form;
 
   const onSubmit = async (data: SearchFormValues) => {
 
@@ -235,10 +236,17 @@ export function Hero() {
                           <FormControl>
                             <Input
                               placeholder="Pickup Location"
-                              className="pl-10 text-black bg-white"
+                              className={cn(
+                                "pl-10 text-black bg-white",
+                                errors.pickupLocation && "border-red-500 focus:ring-red-500"
+                              )}
                               {...field}
                             />
                           </FormControl>
+
+                          {errors.pickupLocation && (
+                            <p className="text-red-500 text-xs mt-1">{errors.pickupLocation.message}</p>
+                          )}
                         </div>
                       </FormItem>
                     )}
@@ -254,10 +262,17 @@ export function Hero() {
                           <FormControl>
                             <Input
                               placeholder="Destination Location"
-                              className="pl-10 text-black bg-white"
+                              className={cn(
+                                "pl-10 text-black bg-white",
+                                errors.pickupLocation && "border-red-500 focus:ring-red-500"
+                              )}
                               {...field}
                             />
                           </FormControl>
+                          {errors.destinationLocation && (
+                            <p className="text-red-500 text-xs mt-1">{errors.destinationLocation.message}</p>
+                          )}
+                          
                         </div>
                       </FormItem>
                     )}
@@ -296,11 +311,18 @@ export function Hero() {
                             <Input
                               type="tel"
                               placeholder="Mobile Number"
-                              className="pl-10 text-black bg-white"
+                              className={cn(
+                                "pl-10 text-black bg-white",
+                                errors.mobileNumber && "border-red-500 focus:ring-red-500"
+                              )}
+
                               maxLength={10}
                               {...field}
                             />
                           </FormControl>
+                          {errors.mobileNumber && (
+                            <p className="text-red-500 text-xs mt-1">{errors.mobileNumber.message}</p>
+                          )}
                         </div>
                       </FormItem>
                     )}
@@ -315,7 +337,8 @@ export function Hero() {
                       <FormItem>
                         <Select value={field.value} onValueChange={field.onChange}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger
+                               className={cn(errors.rideType && "border-red-500 focus:ring-red-500")}>
                               <SelectValue placeholder="Choose your preferred Ride" />
                             </SelectTrigger>
                           </FormControl>
@@ -325,6 +348,10 @@ export function Hero() {
                             <SelectItem value="Sharing Ride">Sharing Ride</SelectItem>
                           </SelectContent>
                         </Select>
+
+                        {errors.rideType && (
+                          <p className="text-red-500 text-xs mt-1">{errors.rideType.message}</p>
+                        )}
                       </FormItem>
                     )}
                   />

@@ -191,11 +191,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-neutral-700 mt-8 pt-8 text-center text-neutral-400 text-sm">
-          {/* Heading */}
-          <h3 className="text-lg font-semibold text-white mb-4">
-            Download OyeGaadi App & Book Your Ride Now
-          </h3>
-
+      
           <div className="flex justify-center gap-8 mb-4">
             {/* User App Button */}
             <div className="flex flex-col items-center">
