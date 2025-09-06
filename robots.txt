@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://oyegaadi.com/sitemap.xml

@@ -235,7 +235,7 @@ export function Hero() {
                           <MapPin className="absolute left-3 top-3 h-4 w-4 text-neutral-500" />
                           <FormControl>
                             <Input
-                              placeholder="Pickup Location"
+                              placeholder="Pickup City"
                               className={cn(
                                 "pl-10 text-black bg-white",
                                 errors.pickupLocation && "border-red-500 focus:ring-red-500"
@@ -261,7 +261,7 @@ export function Hero() {
                           <MapPin className="absolute left-3 top-3 h-4 w-4 text-neutral-500" />
                           <FormControl>
                             <Input
-                              placeholder="Destination Location"
+                              placeholder="Destination City"
                               className={cn(
                                 "pl-10 text-black bg-white",
                                 errors.pickupLocation && "border-red-500 focus:ring-red-500"

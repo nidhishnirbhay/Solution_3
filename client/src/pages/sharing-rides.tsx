@@ -10,6 +10,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import Head from "next/head";
+
 
 interface Ride {
   id: number;
@@ -81,7 +83,15 @@ export default function SharingRides() {
   if (error) {
     return (
       <div className="flex flex-col min-h-screen">
+        <Head>
+          <title>Sharing Rides Online | OyeGaadi - Split Your Travel Costs</title>
+          <meta
+            name="description"
+            content="Find and book sharing rides online with OyeGaadi. Save money, reduce carbon footprint, and meet fellow travelers."
+          />
+        </Head>
         <Header />
+        
         <main className="flex-grow container mx-auto px-4 py-8">
           <Alert variant="destructive">
             <AlertTitle>Error</AlertTitle>
@@ -97,6 +107,13 @@ export default function SharingRides() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <Head>
+        <title>Sharing Rides Online | OyeGaadi - Split Your Travel Costs</title>
+        <meta
+          name="description"
+          content="Find and book sharing rides online with OyeGaadi. Save money, reduce carbon footprint, and meet fellow travelers."
+        />
+      </Head>
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="mb-8">

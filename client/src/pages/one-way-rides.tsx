@@ -10,6 +10,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import Head from "next/head";
+
 
 interface Ride {
   id: number;
@@ -81,6 +83,18 @@ export default function OneWayRides() {
   if (error) {
     return (
       <div className="flex flex-col min-h-screen">
+        <Head>
+          <title>Book One-Way Rides Online | OyeGaadi - Safe & Affordable</title>
+          <meta
+            name="description"
+            content="Book convenient one-way rides online with OyeGaadi. Travel safely, save money, and connect with reliable drivers."
+          />
+          <meta property="og:title" content="Book One-Way Rides Online | OyeGaadi" />
+          <meta
+            property="og:description"
+            content="Find and book one-way rides online with OyeGaadi. Safe, reliable, and affordable travel options."
+          />
+        </Head>
         <Header />
         <main className="flex-grow container mx-auto px-4 py-8">
           <Alert variant="destructive">
@@ -97,6 +111,18 @@ export default function OneWayRides() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <Head>
+        <title>Book One-Way Rides Online | OyeGaadi - Safe & Affordable</title>
+        <meta
+          name="description"
+          content="Book convenient one-way rides online with OyeGaadi. Travel safely, save money, and connect with reliable drivers."
+        />
+        <meta property="og:title" content="Book One-Way Rides Online | OyeGaadi" />
+        <meta
+          property="og:description"
+          content="Find and book one-way rides online with OyeGaadi. Safe, reliable, and affordable travel options."
+        />
+      </Head>
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="mb-8">

@@ -203,6 +203,8 @@ export function Footer() {
                 <img
                   src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
                   alt="Get OyeGaadi User App on Google Play"
+                  loading="lazy"
+
                   className="h-12"
                 />
               </a>
@@ -219,6 +221,7 @@ export function Footer() {
                 <img
                   src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
                   alt="Get OyeGaadi Driver App on Google Play"
+                  loading="lazy"
                   className="h-12"
                 />
               </a>
