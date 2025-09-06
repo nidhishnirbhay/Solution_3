@@ -18,6 +18,7 @@ export default defineConfig({
       ],
       changefreq: 'weekly',
       priority: 0.7,
+      outDir: path.resolve(import.meta.dirname, 'dist/public'), 
     }),
     runtimeErrorOverlay(),
     themePlugin(),
